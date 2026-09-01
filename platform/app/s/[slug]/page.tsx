@@ -1,0 +1,4 @@
+import type {Metadata} from 'next';import {getPublicSurvey} from '@/lib/data';import {SurveyRenderer} from '@/components/survey/SurveyRenderer';
+export const dynamic='force-dynamic';
+export async function generateMetadata({params}:{params:Promise<{slug:string}>}):Promise<Metadata>{const {slug}=await params;const data=await getPublicSurvey(slug);return {title:data?`${data.survey.name} お客様アンケート`:'アンケート',robots:{index:false,follow:false}}}
+export default async function PublicSurvey({params}:{params:Promise<{slug:string}>}){const {slug}=await params;const data=await getPublicSurvey(slug);if(!data)return <main className="survey-phone" style={{padding:24}}><section className="card" style={{padding:24}}><h1>アンケート</h1><p>現在このアンケートは公開されていません。</p></section></main>;return <SurveyRenderer name={data.survey.name} slug={slug} version={data.version}/>}

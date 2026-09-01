@@ -1,0 +1,2 @@
+import { LoginForm } from '@/components/admin/LoginForm'; import { isSupabaseConfigured } from '@/lib/env';
+export default function Login(){return <main className="shell" style={{maxWidth:440,padding:'10vh 0'}}><section className="card stack" style={{padding:28}}><div><p className="muted">Questionnaire Platform</p><h1>管理画面ログイン</h1></div>{!isSupabaseConfigured&&<p className="error">Supabase環境変数を設定してください。</p>}<LoginForm disabled={!isSupabaseConfigured}/></section></main>}
