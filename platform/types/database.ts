@@ -12,6 +12,9 @@ export interface SurveyConfig {
   themeId?: SurveyThemeId; secondaryColor?: string; heroBackgroundType?: HeroBackgroundType;
   heroTitle?: string; heroSubtitle?: string; logoMode?: BuilderLogoMode;
   cardRadius?: number; buttonLabel?: string;
+  accentColor?: string; heroOverlayColor?: string; heroTextColor?: string;
+  buttonBackground?: string; buttonTextColor?: string; cardBackground?: string;
+  logoBadgeBackground?: string;
 }
 export interface QuestionOption { id?: string; label: string; value: string; sortOrder: number }
 export interface SurveyQuestion {
