@@ -1,5 +1,6 @@
-import type { BuilderContext, BuilderStep } from '@/types/database';
+import type { BuilderBusinessType, BuilderContext, BuilderStep } from '@/types/database';
 import { cloneTemplate, templateForBusiness } from './templates';
+import { getThemeTemplate, themeIdForBusiness } from '@/lib/theme/templates';
 
 export interface BuilderEngine {
   getNextStep(context: BuilderContext): BuilderStep | null;
@@ -15,7 +16,7 @@ const purposeOptions = [
 
 export class RuleBasedBuilderEngine implements BuilderEngine {
   getNextStep(c: BuilderContext): BuilderStep | null {
-    if (!c.purpose) return { id: 'purpose', question: 'これからアンケートを作成します。まず、どのような目的で使用するアンケートですか？', reason: '目的に合う質問構成と確認項目を選ぶためです。', required: true, inputType: 'choice', options: purposeOptions.map(([value, label]) => ({ value, label })) };
+    if (!c.purpose) { const descriptions:Record<string,string>={satisfaction:'お客様の満足度を確認します',improvement:'改善点やご要望を収集します',patient:'診療内容やスタッフ対応を確認します',google_review:'回答後に口コミページをご案内します',other:'目的を自由に設定します'}; return { id: 'purpose', question: 'これからアンケートを作成します。まず、どのような目的で使用するアンケートですか？', reason: '目的に合う質問構成と確認項目を選ぶためです。', required: true, inputType: 'choice', options: purposeOptions.map(([value, label]) => ({ value, label, description:descriptions[value] })) }; }
     if (c.purpose === 'other' && !c.purposeDetail) return { id: 'purposeDetail', question: 'どのような目的か、ひとことで教えてください。', reason: '目的に沿う構成を確認するためです。', required: true, inputType: 'text' };
     if (!c.storeName) return { id: 'storeName', question: 'どの店舗・医院のアンケートですか？', reason: 'アンケートの表示名と確認画面に使用します。', required: true, inputType: 'text' };
     if (!c.businessType) return { id: 'businessType', question: '業種を教えてください。', reason: '業種別のおすすめ質問を提案するためです。', required: true, inputType: 'choice', options: [['clinic','クリニック'],['restaurant','飲食店'],['salon','美容室'],['other','その他']].map(([value,label])=>({value,label})) };
@@ -52,9 +53,9 @@ export class RuleBasedBuilderEngine implements BuilderEngine {
 
   applyAnswer(context: BuilderContext, stepId: string, value: unknown): BuilderContext {
     const next = { ...context, [stepId]: value } as BuilderContext;
-    if (stepId === 'businessType' && context.businessType !== value) { delete next.template; delete next.questions; delete next.questionsConfirmed; }
+    if (stepId === 'businessType' && context.businessType !== value) { delete next.template; delete next.questions; delete next.questionsConfirmed; const themeId=themeIdForBusiness(value as BuilderBusinessType);const theme=getThemeTemplate(themeId);next.themeId=themeId;next.mainColor=theme.config.primaryColor;next.introText=theme.config.introText;next.completionText=theme.config.completionText; }
     if (stepId === 'template') {
-      if (value !== 'custom') next.questions = cloneTemplate(value as Exclude<BuilderContext['template'], 'custom' | undefined>);
+      if (value !== 'custom') { next.questions = cloneTemplate(value as Exclude<BuilderContext['template'], 'custom' | undefined>); const themeId=themeIdForBusiness(next.businessType??'other');const theme=getThemeTemplate(themeId);next.themeId=themeId;next.mainColor=theme.config.primaryColor;next.introText=theme.config.introText;next.completionText=theme.config.completionText; }
       delete next.questionsConfirmed;
     }
     if (stepId === 'questions') next.questions = [{ id: crypto.randomUUID(), type: 'text', title: String(value), description: '', required: true, sortOrder: 0, settings: {}, options: [] }];

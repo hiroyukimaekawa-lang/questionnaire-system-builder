@@ -1,12 +1,17 @@
 export type Role = 'admin' | 'sales';
 export type SurveyStatus = 'draft' | 'published' | 'unpublished' | 'archived';
 export type QuestionType = 'single_choice' | 'multiple_choice' | 'rating_10' | 'textarea' | 'text';
+export type SurveyThemeId = 'clinic-clean' | 'restaurant-clean' | 'salon-clean';
+export type HeroBackgroundType = 'solid' | 'soft-gradient';
 
 export interface SurveyConfig {
   title: string; description: string; introText: string; anonymousText: string;
   completionText: string; submitLabel: string; primaryColor: string;
   backgroundColor: string; logoUrl: string | null; iconUrl: string | null;
   googleReviewUrl: string | null;
+  themeId?: SurveyThemeId; secondaryColor?: string; heroBackgroundType?: HeroBackgroundType;
+  heroTitle?: string; heroSubtitle?: string; logoMode?: BuilderLogoMode;
+  cardRadius?: number; buttonLabel?: string;
 }
 export interface QuestionOption { id?: string; label: string; value: string; sortOrder: number }
 export interface SurveyQuestion {
@@ -41,6 +46,7 @@ export interface BuilderContext {
   googleReviewEnabled?: boolean;
   googleReviewUrl?: string | null;
   completionText?: string;
+  themeId?: SurveyThemeId;
   sourceSurveyId?: string;
 }
 

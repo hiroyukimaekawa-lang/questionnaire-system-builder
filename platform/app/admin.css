@@ -1,0 +1,575 @@
+.sr-only{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0}.crm-shell{display:grid;grid-template-columns:264px minmax(0,1fr);min-height:100vh;background:#f4f7f9}.crm-sidebar{position:sticky;top:0;display:flex;height:100vh;flex-direction:column;padding:22px 16px;border-right:1px solid #e3e8ed;background:#fff}.sidebar-brand{display:flex;align-items:center;gap:11px;padding:0 8px 22px}.sidebar-brand-mark{display:grid;width:38px;height:38px;place-items:center;border-radius:11px;background:#315f67;color:#fff;font-size:18px;font-weight:800}.sidebar-brand>div{display:grid}.sidebar-brand strong{font-size:15px}.sidebar-brand small{color:#7b8b93;font-size:11px}.sidebar-create{display:flex;min-height:48px;align-items:center;justify-content:center;gap:8px;margin-bottom:20px;border-radius:12px;background:#315f67;color:#fff;font-weight:750;text-decoration:none;box-shadow:0 8px 18px rgba(49,95,103,.2)}.sidebar-nav{display:grid;gap:4px}.sidebar-nav>p,.sidebar-recent>p{margin:13px 10px 5px;color:#98a5ab;font-size:10px;font-weight:800;letter-spacing:.1em;text-transform:uppercase}.sidebar-nav>a,.sidebar-disabled{display:flex;min-height:42px;align-items:center;gap:11px;padding:9px 11px;border-radius:10px;color:#3c4d54;font-size:14px;font-weight:650;text-decoration:none}.sidebar-nav>a:hover{background:#f0f5f5;color:#315f67}.sidebar-nav>a>span,.sidebar-disabled>span{width:20px;color:#6f848b;text-align:center}.sidebar-nav em{min-width:24px;margin-left:auto;padding:2px 7px;border-radius:999px;background:#edf2f3;color:#60747b;font-size:11px;font-style:normal;text-align:center}.sidebar-disabled{color:#a2adb2}.sidebar-disabled small{margin-left:auto;font-size:9px}.sidebar-recent{margin-top:auto;padding-top:18px;border-top:1px solid #edf0f2}.sidebar-recent>a{display:flex;align-items:center;gap:9px;min-height:34px;padding:5px 10px;color:#596a71;font-size:12px;text-decoration:none}.sidebar-recent>a>span:last-child{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.mini-status{width:7px;height:7px;flex:0 0 auto;border-radius:50%;background:#94a3b8}.mini-status.published{background:#35a66f}.crm-workspace{min-width:0}.crm-topbar{display:flex;min-height:64px;align-items:center;justify-content:flex-end;gap:18px;padding:10px 28px;border-bottom:1px solid #e2e8ec;background:rgba(255,255,255,.9)}.crm-topbar>div{display:grid;text-align:right}.crm-topbar span{color:#8a979c;font-size:10px}.crm-topbar strong{font-size:13px}.topbar-logout{min-height:36px;padding:7px 12px;border:1px solid #dce3e7;border-radius:9px;background:#fff;color:#53656c;cursor:pointer}.crm-main{width:min(1440px,100%);margin:auto;padding:30px}.crm-dashboard{display:grid;gap:25px}.dashboard-heading{display:flex;align-items:flex-end;justify-content:space-between;gap:20px}.dashboard-heading p{margin:0 0 5px;color:#648087;font-size:12px;font-weight:800}.dashboard-heading h1{margin:0;font-size:30px;letter-spacing:-.03em}.dashboard-heading span{display:block;margin-top:8px;color:#718188}.dashboard-create{min-height:46px}.status-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:14px}.status-card{display:grid;gap:13px;padding:18px;border:1px solid #e0e7ea;border-radius:15px;background:#fff;color:var(--ink);text-decoration:none;box-shadow:0 5px 20px rgba(25,48,57,.045)}.status-card>div{display:flex;align-items:flex-start;justify-content:space-between}.status-card span{color:#65767d;font-size:13px;font-weight:700}.status-card strong{font-size:30px;line-height:1}.status-card p{margin:0;color:#829096;font-size:12px}.status-card small{font-weight:700}.tone-amber small{color:#a56f21}.tone-slate small{color:#657886}.tone-green small{color:#27835b}.tone-blue small{color:#3479a6}.list-heading{display:flex;align-items:flex-end;justify-content:space-between;gap:18px}.list-heading h2{margin:0;font-size:20px}.list-heading p{margin:5px 0 0;color:#819096;font-size:12px}.crm-filters{display:flex;align-items:center;gap:8px;flex-wrap:wrap}.crm-filters input,.crm-filters select{min-height:40px;border:1px solid #d4dde1;border-radius:9px;background:#fff;padding:8px 11px;color:#43545b}.crm-filters input{width:210px}.filter-submit{min-height:40px;padding:8px 14px;border:0;border-radius:9px;background:#536b73;color:#fff;font-weight:700;cursor:pointer}.filter-reset{padding:8px;color:#65777e;font-size:12px}.crm-list-card{overflow:visible;border:1px solid #dfe6e9;border-radius:15px;background:#fff;box-shadow:0 7px 26px rgba(25,48,57,.05)}.crm-table-scroll{overflow:visible}.crm-table{min-width:0}.crm-table th{padding:13px 15px;background:#f7f9fa;color:#75858b;font-size:11px;font-weight:800;letter-spacing:.03em}.crm-table td{padding:15px;color:#4a5b62;font-size:13px;vertical-align:middle}.crm-table td:first-child strong{display:block;color:#26383f;font-size:14px}.crm-table td:first-child small{display:block;margin-top:4px;color:#97a3a8}.status-badge{display:inline-flex;align-items:center;gap:5px;padding:5px 9px;border-radius:999px;font-size:11px;font-weight:800}.status-badge:before{content:'';width:6px;height:6px;border-radius:50%;background:currentColor}.status-badge.published{background:#e8f7ef;color:#267c56}.status-badge.draft{background:#eef2f5;color:#5b6d77}.status-badge.unpublished{background:#f4eff7;color:#765986}.status-badge.in_progress{background:#fff4dc;color:#9a681d}.response-count{color:#3479a6;font-weight:750;text-decoration:none}.row-actions{position:relative}.row-actions summary{display:inline-flex;min-height:34px;align-items:center;padding:6px 12px;border:1px solid #d5dfe2;border-radius:8px;background:#fff;color:#43565d;font-weight:700;cursor:pointer;list-style:none}.row-actions summary::-webkit-details-marker{display:none}.row-actions[open]>div{position:absolute;right:0;z-index:12;display:grid;width:180px;margin-top:5px;padding:7px;border:1px solid #dfe5e7;border-radius:11px;background:#fff;box-shadow:0 14px 36px rgba(23,39,46,.16)}.row-actions a,.link-action{display:block;width:100%;min-height:36px;padding:9px;border:0;border-radius:7px;background:transparent;color:#40545c;font-size:12px;text-align:left;text-decoration:none;cursor:pointer}.row-actions a:hover,.link-action:hover{background:#f1f5f6}.danger-link{color:#a53e3e}.empty-state{display:grid;justify-items:center;padding:55px 20px;text-align:center}.empty-state>span{font-size:28px;color:#9aabb1}.empty-state h3{margin:12px 0 5px}.empty-state p{margin:0 0 18px;color:#7c8d93}.admin-form-card{padding:22px}.form-kicker{margin:0;color:#648087;font-size:11px;font-weight:800;text-transform:uppercase}.admin-form-card h2{margin:4px 0}.theme-picker{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:9px;border:0;padding:0}.theme-picker legend{grid-column:1/-1;margin-bottom:3px;font-weight:700}.theme-option{display:flex;min-height:72px;align-items:center;gap:10px;padding:11px;border:1px solid #d9e1e4;border-radius:11px;cursor:pointer}.theme-option.selected{border-color:#5e969e;background:#f2f8f8;box-shadow:0 0 0 2px rgba(94,150,158,.1)}.theme-option>input{position:absolute;opacity:0}.theme-swatch{width:25px;height:42px;flex:0 0 auto;border-radius:8px}.theme-option>span:last-child{display:grid;gap:3px}.theme-option strong{font-size:12px}.theme-option small{color:#7a898f;font-size:10px;line-height:1.4}.theme-color-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px}
+@media(max-width:1100px){.status-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.list-heading{align-items:flex-start;flex-direction:column}.crm-filters{width:100%}}
+@media(max-width:900px){.crm-shell{grid-template-columns:1fr}.crm-sidebar{position:relative;height:auto;padding:12px 16px;border-right:0;border-bottom:1px solid #e3e8ed}.sidebar-brand{display:none}.sidebar-create{margin-bottom:10px}.sidebar-nav{display:flex;overflow-x:auto;padding-bottom:3px}.sidebar-nav>p,.sidebar-disabled,.sidebar-recent{display:none}.sidebar-nav>a{flex:0 0 auto}.sidebar-nav em{margin-left:5px}.crm-topbar{display:none}.crm-main{padding:22px 18px}}
+@media(max-width:680px){.dashboard-heading{align-items:flex-start;flex-direction:column}.dashboard-create{width:100%}.status-grid{grid-template-columns:repeat(2,minmax(0,1fr));gap:9px}.status-card{padding:14px}.status-card strong{font-size:25px}.crm-filters{display:grid;grid-template-columns:1fr 1fr}.crm-filters label:first-child{grid-column:1/-1}.crm-filters input,.crm-filters select{width:100%}.crm-table{min-width:0}.crm-table thead{display:none}.crm-table,.crm-table tbody,.crm-table tr,.crm-table td{display:block;width:100%}.crm-table tr{display:grid;grid-template-columns:1fr 1fr;gap:10px;padding:16px;border-bottom:1px solid #e5eaed}.crm-table td{display:grid;gap:3px;padding:0;border:0;white-space:normal}.crm-table td:before{content:attr(data-label);color:#93a0a5;font-size:10px;font-weight:700}.crm-table td:first-child,.crm-table td:last-child{grid-column:1/-1}.row-actions summary{width:100%;justify-content:center}.row-actions[open]>div{position:static;width:100%}.theme-picker,.theme-color-grid{grid-template-columns:1fr}.crm-main{padding:18px 12px}.dashboard-heading h1{font-size:26px}}
+
+/* Survey list actions and accessible interaction states. */
+.in-progress-row {
+  background: #fffdf8;
+}
+
+.table-primary-action {
+  display: inline-flex;
+  min-height: 38px;
+  align-items: center;
+  justify-content: center;
+  padding: 8px 12px;
+  border-radius: 9px;
+  background: #315f67;
+  color: #fff;
+  font-size: 12px;
+  font-weight: 750;
+  text-decoration: none;
+}
+
+.table-primary-action:hover {
+  background: #274e55;
+}
+
+.mini-status.draft,
+.mini-status.unpublished {
+  background: #94a3b8;
+}
+
+.mini-status.in_progress {
+  background: #d89b35;
+}
+
+.sidebar-create:focus-visible,
+.sidebar-nav a:focus-visible,
+.status-card:focus-visible,
+.table-primary-action:focus-visible,
+.row-actions summary:focus-visible,
+.crm-filters input:focus-visible,
+.crm-filters select:focus-visible,
+.filter-submit:focus-visible,
+.topbar-logout:focus-visible {
+  outline: 3px solid rgba(49, 95, 103, 0.3);
+  outline-offset: 2px;
+}
+
+@media (max-width: 680px) {
+  .crm-sidebar {
+    padding-inline: 12px;
+  }
+
+  .sidebar-create,
+  .sidebar-nav > a,
+  .filter-submit,
+  .filter-reset,
+  .table-primary-action,
+  .row-actions summary {
+    min-height: 44px;
+  }
+
+  .crm-filters .filter-submit,
+  .crm-filters .filter-reset {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .table-primary-action {
+    width: 100%;
+  }
+}
+
+@media (max-width: 430px) {
+  .status-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .crm-filters {
+    grid-template-columns: 1fr;
+  }
+
+  .crm-filters label:first-child {
+    grid-column: auto;
+  }
+
+  .crm-table tr {
+    grid-template-columns: 1fr;
+  }
+
+  .crm-table td:first-child,
+  .crm-table td:last-child {
+    grid-column: auto;
+  }
+}
+
+/* CRM layout hardening: keep the desktop rail and prevent page-level overflow. */
+html,
+body {
+  max-width: 100%;
+}
+
+.crm-shell {
+  grid-template-columns: 252px minmax(0, 1fr);
+  height: 100vh;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.crm-sidebar {
+  z-index: 30;
+  width: 252px;
+  min-width: 0;
+  overflow-y: auto;
+  box-shadow: 1px 0 0 #e3e8ed;
+}
+
+.sidebar-brand strong {
+  font-size: 13px;
+}
+
+.sidebar-menu-toggle {
+  display: none;
+  width: 44px;
+  height: 44px;
+  margin-left: auto;
+  border: 1px solid #d7e0e3;
+  border-radius: 10px;
+  background: #fff;
+  color: #315f67;
+  cursor: pointer;
+}
+
+.sidebar-nav > a.active {
+  background: #eaf2f2;
+  color: #234f57;
+  box-shadow: inset 3px 0 #315f67;
+}
+
+.sidebar-nav > a.active > span {
+  color: #315f67;
+}
+
+.crm-workspace {
+  display: grid;
+  min-width: 0;
+  height: 100vh;
+  grid-template-rows: auto minmax(0, 1fr);
+  overflow: hidden;
+}
+
+.crm-topbar {
+  position: relative;
+  z-index: 20;
+  min-height: 66px;
+  padding-inline: 32px;
+  box-shadow: 0 1px 8px rgba(25, 48, 57, 0.04);
+}
+
+.topbar-identity {
+  display: flex !important;
+  align-items: center;
+  gap: 10px;
+  text-align: left !important;
+}
+
+.topbar-identity > span:last-child {
+  display: grid;
+}
+
+.topbar-identity small {
+  color: #7a8a90;
+  font-size: 11px;
+}
+
+.topbar-avatar {
+  display: grid;
+  width: 36px;
+  height: 36px;
+  place-items: center;
+  border-radius: 50%;
+  background: #e7f0f1;
+  color: #315f67 !important;
+  font-size: 13px !important;
+  font-weight: 800;
+}
+
+.crm-main {
+  width: 100%;
+  min-width: 0;
+  margin: 0;
+  padding: 28px 32px;
+  overflow-x: hidden;
+  overflow-y: auto;
+}
+
+.crm-main-inner {
+  width: 100%;
+  max-width: 1440px;
+  margin: 0 auto;
+}
+
+.crm-dashboard {
+  gap: 20px;
+}
+
+.status-card {
+  min-height: 126px;
+  gap: 9px;
+  padding: 15px 16px;
+}
+
+.status-card strong {
+  font-size: 27px;
+}
+
+.list-heading {
+  align-items: center;
+}
+
+.crm-filters {
+  display: grid;
+  min-width: 0;
+  grid-template-columns: minmax(180px, 1fr) minmax(130px, auto) minmax(130px, auto) auto auto;
+  flex: 1;
+  justify-content: end;
+}
+
+.crm-filters label,
+.crm-filters input,
+.crm-filters select {
+  min-width: 0;
+  width: 100%;
+}
+
+.filter-reset {
+  display: inline-flex;
+  min-height: 40px;
+  align-items: center;
+  justify-content: center;
+  border-radius: 9px;
+  background: #edf2f3;
+  text-decoration: none;
+}
+
+.crm-list-card {
+  min-width: 0;
+  overflow: visible;
+}
+
+.crm-table {
+  width: 100%;
+  min-width: 0;
+  table-layout: fixed;
+}
+
+.crm-table th,
+.crm-table td {
+  overflow-wrap: anywhere;
+  white-space: normal;
+}
+
+.crm-table th:first-child,
+.crm-table td:first-child {
+  width: 25%;
+}
+
+.crm-table th:last-child,
+.crm-table td:last-child {
+  width: 112px;
+}
+
+.row-actions {
+  position: static;
+}
+
+.row-actions > button {
+  display: inline-flex;
+  min-height: 38px;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 7px 12px;
+  border: 1px solid #d5dfe2;
+  border-radius: 8px;
+  background: #fff;
+  color: #43565d;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.actions-popover {
+  position: fixed;
+  z-index: 1000;
+  display: grid;
+  width: 196px;
+  max-height: calc(100vh - 16px);
+  overflow-y: auto;
+  padding: 7px;
+  border: 1px solid #dfe5e7;
+  border-radius: 11px;
+  background: #fff;
+  box-shadow: 0 16px 42px rgba(23, 39, 46, 0.2);
+}
+
+.actions-popover a,
+.actions-popover .link-action {
+  display: flex;
+  width: 100%;
+  min-height: 38px;
+  align-items: center;
+  padding: 9px;
+  border: 0;
+  border-radius: 7px;
+  background: transparent;
+  color: #40545c;
+  font-size: 12px;
+  text-align: left;
+  text-decoration: none;
+  cursor: pointer;
+}
+
+.actions-popover a:hover,
+.actions-popover .link-action:hover {
+  background: #f1f5f6;
+}
+
+@media (min-width: 1024px) and (max-width: 1279px) {
+  .crm-main {
+    padding-inline: 24px;
+  }
+
+  .crm-table .optional-column {
+    display: none;
+  }
+
+  .crm-table th:first-child,
+  .crm-table td:first-child {
+    width: 36%;
+  }
+
+  .crm-filters {
+    grid-template-columns: minmax(160px, 1fr) 126px 126px auto auto;
+  }
+}
+
+@media (max-width: 1023px) {
+  .crm-shell {
+    display: block;
+    height: auto;
+    min-height: 100vh;
+    overflow: visible;
+  }
+
+  .crm-sidebar {
+    position: sticky;
+    top: 0;
+    width: 100%;
+    height: auto;
+    overflow: visible;
+    padding: 12px 20px;
+    border-right: 0;
+    border-bottom: 1px solid #e3e8ed;
+  }
+
+  .sidebar-brand {
+    display: flex;
+    padding: 0;
+  }
+
+  .sidebar-brand-mark {
+    width: 34px;
+    height: 34px;
+  }
+
+  .sidebar-create {
+    position: absolute;
+    top: 10px;
+    right: 20px;
+    width: auto;
+    min-height: 40px;
+    margin: 0;
+    padding-inline: 16px;
+  }
+
+  .sidebar-nav {
+    display: flex;
+    overflow-x: auto;
+    padding-top: 10px;
+    scrollbar-width: none;
+  }
+
+  .sidebar-nav::-webkit-scrollbar {
+    display: none;
+  }
+
+  .sidebar-nav > p,
+  .sidebar-disabled,
+  .sidebar-recent {
+    display: none;
+  }
+
+  .sidebar-nav > a {
+    flex: 0 0 auto;
+  }
+
+  .crm-workspace {
+    display: block;
+    height: auto;
+    overflow: visible;
+  }
+
+  .crm-topbar {
+    display: flex;
+    min-height: 58px;
+    padding-inline: 20px;
+  }
+
+  .crm-main {
+    padding: 22px 20px;
+    overflow: visible;
+  }
+
+  .list-heading {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .crm-filters {
+    width: 100%;
+    grid-template-columns: minmax(180px, 1fr) 1fr 1fr auto auto;
+  }
+
+  .crm-table,
+  .crm-table tbody,
+  .crm-table tr,
+  .crm-table td {
+    display: block;
+    width: 100%;
+  }
+
+  .crm-table thead {
+    display: none;
+  }
+
+  .crm-table tr {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(110px, auto) minmax(80px, auto);
+    gap: 12px 18px;
+    padding: 18px;
+    border-bottom: 1px solid #e5eaed;
+  }
+
+  .crm-table td {
+    display: grid;
+    gap: 4px;
+    padding: 0;
+    border: 0;
+  }
+
+  .crm-table td::before {
+    content: attr(data-label);
+    color: #8b999f;
+    font-size: 10px;
+    font-weight: 700;
+  }
+
+  .crm-table td:first-child {
+    grid-column: 1 / -1;
+    width: auto;
+  }
+
+  .crm-table td:last-child {
+    width: auto;
+  }
+
+  .crm-table .optional-column {
+    display: none;
+  }
+}
+
+@media (max-width: 767px) {
+  .crm-sidebar {
+    padding-inline: 16px;
+  }
+
+  .sidebar-menu-toggle {
+    display: grid;
+    place-items: center;
+  }
+
+  .sidebar-create {
+    position: static;
+    display: none;
+    width: 100%;
+    margin-top: 12px;
+  }
+
+  .sidebar-nav {
+    display: none;
+    overflow: visible;
+  }
+
+  .crm-sidebar.mobile-open .sidebar-create,
+  .crm-sidebar.mobile-open .sidebar-nav {
+    display: grid;
+  }
+
+  .crm-sidebar.mobile-open .sidebar-nav > a {
+    width: 100%;
+  }
+
+  .crm-topbar {
+    padding-inline: 16px;
+  }
+
+  .topbar-avatar {
+    display: none;
+  }
+
+  .crm-main {
+    padding: 20px 16px;
+  }
+
+  .crm-filters {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .crm-filters label:first-child {
+    grid-column: 1 / -1;
+  }
+
+  .crm-table tr {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .crm-table td:last-child {
+    grid-column: 1 / -1;
+  }
+
+  .row-actions > button,
+  .table-primary-action {
+    width: 100%;
+    min-height: 44px;
+  }
+}
+
+@media (max-width: 430px) {
+  .topbar-identity small {
+    display: none;
+  }
+
+  .topbar-logout {
+    min-height: 40px;
+  }
+
+  .crm-filters {
+    grid-template-columns: 1fr;
+  }
+
+  .crm-filters label:first-child {
+    grid-column: auto;
+  }
+
+  .crm-table tr {
+    grid-template-columns: 1fr;
+  }
+
+  .crm-table td:last-child {
+    grid-column: auto;
+  }
+}
