@@ -12,3 +12,5 @@
 .survey-theme-restaurant-clean .survey-brand-lockup strong,.survey-theme-salon-clean .survey-brand-lockup strong{font-family:Georgia,'Yu Mincho',serif;letter-spacing:.04em}.survey-theme-restaurant-clean .survey-hero h1,.survey-theme-salon-clean .survey-hero h1{letter-spacing:.06em}
 @media(max-width:390px){.survey-content{padding:32px 20px 48px}.survey-intro{margin-bottom:41px}.question-card{margin-bottom:44px}.question-title{font-size:16px}.choice{min-height:51px;padding:10px 13px}.rating-grid{gap:3px}.rating-button{font-size:11px}.survey-hero-inner{min-height:236px;padding:31px 20px 34px}.survey-hero-label{font-size:12px}.survey-submit{min-height:58px;font-size:16px}}
 @media(min-width:600px){body:has(>.survey-theme){background:#eef3f3}.survey-theme{margin-block:24px;min-height:calc(100vh - 48px);border-radius:22px}}
+.rating-grid-5{grid-template-columns:repeat(5,minmax(0,1fr));gap:10px}.rating-grid-5 .rating-button{max-width:48px;justify-self:center}
+.survey-select{width:100%;min-height:52px;padding:0 42px 0 15px;border:1px solid #dfe3e5;border-radius:10px;background:var(--survey-card);color:#354047;font:inherit}

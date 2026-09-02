@@ -379,3 +379,16 @@ GAS保存: あり / 未設定
 - Google口コミ欄への非公式な自動入力を前提にした実装
 - `.env.local`、APIキー、秘密情報のGitコミット
 - 既存運用中リポジトリをバックアップやブランチなしで破壊的変更
+
+## Platform V2 固定仕様
+
+- Next.js App Router / TypeScript / Supabase / Cloudflare構成と既存公開データの後方互換性を維持する。
+- canonical public URLは `/{slug}` と `/{slug}/thanks`。`/s/{slug}` 系はlegacy redirect専用とし、新規URLは `NEXT_PUBLIC_APP_URL` と共通URL関数から生成する。
+- Question Builderで営業・管理者へ見せる回答形式は「短文テキスト」「長文テキスト」「ラジオボタン」「チェックボックス」「プルダウン」「スコアリング」とし、内部型名は表示しない。
+- 内部表現は `text`、`textarea`、`single_choice + settings.presentation=radio|select`、`multiple_choice`、`rating_10 + settings.maxScore=5|10` を使う。旧 `rating_10` のmaxScore未設定は10として扱う。
+- 質問ごとに必須/任意、選択肢の追加・削除・編集・並び替えを設定可能にする。
+- Google口コミは `googleReviewMode=disabled|all` のみ。旧configでURLだけがある場合はall、URLなしはdisabledとして扱う。スコアや回答内容によるレビューゲーティングは禁止する。
+- 回答後条件はGoogle口コミから分離する。`CompletionRule` / `RuleCondition` / `evaluateCompletionRules()` 等の型とpure functionを使い、スコア質問への以上・以下・等しい、AND/OR、条件別完了メッセージ、follow-upフラグを扱う。
+- 判定結果は送信時にサーバー側で計算し、`responses.metadata` 等の既存JSON領域を優先して保存する。不要なmigrationは作らない。
+- Builderの作成内容確認では店舗名、業種、目的、匿名、質問数、各質問の形式・必須・選択肢・評価段階/ラベル、Google口コミモード/URL、Theme/メインカラーを確認する。
+- 公開画面は375 / 390 / 430pxで横スクロール、hero文字、5/10点一列表示、必須validation、select validationを確認する。

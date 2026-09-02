@@ -276,3 +276,12 @@ UI修正時は最低限以下を確認する。
 - textareaはシンプルな白枠
 - submitはブランドカラーのpill型
 - 特定店舗名に依存せず全テーマで再利用する
+- 対象viewportは375 / 390 / 430pxとし、いずれも横スクロールを発生させない
+- `survey-hero-inner` は `QUESTIONNAIRE → h1 → decorative line → subtitle` の順を固定する
+- h1 / subtitleは日本語と英数字の文字幅を考慮したauto-fitを行い、最低font-sizeを設けて一行・overflowなしを維持する
+- 質問は1〜20問を丸数字で示し、required時だけ同一タイトル行へ赤系の `※必須` を表示する
+- 質問全体の大きなouter cardは使わず、質問間余白で区切り、radio / checkboxの各選択肢のみ白いoption cardにする
+- `single_choice + presentation=select` はタップしやすいselect UIとして描画する
+- スコアは `maxScore=5` なら1〜5、`maxScore=10` または未設定なら1〜10を丸型で一列表示する
+- submitは幅100%、十分な高さのpill型とする
+- 色・背景・ボタン・カード・ロゴ背景はTheme Tokenで変更し、特定店舗・slug専用CSSを禁止する

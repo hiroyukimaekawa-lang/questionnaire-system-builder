@@ -1,5 +1,6 @@
 import { getPublicSurvey } from '@/lib/data';
 import { ThanksPanel } from '@/components/survey/ThanksPanel';
+import { googleReviewMode } from '@/lib/survey';
 
 export const metadata = { robots: { index: false, follow: false } };
 
@@ -15,7 +16,7 @@ export default async function Thanks({ params }: { params: Promise<{ slug: strin
       <ThanksPanel
         slug={slug}
         text={config.completionText}
-        reviewUrl={config.googleReviewUrl}
+        reviewUrl={googleReviewMode(config)==='all'?config.googleReviewUrl:null}
         primaryColor={config.primaryColor}
       />
     </main>

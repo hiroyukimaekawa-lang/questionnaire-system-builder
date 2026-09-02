@@ -7,6 +7,8 @@
 .in-progress-row {
   background: #fffdf8;
 }
+.question-builder-card{padding:20px}.answer-setting{display:flex;flex-wrap:wrap;gap:12px 20px;padding:14px;border:1px solid #dfe5e8;border-radius:10px}.answer-setting legend{padding:0 6px;font-weight:700}.answer-setting label{display:flex;align-items:center;gap:7px}.question-actions{justify-content:flex-end;padding-top:8px;border-top:1px solid #edf0f2}.completion-rule{display:grid;gap:12px;padding:16px;border:1px solid #dfe5e8;border-radius:12px}.public-url-card{display:flex;flex-wrap:wrap;align-items:center;gap:12px;margin:14px 0;padding:14px}.public-url-actions{display:flex;min-width:0;align-items:center;gap:8px;flex-wrap:wrap}.public-url-actions>span{max-width:260px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.public-url-actions .btn{padding:7px 10px;font-size:12px}
+@media(max-width:600px){.question-builder-card>.row,.question-builder-card .row{align-items:stretch}.question-builder-card .row input{min-width:100%}.question-actions .btn{flex:1}.public-url-actions{width:100%}.public-url-actions>span{max-width:100%}}
 
 .table-primary-action {
   display: inline-flex;
