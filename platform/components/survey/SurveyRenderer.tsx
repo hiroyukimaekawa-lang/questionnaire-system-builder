@@ -10,7 +10,7 @@ import { resolveSurveyTheme } from '@/lib/theme/templates';
 function heroTextUnits(value:string){
   return Array.from(value.trim()).reduce((total,char)=>{
     if(char===' ')return total+.35;
-    return total+(/[\u0000-\u00ff]/.test(char)?.58:1);
+    return total+(/[\u0000-\u00ff]/.test(char)?0.58:1);
   },0);
 }
 
