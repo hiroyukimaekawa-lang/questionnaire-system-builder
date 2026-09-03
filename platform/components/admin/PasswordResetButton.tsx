@@ -1,0 +1,2 @@
+'use client';import {useActionState} from 'react';import {sendPasswordResetAction} from '@/app/actions';
+export function PasswordResetButton({id}:{id:string}){const [state,action,pending]=useActionState(sendPasswordResetAction.bind(null,id),null);return <form action={action} className="stack"><button className="btn secondary" disabled={pending}>{pending?'送信中…':'パスワード再設定メールを送る'}</button>{state?.error&&<small className="error">{state.error}</small>}{state?.success&&<small className="notice">{state.success}</small>}</form>}

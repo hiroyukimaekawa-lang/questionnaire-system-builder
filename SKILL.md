@@ -19,6 +19,19 @@ description: 店舗・クリニック・施設向けのアンケート→Google�
 - APIキー、秘密情報、認証情報をGitへコミットしない。
 - GAS URL等は環境変数で設定できるようにする。
 
+## Platform security rules
+
+- admin auth は Supabase Auth。password plaintext の保存・表示・ログ出力は禁止。
+- service role client / secret をブラウザへ公開せず、Auth token / refresh token をログへ出さない。
+- server 認可に `getSession()` を使わず `getClaims()` を基本とし、profile 取得時のみ必要に応じて `getUser()` を使う。
+- Supabase SSR は request ごとに client を作り、refresh Cookie を request/response 双方へ options 込みで反映する。
+- `/login`、`/admin/*`、`/auth/*` は no-store。RLS と DB 側 validation は必須。
+- SECURITY DEFINER function は `search_path` と execute privileges を明示する。
+- 最後の admin の demotion を server で拒否する。
+- config は existing object への partial update とし unknown fields を保持する。
+- completion rules は Zod と draft question ownership/maxScore の server validation を必須にする。
+- Google review gating を禁止し、`disabled|all` だけを許可する。score、回答、rule、follow-up で CTA を出し分けない。
+
 ## 標準テンプレート
 
 優先して参考にする実装:

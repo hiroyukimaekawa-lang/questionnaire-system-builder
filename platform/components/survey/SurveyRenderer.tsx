@@ -23,7 +23,7 @@ function questionNumber(index:number){
   return index<20?String.fromCodePoint(0x2460+index):`${index+1}.`;
 }
 
-export function SurveyRenderer({name,slug,version,preview=false}:{name:string;slug:string;version:SurveyVersion;preview?:boolean}){
+export function SurveyRenderer({name,slug,version,preview=false,onEditTarget}:{name:string;slug:string;version:SurveyVersion;preview?:boolean;onEditTarget?:(target:string)=>void}){
   const config=resolveSurveyTheme(version.config),router=useRouter();
   const [answers,setAnswers]=useState<Record<string,AnswerValue>>({});
   const [errors,setErrors]=useState<Record<string,string>>({});
@@ -42,23 +42,23 @@ export function SurveyRenderer({name,slug,version,preview=false}:{name:string;sl
 
   return <div className={`survey-phone survey-theme survey-theme-${config.themeId}`} style={themeStyle}>
     <header className="survey-brand-header">
-      {config.logoMode==='upload'&&config.logoUrl?<Image unoptimized src={config.logoUrl} width={168} height={72} alt={`${name} ロゴ`} className="survey-logo"/>:<div className="survey-brand-lockup">{config.logoMode!=='none'&&(config.iconUrl?<Image unoptimized src={config.iconUrl} width={44} height={44} alt="" className="survey-icon-image"/>:<span className="survey-icon-fallback" aria-hidden="true">{name.slice(0,1)}</span>)}<span><small>YOUR VOICE MATTERS</small><strong>{name}</strong></span></div>}
+      <button type="button" className="preview-editable brand-editable" onClick={()=>onEditTarget?.('name')}>{config.logoMode==='upload'&&config.logoUrl?<Image unoptimized src={config.logoUrl} width={168} height={72} alt={`${name} ロゴ`} className="survey-logo"/>:<div className="survey-brand-lockup">{config.logoMode!=='none'&&(config.iconUrl?<Image unoptimized src={config.iconUrl} width={44} height={44} alt="" className="survey-icon-image"/>:<span className="survey-icon-fallback" aria-hidden="true">{name.slice(0,1)}</span>)}<span><small>YOUR VOICE MATTERS</small><strong>{name}</strong></span></div>}</button>
     </header>
     <section className="survey-hero" style={{background:heroBackground}}>
       <div className="survey-hero-inner">
         <p className="survey-hero-label">QUESTIONNAIRE</p>
-        <h1 style={heroTitleStyle}>{heroTitle}</h1>
+        <button type="button" className="preview-editable hero-editable" onClick={()=>onEditTarget?.('heroTitle')}><h1 style={heroTitleStyle}>{heroTitle}</h1></button>
         <span className="survey-hero-rule" aria-hidden="true"/>
-        <p className="survey-hero-subtitle" style={heroSubtitleStyle}>{heroSubtitle}</p>
+        <button type="button" className="preview-editable hero-editable" onClick={()=>onEditTarget?.('heroSubtitle')}><p className="survey-hero-subtitle" style={heroSubtitleStyle}>{heroSubtitle}</p></button>
       </div>
     </section>
     <main className="survey-content">
       <div className="survey-intro">
-        <p className="survey-anonymous-note"><span aria-hidden="true">※</span>{config.anonymousText}</p>
+        <button type="button" className="preview-editable intro-editable" onClick={()=>onEditTarget?.('anonymousText')}><p className="survey-anonymous-note"><span aria-hidden="true">※</span>{config.anonymousText}</p></button>
         {config.introText&&config.introText!==config.anonymousText&&<p className="survey-intro-note">{config.introText}</p>}
       </div>
       <form onSubmit={submit} noValidate>
-        {version.questions.map((question,index)=><fieldset className="question-card" key={question.id} ref={element=>{refs.current[question.id]=element;}} tabIndex={-1}>
+        {version.questions.map((question,index)=><fieldset className="question-card preview-question-card" key={question.id} ref={element=>{refs.current[question.id]=element;}} tabIndex={-1} onClickCapture={()=>onEditTarget?.(`question-${question.id}`)}>
           <legend className="question-legend"><span className="question-title"><span className="question-number" aria-hidden="true">{questionNumber(index)}</span><span>{question.title}</span>{question.required&&<span className="required-badge">※必須</span>}</span></legend>
           {question.description&&<p className="muted question-description">{question.description}</p>}
           {question.type==='rating_10'&&<><div className={`rating-grid rating-grid-${scoreMax(question)}`} role="radiogroup" aria-label={question.title}>{Array.from({length:scoreMax(question)},(_,number)=>number+1).map(number=><button type="button" className="rating-button" key={number} role="radio" aria-checked={answers[question.id]===number} onClick={()=>set(question.id,number)}>{number}</button>)}</div><div className="rating-scale" aria-hidden="true"><span>→</span><span>←</span></div><div className="rating-labels"><span>{question.settings.minLabel||'非常に不満'}</span><span>{question.settings.maxLabel||'非常に満足'}</span></div></>}
@@ -70,7 +70,7 @@ export function SurveyRenderer({name,slug,version,preview=false}:{name:string;sl
           {errors[question.id]&&<p className="error" role="alert">{errors[question.id]}</p>}
         </fieldset>)}
         {submitError&&<p className="error" role="alert">{submitError}</p>}
-        <button className="btn survey-submit" disabled={pending||preview}>{preview?'プレビューでは送信できません':pending?'送信中…':config.buttonLabel}</button>
+        <button className="btn survey-submit" disabled={pending} type={preview?'button':'submit'} onClick={preview?()=>onEditTarget?.('submitLabel'):undefined}>{preview?config.buttonLabel:pending?'送信中…':config.buttonLabel}</button>
       </form>
       <p className="survey-footer">ご協力ありがとうございます</p>
     </main>

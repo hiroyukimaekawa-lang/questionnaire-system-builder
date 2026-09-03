@@ -11,12 +11,12 @@ cp .env.example .env.local
 npm run dev
 ```
 
-`http://localhost:3000/login` を開きます。
+`http://localhost:3000/login` を開きます。本番の正式 URL は `https://crestix-questionnaire.pages.dev` です。
 
 ## Supabase準備とmigration
 
 1. Supabaseプロジェクトを1つ作成します。
-2. Supabase CLIで接続し、`supabase db push` を実行します（またはSQL Editorで `supabase/migrations/202608310001_initial_platform.sql` を実行）。
+2. Supabase CLIで接続し、timestamp順の migration を `supabase db push` で適用します。Auth/security hardening は `202609030001_auth_security_hardening.sql` です。本番では先に `supabase db push --dry-run` とbackupを確認します。
 3. 必要なら `supabase/seed.sql` を実行し、水谷眼科診療所と三宮胃腸内科の下書きを登録します。
 4. Storageの `questionnaire-assets` bucketとRLSはmigrationで作成されます。
 
@@ -25,11 +25,12 @@ npm run dev
 ```env
 NEXT_PUBLIC_SUPABASE_URL=
 NEXT_PUBLIC_SUPABASE_ANON_KEY=
-SUPABASE_SERVICE_ROLE_KEY=
 NEXT_PUBLIC_APP_URL=http://localhost:3000
 ```
 
-Service Role Keyはブラウザへ公開されず、現在のMVP通常処理では不要です。Vercelでもサーバー専用環境変数としてのみ設定してください。
+Productionでは `NEXT_PUBLIC_APP_URL=https://crestix-questionnaire.pages.dev` とします。Service Role Keyは通常処理では不要で、ブラウザへ絶対に公開しません。
+
+Supabase DashboardではSite URLを正式URL、Redirect URLsを `/auth/confirm` と `/admin/account/update-password` の正式URLに設定します。Recovery templateは `token_hash`、`type=recovery`、内部 `next` を `/auth/confirm` へ渡すPKCE/OTP形式にします。詳細は [SECURITY_REVIEW.md](./SECURITY_REVIEW.md) を参照してください。
 
 ## 初期ユーザーと権限
 
@@ -61,13 +62,20 @@ Google口コミURLが設定されている場合、完了画面では評価点�
 
 作成後の日常編集は通常の基本・質問・プレビュー・回答画面で行います。既存アンケートの「複製」または「チャットで再設定」は内容を引き継ぎ、全質問を聞き直しません。
 
-## Cloudflare Workers公開
+## Cloudflare Pages → Worker 公開
 
-このMVPは `@opennextjs/cloudflare` とWranglerでCloudflare Workersへ配置できます。Cloudflare dashboardでBuild rootを `platform` にし、Supabase環境変数をBuild variables / secretsとWorker runtimeの両方へ登録します。
+本番経路は `crestix-questionnaire` Pages → Repository管理のAdvanced Mode proxy → `survey-pages` Worker → Supabaseです。アプリは `@opennextjs/cloudflare` とWranglerでWorkerへ配置します。
 
 ```bash
 npm run preview  # Workers runtimeでローカル確認
 npm run deploy   # Cloudflareへbuild + deploy
+```
+
+Pages proxyはアプリWorker確認後に別途更新します（本タスクではどちらもdeployしません）。
+
+```bash
+cd cloudflare/crestix-questionnaire-pages
+npx wrangler pages deploy dist --project-name crestix-questionnaire
 ```
 
 `wrangler.jsonc` は `nodejs_compat`、static assets、self service binding、observabilityを設定済みです。Supabaseの外部PostgreSQLへ直接接続せずHTTPS APIを使うため、Hyperdriveは不要です。店舗追加や質問変更はDBの下書きと公開操作で完結し、再デプロイは不要です。
@@ -83,3 +91,5 @@ npm run build
 ```
 
 RLSでは匿名利用者に公開版の読取だけを許可し、回答保存は検証付きRPCに限定しています。匿名利用者はプロフィール、下書き、既存回答を取得できません。
+
+LoginはbrowserからSupabase Auth HTTPS endpointへ直接送信し、passwordはアプリWorker・DB・ログへ渡しません。Recoveryは `/auth/confirm` でOTPを検証し、認証済みsessionで更新します。`/login`、`/admin/*`、`/auth/*` は共有cache禁止です。

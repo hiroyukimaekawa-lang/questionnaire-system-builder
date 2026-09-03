@@ -2,6 +2,7 @@
 
 import { useEffect, useRef } from 'react';
 import { SurveyRenderer } from '@/components/survey/SurveyRenderer';
+import { LiveSurveyPreview } from '@/components/admin/LiveSurveyPreview';
 import type { SurveyVersion } from '@/types/database';
 
 export function SurveyPreviewModal({open,onClose,name,version}:{open:boolean;onClose:()=>void;name:string;version:SurveyVersion}){
@@ -15,6 +16,6 @@ export function SurveyPreviewModal({open,onClose,name,version}:{open:boolean;onC
     document.addEventListener('keydown',onKeyDown);
     return()=>{document.body.style.overflow=previous;document.removeEventListener('keydown',onKeyDown);};
   },[open,onClose]);
-  if(!open)return null;
+  if(!open)return <LiveSurveyPreview name={name} version={version} className="builder-live-preview"/>;
   return <div className="preview-overlay" role="presentation" onMouseDown={event=>{if(event.target===event.currentTarget)onClose();}}><section className="preview-dialog" role="dialog" aria-modal="true" aria-labelledby="preview-title"><header className="preview-dialog-header"><div><p className="eyebrow">表示確認</p><h2 id="preview-title">アンケートプレビュー</h2></div><button ref={closeRef} className="preview-close" type="button" onClick={onClose} aria-label="プレビューを閉じる">× <span>閉じる</span></button></header><div className="preview-dialog-scroll"><div className="preview-phone"><SurveyRenderer name={name} slug="preview" version={version} preview/></div></div></section></div>;
 }
