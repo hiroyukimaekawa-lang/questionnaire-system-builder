@@ -55,6 +55,7 @@ export interface BuilderContext {
   questions?: SurveyQuestion[];
   questionsConfirmed?: boolean;
   anonymous?: boolean;
+  heroTitle?: string;
   introText?: string;
   mainColor?: string;
   logoMode?: BuilderLogoMode;

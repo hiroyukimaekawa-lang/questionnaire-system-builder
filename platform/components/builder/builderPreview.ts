@@ -24,7 +24,7 @@ export function buildBuilderPreviewVersion(context:BuilderContext):SurveyVersion
       ...theme.config,
       themeId:theme.id,
       title:context.storeName?`${context.storeName} お客様アンケート`:theme.config.heroTitle,
-      heroTitle:theme.config.heroTitle,
+      heroTitle:context.heroTitle??theme.config.heroTitle,
       heroSubtitle:theme.config.heroSubtitle,
       introText:context.introText??defaultIntroText(context.anonymous??true),
       anonymousText:context.anonymous===false?'回答内容は運営者が確認します。':defaultConfig.anonymousText,
@@ -48,7 +48,7 @@ export function resolveBuilderPreviewTarget(target:string,context:BuilderContext
     return context.questions?.some(question=>question.id===questionId)?{kind:'question',questionId}:null;
   }
   const targets:Record<string,string>={
-    name:'storeName',heroTitle:'mainColor',heroSubtitle:'mainColor',anonymousText:'anonymous',introText:'introText',
+    name:'storeName',heroTitle:'heroTitle',heroSubtitle:'mainColor',anonymousText:'anonymous',introText:'introText',
     submitLabel:'mainColor',completionText:'completionText',
     googleReview:context.googleReviewEnabled?'googleReviewUrl':'googleReviewEnabled',
   };

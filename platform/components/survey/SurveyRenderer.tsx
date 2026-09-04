@@ -62,7 +62,7 @@ export function SurveyRenderer({name,slug,version,preview=false,onEditTarget}:{n
           const headingId=`question-heading-${question.id}`;
           return <section className="question-block preview-question-card" key={question.id} ref={element=>{refs.current[question.id]=element;}} tabIndex={-1} onClickCapture={()=>onEditTarget?.(`question-${question.id}`)}>
             <header className="question-heading">
-              <h2 className="question-title" id={headingId}><span className="question-number" aria-hidden="true">{questionNumber(index)}</span><span className="question-title-text">{question.title}</span>{question.required&&<span className="required-badge">※必須</span>}</h2>
+              <h2 className="question-title" id={headingId}><span className="question-number" aria-hidden="true">{questionNumber(index)}</span><span className="question-title-body"><span className="question-title-text">{question.title}</span>{question.required&&<span className="required-badge">※必須</span>}</span></h2>
               {question.description&&<p className="muted question-description">{question.description}</p>}
             </header>
             <div className="answer-card" role="group" aria-labelledby={headingId}>
