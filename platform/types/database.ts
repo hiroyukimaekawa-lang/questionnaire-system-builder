@@ -66,7 +66,7 @@ export interface BuilderContext {
   sourceSurveyId?: string;
 }
 
-export type BuilderInputType = 'choice' | 'text' | 'url' | 'color' | 'question_review' | 'summary';
+export type BuilderInputType = 'choice' | 'text' | 'url' | 'color' | 'question_builder' | 'question_review' | 'summary';
 export interface BuilderStep {
   id: string;
   question: string;

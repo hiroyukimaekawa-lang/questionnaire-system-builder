@@ -6,7 +6,7 @@ export const getAuthState = cache(async()=>{
   const supabase=await createClient();
   const {data:{user},error:authError}=await supabase.auth.getUser();
   if(!user)return {user:null,profile:null,error:authError?.message??null};
-  const {data:profile,error:profileError}=await supabase.from('profiles').select('id,name,email,role').eq('id',user.id).maybeSingle();
+  const {data:profile,error:profileError}=await supabase.from('profiles').select('id,name,email,role,is_active').eq('id',user.id).maybeSingle();
   return {user,profile,error:profileError?.message??(!profile?'プロフィールが登録されていません。':null)};
 });
 export const getUser = cache(async()=>{const state=await getAuthState();return state.profile;});

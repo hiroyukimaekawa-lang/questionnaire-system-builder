@@ -1,16 +1,24 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
+import {readFileSync} from 'node:fs';
+import {join} from 'node:path';
 import { RuleBasedBuilderEngine, defaultCompletionText, defaultIntroText } from '../lib/builder/engine';
 import {buildBuilderPreviewVersion,reopenBuilderStep,resolveBuilderPreviewTarget} from '../components/builder/builderPreview';
 import type { BuilderContext } from '../types/database';
 
 const engine=new RuleBasedBuilderEngine();
+const workspace=()=>readFileSync(join(import.meta.dirname,'../components/builder/BuilderWorkspace.tsx'),'utf8');
 const completeBase:BuilderContext={purpose:'patient',storeName:'テスト医院',businessType:'clinic',startingPoint:'none',template:'clinic_standard',questions:[],questionsConfirmed:true,anonymous:true,introText:defaultIntroText(true),mainColor:'#5E969E',logoMode:'none',googleReviewEnabled:false,completionText:defaultCompletionText};
 
 test('目的から始まり業種までは機械的な質問文を聞かない',()=>{assert.equal(engine.getNextStep({})?.id,'purpose');assert.equal(engine.getNextStep({purpose:'patient'})?.id,'storeName');assert.equal(engine.getNextStep({purpose:'patient',storeName:'医院'})?.id,'businessType')});
 test('業種によりクリニック標準テンプレートを提案する',()=>{const step=engine.getNextStep({purpose:'patient',storeName:'医院',businessType:'clinic',startingPoint:'none'});assert.equal(step?.id,'template');assert.ok(step?.options?.some(x=>x.value==='clinic_standard'))});
 test('既存内容がほぼ決まっていても固定質問列ではなくテンプレート選択へ進む',()=>{assert.equal(engine.getNextStep({purpose:'satisfaction',storeName:'店',businessType:'restaurant',startingPoint:'decided'})?.id,'template')});
 test('テンプレート選択で質問を生成しゼロ入力を省く',()=>{const c=engine.applyAnswer({purpose:'patient',storeName:'医院',businessType:'clinic',startingPoint:'none'},'template','clinic_standard');assert.equal(c.questions?.length,5);assert.equal(engine.getNextStep(c)?.id,'questionsConfirmed')});
+test('customでは複数質問Builderを表示し全質問を保持して確定する',()=>{const base:BuilderContext={purpose:'other',purposeDetail:'調査',storeName:'店舗',businessType:'other',startingPoint:'decided',template:'custom'};assert.equal(engine.getNextStep(base)?.inputType,'question_builder');const questions=[{id:'q1',type:'text' as const,title:'短文',description:'',required:true,sortOrder:9,settings:{},options:[]},{id:'q2',type:'textarea' as const,title:'長文',description:'',required:false,sortOrder:8,settings:{},options:[]}];const result=engine.applyAnswer(base,'questions',questions);assert.equal(result.questions?.length,2);assert.deepEqual(result.questions?.map(q=>q.sortOrder),[0,1]);assert.equal(result.questionsConfirmed,true);assert.equal(engine.getNextStep(result)?.id,'anonymous')});
+test('customは質問0件では次へ進めない',()=>{const base:BuilderContext={purpose:'other',purposeDetail:'調査',storeName:'店舗',businessType:'other',startingPoint:'decided',template:'custom'};const result=engine.applyAnswer(base,'questions',[]);assert.equal(result.questionsConfirmed,false);assert.equal(engine.getNextStep(result)?.id,'questions');assert.ok(engine.getMissingFields(result).includes('questions'))});
+test('custom Builderは質問の追加・削除・上下移動を提供する',()=>{const ui=workspace();assert.match(ui,/＋ 質問を追加/);assert.match(ui,/reorderQuestions\(items,index,-1\)/);assert.match(ui,/reorderQuestions\(items,index,1\)/);assert.match(ui,/items\.filter\(\(_,i\)=>i!==index\)/)});
+test('custom Builderは全回答形式とscore 5・10を提供する',()=>{const ui=workspace();for(const label of ['短文テキスト','長文テキスト','ラジオボタン','チェックボックス','プルダウン','スコアリング','5点','10点'])assert.match(ui,new RegExp(label));assert.match(ui,/presentation:kind==='select'\?'select':'radio'/)});
+test('custom Builderは選択肢の追加・削除と必須・任意を提供する',()=>{const ui=workspace();assert.match(ui,/＋ 選択肢を追加/);assert.match(ui,/question\.options\.filter/);assert.match(ui,/> 必須</);assert.match(ui,/> 任意</);assert.match(ui,/disabled=\{!valid\}/)});
 test('Google口コミ不要ならURL質問をスキップする',()=>{const c={...completeBase,questions:[{id:'q',type:'text' as const,title:'質問',description:'',required:true,sortOrder:0,settings:{},options:[]}]};assert.equal(engine.getNextStep(c)?.id,'summary');assert.ok(!engine.getMissingFields(c).includes('googleReviewUrl'))});
 test('Google口コミを有効にした場合だけURLを不足判定する',()=>{const c={...completeBase,googleReviewEnabled:true};assert.ok(engine.getMissingFields(c).includes('googleReviewUrl'));assert.equal(engine.getNextStep(c)?.id,'questions')});
 test('必要情報が揃うまで未完成、揃えば完成',()=>{assert.equal(engine.isComplete({}),false);const c={...completeBase,questions:[{id:'q',type:'text' as const,title:'質問',description:'',required:true,sortOrder:0,settings:{},options:[]}]};assert.equal(engine.isComplete(c),true)});

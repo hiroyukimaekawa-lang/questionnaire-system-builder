@@ -26,6 +26,7 @@ export class RuleBasedBuilderEngine implements BuilderEngine {
       const options = recommended ? [{ value: recommended, label: 'おすすめ構成を使用', description: '業種に合う質問をまとめて用意します。' }, { value: 'custom', label: c.startingPoint === 'decided' ? '決まっている内容を使う' : '自分で作る' }] : [{ value: 'custom', label: '自分で作る' }];
       return { id: 'template', question: recommended ? 'おすすめ構成を用意しました。どの方法で質問を決めますか？' : '質問構成を自分で作成しますか？', reason: '質問文をゼロから入力する負担を減らすためです。', required: true, inputType: 'choice', options };
     }
+    if (c.template === 'custom' && !c.questionsConfirmed) return { id: 'questions', question: '質問構成を作成してください。', reason: '質問文・回答形式・必須設定を自由に組み合わせられます。', required: true, inputType: 'question_builder' };
     if (!c.questions?.length) return { id: 'questions', question: '最初の質問を入力してください。作成後の通常編集画面でも追加・調整できます。', reason: 'アンケート生成には1問以上必要です。', required: true, inputType: 'text' };
     if (!c.questionsConfirmed) return { id: 'questionsConfirmed', question: '質問を1件ずつ確認してください。この構成で進めますか？', reason: '生成前に質問文・種類・必須設定を確認するためです。', required: true, inputType: 'question_review', options: [{ value: 'confirmed', label: 'この構成で進む' }] };
     if (c.anonymous === undefined) return { id: 'anonymous', question: 'このアンケートは匿名にしますか？', reason: '冒頭説明と個人情報の扱いを確定するためです。', required: true, inputType: 'choice', options: [{value:'true',label:'匿名にする'},{value:'false',label:'匿名にしない'}] };
@@ -58,7 +59,14 @@ export class RuleBasedBuilderEngine implements BuilderEngine {
       if (value !== 'custom') { next.questions = cloneTemplate(value as Exclude<BuilderContext['template'], 'custom' | undefined>); const themeId=themeIdForBusiness(next.businessType??'other');const theme=getThemeTemplate(themeId);next.themeId=themeId;next.mainColor=theme.config.primaryColor;next.introText=theme.config.introText;next.completionText=theme.config.completionText; }
       delete next.questionsConfirmed;
     }
-    if (stepId === 'questions') next.questions = [{ id: crypto.randomUUID(), type: 'text', title: String(value), description: '', required: true, sortOrder: 0, settings: {}, options: [] }];
+    if (stepId === 'questions') {
+      if (Array.isArray(value)) {
+        next.questions = (value as BuilderContext['questions'])?.map((question, index) => ({ ...question, sortOrder: index }));
+        if (next.template === 'custom') next.questionsConfirmed = Boolean(next.questions?.length);
+      } else {
+        next.questions = [{ id: crypto.randomUUID(), type: 'text', title: String(value), description: '', required: true, sortOrder: 0, settings: {}, options: [] }];
+      }
+    }
     if (stepId === 'questionsConfirmed') next.questionsConfirmed = value === 'confirmed' || value === true;
     if (stepId === 'anonymous' || stepId === 'googleReviewEnabled') (next as Record<string, unknown>)[stepId] = value === true || value === 'true';
     if (stepId === 'googleReviewEnabled' && !(next.googleReviewEnabled)) delete next.googleReviewUrl;

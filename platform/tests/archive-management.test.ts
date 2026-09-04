@@ -33,3 +33,7 @@ test('削除と復元のserver actionはsalesを拒否しadminを許可する条
   const actions=source('app/actions.ts');const archive=actions.slice(actions.indexOf('export async function archiveAction'),actions.indexOf('export async function restoreSurveyAction')),restore=actions.slice(actions.indexOf('export async function restoreSurveyAction'),actions.indexOf('export async function duplicateSurveyAction'));
   assert.match(archive,/p\.role!=='admin'/);assert.match(restore,/p\.role!=='admin'/);
 });
+
+test('操作メニューはadminだけに最下部の削除を表示しarchiveActionを使う',()=>{const menu=source('components/admin/SurveyActionsMenu.tsx');assert.match(menu,/role==='admin'/);assert.match(menu,/archiveAction\.bind\(null,surveyId\)/);assert.match(menu,/回答データは削除されません/);assert.ok(menu.indexOf('label="削除する"')>menu.indexOf('publishAction.bind'))});
+
+test('archiveActionは回答・質問・版を物理DELETEしない',()=>{const actions=source('app/actions.ts'),archive=actions.slice(actions.indexOf('export async function archiveAction'),actions.indexOf('export async function restoreSurveyAction'));assert.doesNotMatch(archive,/responses|response_answers|survey_versions|questions|question_options/);assert.doesNotMatch(archive,/delete\(/)});
