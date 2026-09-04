@@ -18,7 +18,7 @@ test('published・draft・unpublishedをsoft deleteし関連回答をDELETEし�
 });
 
 test('通常一覧はarchivedを除外し削除済みfilterだけに表示する',()=>{
-  const page=source('app/admin/page.tsx');assert.match(page,/filter==='archived'\?surveyQuery\.eq\('status','archived'\):surveyQuery\.neq\('status','archived'\)/);
+  const page=source('app/admin/page.tsx');assert.match(page,/filter==='archived'\?allSurveysRaw\.filter\(item=>item\.status==='archived'\):allSurveysRaw\.filter\(item=>item\.status!=='archived'\)/);
 });
 
 test('archived status labelは削除済みで通常操作を持たない',()=>{assert.match(source('components/admin/SurveyListTable.tsx'),/archived:'削除済み'/);const archived=source('components/admin/ArchivedSurveyTable.tsx');assert.doesNotMatch(archived,/>編集</);assert.doesNotMatch(archived,/>公開</);assert.doesNotMatch(archived,/>複製</);assert.match(archived,/復元する/)});

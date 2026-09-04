@@ -14,4 +14,14 @@ function mapVersion(row:any):SurveyVersion { return {id:row.id,surveyId:row.surv
 export async function getSurvey(id:string){ const supabase=await createClient(); const {data,error}=await supabase.from('surveys').select('*, owner:profiles!surveys_owner_user_id_fkey(name)').eq('id',id).single(); if(error)return null; return data; }
 export async function getVersion(id:string){ const supabase=await createClient(); const {data,error}=await supabase.from('survey_versions').select('*,questions(*,question_options(*))').eq('id',id).single(); if(error)return null; return mapVersion(data); }
 export async function getDraftForSurvey(id:string){ const survey=await getSurvey(id); if(!survey?.current_draft_version_id)return null; return getVersion(survey.current_draft_version_id); }
+export const getAdminSurveys = cache(async()=>{
+  const supabase=await createClient();
+  const {data}=await supabase.from('surveys').select('id,name,slug,industry,status,updated_at,published_at,responses(count),owner:profiles!surveys_owner_user_id_fkey(name,email)').order('updated_at',{ascending:false});
+  return data??[];
+});
+export const getAdminBuilderSessions = cache(async()=>{
+  const supabase=await createClient();
+  const {data}=await supabase.from('builder_sessions').select('id,context,current_step,updated_at').eq('status','in_progress').order('updated_at',{ascending:false});
+  return data??[];
+});
 export async function getPublicSurvey(slug:string){ const supabase=await createClient(); const {data:survey}=await supabase.from('surveys').select('id,name,slug,industry,status,current_published_version_id').eq('slug',slug).eq('status','published').maybeSingle(); if(!survey?.current_published_version_id)return null; const version=await getVersion(survey.current_published_version_id); return version?{survey,version}:null; }
