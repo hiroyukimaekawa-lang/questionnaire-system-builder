@@ -7,7 +7,8 @@ const securityHeaders=[
   {key:'Content-Security-Policy',value:"frame-ancestors 'none'; object-src 'none'; base-uri 'self'"},
 ];
 const privateHeaders=[...securityHeaders,{key:'Cache-Control',value:'private, no-store, max-age=0'},{key:'Vary',value:'Cookie'}];
-const nextConfig: NextConfig = { poweredByHeader: false,async headers(){return [{source:'/:path*',headers:securityHeaders},{source:'/login',headers:privateHeaders},{source:'/admin/:path*',headers:privateHeaders},{source:'/auth/:path*',headers:privateHeaders}]}};
+export const PAGES_PROXY_ALLOWED_ORIGINS=['crestix-questionnaire.pages.dev','*.crestix-questionnaire.pages.dev'];
+const nextConfig: NextConfig = { poweredByHeader: false,experimental:{serverActions:{allowedOrigins:PAGES_PROXY_ALLOWED_ORIGINS}},async headers(){return [{source:'/:path*',headers:securityHeaders},{source:'/login',headers:privateHeaders},{source:'/admin/:path*',headers:privateHeaders},{source:'/auth/:path*',headers:privateHeaders}]}};
 export default nextConfig;
 
 import { initOpenNextCloudflareForDev } from '@opennextjs/cloudflare';
