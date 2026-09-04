@@ -55,20 +55,27 @@ export function SurveyRenderer({name,slug,version,preview=false,onEditTarget}:{n
     <main className="survey-content">
       <div className="survey-intro">
         <button type="button" className="preview-editable intro-editable" onClick={()=>onEditTarget?.('anonymousText')}><p className="survey-anonymous-note"><span aria-hidden="true">※</span>{config.anonymousText}</p></button>
-        {config.introText&&config.introText!==config.anonymousText&&<p className="survey-intro-note">{config.introText}</p>}
+        {config.introText&&config.introText!==config.anonymousText&&<button type="button" className="preview-editable intro-editable" onClick={()=>onEditTarget?.('introText')}><p className="survey-intro-note">{config.introText}</p></button>}
       </div>
       <form onSubmit={submit} noValidate>
-        {version.questions.map((question,index)=><fieldset className="question-card preview-question-card" key={question.id} ref={element=>{refs.current[question.id]=element;}} tabIndex={-1} onClickCapture={()=>onEditTarget?.(`question-${question.id}`)}>
-          <legend className="question-legend"><span className="question-title"><span className="question-number" aria-hidden="true">{questionNumber(index)}</span><span>{question.title}</span>{question.required&&<span className="required-badge">※必須</span>}</span></legend>
-          {question.description&&<p className="muted question-description">{question.description}</p>}
-          {question.type==='rating_10'&&<><div className={`rating-grid rating-grid-${scoreMax(question)}`} role="radiogroup" aria-label={question.title}>{Array.from({length:scoreMax(question)},(_,number)=>number+1).map(number=><button type="button" className="rating-button" key={number} role="radio" aria-checked={answers[question.id]===number} onClick={()=>set(question.id,number)}>{number}</button>)}</div><div className="rating-scale" aria-hidden="true"><span>→</span><span>←</span></div><div className="rating-labels"><span>{question.settings.minLabel||'非常に不満'}</span><span>{question.settings.maxLabel||'非常に満足'}</span></div></>}
-          {question.type==='single_choice'&&choicePresentation(question)==='select'&&<select className="survey-select" aria-label={question.title} value={String(answers[question.id]??'')} onChange={event=>set(question.id,event.target.value)}><option value="">選択してください</option>{question.options.map(option=><option key={option.value} value={option.value}>{option.label}</option>)}</select>}
-          {question.type==='single_choice'&&choicePresentation(question)==='radio'&&question.options.map(option=><label className="choice" key={option.value}><input type="radio" name={question.id} checked={answers[question.id]===option.value} onChange={()=>set(question.id,option.value)}/><span>{option.label}</span></label>)}
-          {question.type==='multiple_choice'&&question.options.map(option=>{const selected=Array.isArray(answers[question.id])?answers[question.id] as string[]:[];return <label className="choice" key={option.value}><input type="checkbox" checked={selected.includes(option.value)} onChange={event=>set(question.id,event.target.checked?[...selected,option.value]:selected.filter(value=>value!==option.value))}/><span>{option.label}</span></label>;})}
-          {question.type==='textarea'&&<textarea aria-label={question.title} rows={5} placeholder={question.settings.placeholder} value={String(answers[question.id]??'')} onChange={event=>set(question.id,event.target.value)} className="survey-text-input survey-textarea"/>}
-          {question.type==='text'&&<input aria-label={question.title} placeholder={question.settings.placeholder} value={String(answers[question.id]??'')} onChange={event=>set(question.id,event.target.value)} className="survey-text-input"/>}
-          {errors[question.id]&&<p className="error" role="alert">{errors[question.id]}</p>}
-        </fieldset>)}
+        {version.questions.map((question,index)=>{
+          const headingId=`question-heading-${question.id}`;
+          return <section className="question-block preview-question-card" key={question.id} ref={element=>{refs.current[question.id]=element;}} tabIndex={-1} onClickCapture={()=>onEditTarget?.(`question-${question.id}`)}>
+            <header className="question-heading">
+              <h2 className="question-title" id={headingId}><span className="question-number" aria-hidden="true">{questionNumber(index)}</span><span className="question-title-text">{question.title}</span>{question.required&&<span className="required-badge">※必須</span>}</h2>
+              {question.description&&<p className="muted question-description">{question.description}</p>}
+            </header>
+            <div className="answer-card" role="group" aria-labelledby={headingId}>
+              {question.type==='rating_10'&&<><div className={`rating-grid rating-grid-${scoreMax(question)}`} role="radiogroup" aria-label={question.title}>{Array.from({length:scoreMax(question)},(_,number)=>number+1).map(number=><button type="button" className="rating-button" key={number} role="radio" aria-checked={answers[question.id]===number} onClick={()=>set(question.id,number)}>{number}</button>)}</div><div className="rating-scale" aria-hidden="true"><span>→</span><span>←</span></div><div className="rating-labels"><span>{question.settings.minLabel||'非常に不満'}</span><span>{question.settings.maxLabel||'非常に満足'}</span></div></>}
+              {question.type==='single_choice'&&choicePresentation(question)==='select'&&<select className="survey-select" aria-label={question.title} value={String(answers[question.id]??'')} onChange={event=>set(question.id,event.target.value)}><option value="">選択してください</option>{question.options.map(option=><option key={option.value} value={option.value}>{option.label}</option>)}</select>}
+              {question.type==='single_choice'&&choicePresentation(question)==='radio'&&question.options.map(option=><label className="choice" key={option.value}><input type="radio" name={question.id} checked={answers[question.id]===option.value} onChange={()=>set(question.id,option.value)}/><span>{option.label}</span></label>)}
+              {question.type==='multiple_choice'&&question.options.map(option=>{const selected=Array.isArray(answers[question.id])?answers[question.id] as string[]:[];return <label className="choice" key={option.value}><input type="checkbox" checked={selected.includes(option.value)} onChange={event=>set(question.id,event.target.checked?[...selected,option.value]:selected.filter(value=>value!==option.value))}/><span>{option.label}</span></label>;})}
+              {question.type==='textarea'&&<textarea aria-label={question.title} rows={5} placeholder={question.settings.placeholder} value={String(answers[question.id]??'')} onChange={event=>set(question.id,event.target.value)} className="survey-text-input survey-textarea"/>}
+              {question.type==='text'&&<input aria-label={question.title} placeholder={question.settings.placeholder} value={String(answers[question.id]??'')} onChange={event=>set(question.id,event.target.value)} className="survey-text-input"/>}
+              {errors[question.id]&&<p className="error question-error" role="alert">{errors[question.id]}</p>}
+            </div>
+          </section>;
+        })}
         {submitError&&<p className="error" role="alert">{submitError}</p>}
         <button className="btn survey-submit" disabled={pending} type={preview?'button':'submit'} onClick={preview?()=>onEditTarget?.('submitLabel'):undefined}>{preview?config.buttonLabel:pending?'送信中…':config.buttonLabel}</button>
       </form>
