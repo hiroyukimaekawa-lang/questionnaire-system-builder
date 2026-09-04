@@ -2,6 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
 import {
+  default as worker,
   proxyRequest,
   rewriteLocation,
   upstreamUrl,
@@ -133,4 +134,38 @@ test('Pages proxy source does not mutate normal response or forwarding headers',
   assert.doesNotMatch(source, /appendVaryCookie|Vary:\s*Cookie/i);
   assert.doesNotMatch(source, /getSetCookie/);
   assert.match(source, /if \(rewrittenLocation === location\) return upstream;/);
+});
+
+test('Pages proxy Worker handler passes only the request to proxyRequest', async () => {
+  const source = await readFile(
+    new URL('../../cloudflare/crestix-questionnaire-pages/dist/_worker.js', import.meta.url),
+    'utf8',
+  );
+
+  assert.doesNotMatch(source, /fetch\s*:\s*proxyRequest/);
+  assert.match(source, /async fetch\(request\)\s*{\s*return proxyRequest\(request\);\s*}/);
+
+  const originalFetch = globalThis.fetch;
+  const upstreamResponse = new Response('proxied');
+  let forwarded: Request | undefined;
+
+  globalThis.fetch = async (request) => {
+    forwarded = request as Request;
+    return upstreamResponse;
+  };
+
+  try {
+    const env = { fetch: 'not a function' };
+    const ctx = { waitUntil() {} };
+    const response = await Reflect.apply(worker.fetch, worker, [
+      new Request(`${publicOrigin}/admin?_rsc=handler`),
+      env,
+      ctx,
+    ]);
+
+    assert.equal(response, upstreamResponse);
+    assert.equal(forwarded?.url, `${upstreamOrigin}/admin?_rsc=handler`);
+  } finally {
+    globalThis.fetch = originalFetch;
+  }
 });

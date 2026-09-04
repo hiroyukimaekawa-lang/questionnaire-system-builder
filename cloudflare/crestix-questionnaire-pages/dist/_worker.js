@@ -56,5 +56,7 @@ export async function proxyRequest(request, fetchImpl = fetch) {
 }
 
 export default {
-  fetch: proxyRequest,
+  async fetch(request) {
+    return proxyRequest(request);
+  },
 };
