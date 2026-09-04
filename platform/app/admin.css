@@ -121,6 +121,8 @@
 @media(max-width:1180px){.preview-first-layout{grid-template-columns:minmax(410px,1fr) 370px;gap:18px}.admin-phone-frame{width:350px}.review-mode-grid{grid-template-columns:1fr}}
 @media(max-width:900px){.preview-first-layout{display:block}.live-preview-column{display:none}.mobile-preview-trigger{position:fixed;right:16px;bottom:16px;z-index:60;display:block;min-height:48px;padding:11px 17px;border:0;border-radius:999px;background:#315f67;color:#fff;font-weight:800;box-shadow:0 10px 28px rgba(27,53,61,.3)}.mobile-preview-overlay{position:fixed;inset:0;z-index:100;display:grid;align-content:start;justify-items:center;overflow:auto;padding:58px 12px 20px;background:rgba(19,35,40,.88)}.mobile-preview-overlay .live-preview-shell{width:min(410px,100%)}.mobile-preview-overlay .admin-phone-frame{height:auto;max-height:none;min-height:650px}.mobile-preview-close{position:fixed;top:12px;right:16px;z-index:2;padding:9px 13px;border:0;border-radius:9px;background:#fff;font-weight:750}.preview-modal-open{overflow:hidden}.builder-page{padding-right:0}.editor-page-header{align-items:flex-start;flex-direction:column}.editor-publish-actions{justify-content:flex-start}.editor-section-nav{top:0}}
 
+.hero-label-editable,.hero-editable{padding:0;border:0;background:transparent;color:inherit;font:inherit;line-height:inherit;appearance:none}
+
 /* CRM layout hardening: keep the desktop rail and prevent page-level overflow. */
 html,
 body {

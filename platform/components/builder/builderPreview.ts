@@ -24,9 +24,10 @@ export function buildBuilderPreviewVersion(context:BuilderContext):SurveyVersion
       ...theme.config,
       themeId:theme.id,
       title:context.storeName?`${context.storeName} お客様アンケート`:theme.config.heroTitle,
+      heroLabel:context.heroLabel??'QUESTIONNAIRE',
       heroTitle:context.heroTitle??theme.config.heroTitle,
       questionFontSize:context.questionFontSize??17,
-      heroSubtitle:theme.config.heroSubtitle,
+      heroSubtitle:context.heroSubtitle??theme.config.heroSubtitle,
       introText:context.introText??defaultIntroText(context.anonymous??true),
       anonymousText:context.anonymous===false?'回答内容は運営者が確認します。':defaultConfig.anonymousText,
       completionText:context.completionText??defaultCompletionText,
@@ -41,15 +42,17 @@ export function buildBuilderPreviewVersion(context:BuilderContext):SurveyVersion
   };
 }
 
-export type BuilderPreviewEditTarget={kind:'step';stepId:string}|{kind:'question';questionId:string};
+export type HeroCopyField='heroLabel'|'heroTitle'|'heroSubtitle';
+export type BuilderPreviewEditTarget={kind:'step';stepId:string}|{kind:'question';questionId:string}|{kind:'heroCopy';field:HeroCopyField};
 
 export function resolveBuilderPreviewTarget(target:string,context:BuilderContext):BuilderPreviewEditTarget|null{
   if(target.startsWith('question-')){
     const questionId=target.slice('question-'.length);
     return context.questions?.some(question=>question.id===questionId)?{kind:'question',questionId}:null;
   }
+  if(target==='heroLabel'||target==='heroTitle'||target==='heroSubtitle')return {kind:'heroCopy',field:target};
   const targets:Record<string,string>={
-    name:'storeName',heroTitle:'heroTitle',heroSubtitle:'mainColor',anonymousText:'anonymous',introText:'introText',
+    name:'storeName',anonymousText:'anonymous',introText:'introText',
     submitLabel:'mainColor',completionText:'completionText',
     googleReview:context.googleReviewEnabled?'googleReviewUrl':'googleReviewEnabled',
   };

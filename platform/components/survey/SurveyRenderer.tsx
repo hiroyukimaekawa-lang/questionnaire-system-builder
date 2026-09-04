@@ -38,6 +38,7 @@ export function SurveyRenderer({name,slug,version,preview=false,onEditTarget}:{n
   const set=(id:string,value:AnswerValue)=>{setAnswers(current=>({...current,[id]:value}));setErrors(current=>({...current,[id]:''}));};
   async function submit(event:React.FormEvent){event.preventDefault();if(preview)return;const found=validateAnswers(version.questions,answers);setErrors(found);const first=Object.keys(found)[0];if(first){refs.current[first]?.scrollIntoView({behavior:'smooth',block:'center'});refs.current[first]?.focus();return;}setPending(true);setSubmitError('');try{const response=await fetch('/api/responses',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({slug,versionId:version.id,answers})});const json=await response.json();if(!response.ok)throw new Error(json.error||'送信できませんでした。');const comment=version.questions.filter(question=>question.type==='textarea').map(question=>answers[question.id]).find(Boolean);sessionStorage.setItem(`survey-completion:${slug}`,JSON.stringify({responseId:json.id,message:json.completionMessage,comment:comment?String(comment):''}));router.push(`/${slug}/thanks`);}catch(error){setSubmitError(error instanceof Error?error.message:'通信エラーが発生しました。');setPending(false);}}
 
+  const heroLabel=config.heroLabel?.trim()||'QUESTIONNAIRE';
   const heroTitle=config.heroTitle||config.title||name;
   const heroSubtitle=config.heroSubtitle||config.description;
   const heroBackground=config.heroBackgroundType==='solid'?config.heroOverlayColor:`linear-gradient(145deg, ${config.heroOverlayColor}, ${config.primaryColor} 62%, ${config.accentColor})`;
@@ -51,10 +52,10 @@ export function SurveyRenderer({name,slug,version,preview=false,onEditTarget}:{n
     </header>
     <section className="survey-hero" style={{background:heroBackground}}>
       <div className="survey-hero-inner">
-        <p className="survey-hero-label">QUESTIONNAIRE</p>
-        <button type="button" className="preview-editable hero-editable" onClick={()=>onEditTarget?.('heroTitle')}><h1 style={heroTitleStyle}>{heroTitle}</h1></button>
+        {preview?<button type="button" className="preview-editable hero-label-editable" onClick={()=>onEditTarget?.('heroLabel')}><p className="survey-hero-label">{heroLabel}</p></button>:<p className="survey-hero-label">{heroLabel}</p>}
+        {preview?<button type="button" className="preview-editable hero-editable" onClick={()=>onEditTarget?.('heroTitle')}><h1 style={heroTitleStyle}>{heroTitle}</h1></button>:<h1 style={heroTitleStyle}>{heroTitle}</h1>}
         <span className="survey-hero-rule" aria-hidden="true"/>
-        <button type="button" className="preview-editable hero-editable" onClick={()=>onEditTarget?.('heroSubtitle')}><p className="survey-hero-subtitle" style={heroSubtitleStyle}>{heroSubtitle}</p></button>
+        {preview?<button type="button" className="preview-editable hero-editable" onClick={()=>onEditTarget?.('heroSubtitle')}><p className="survey-hero-subtitle" style={heroSubtitleStyle}>{heroSubtitle}</p></button>:<p className="survey-hero-subtitle" style={heroSubtitleStyle}>{heroSubtitle}</p>}
       </div>
     </section>
     <main className="survey-content">

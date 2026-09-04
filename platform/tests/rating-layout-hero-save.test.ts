@@ -22,8 +22,8 @@ test('Builder入力中previewとcomplete actionがheroTitleを反映・保存す
   const actions=source('app/actions.ts');
   assert.match(workspace,/builder-hero-title-preview/);
   assert.match(workspace,/previewHeroTitle===null\?context:\{\.\.\.context,heroTitle:previewHeroTitle\}/);
-  assert.match(actions,/heroTitle=context\.heroTitle\?\?theme\.config\.heroTitle/);
-  assert.match(actions,/title:heroTitle,heroTitle/);
+  assert.match(actions,/rawHeroTitle=context\.heroTitle\?\?theme\.config\.heroTitle/);
+  assert.match(actions,/title:heroTitle,heroLabel,heroTitle,heroSubtitle/);
 });
 
 test('質問タイトルは番号列と本文列に分け、必須表示を本文側に置く',()=>{

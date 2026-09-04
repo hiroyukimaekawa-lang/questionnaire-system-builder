@@ -23,7 +23,7 @@ export interface SurveyConfig {
   googleReviewMode?: GoogleReviewMode;
   completionRules?: CompletionRule[];
   themeId?: SurveyThemeId; secondaryColor?: string; heroBackgroundType?: HeroBackgroundType;
-  heroTitle?: string; heroSubtitle?: string; logoMode?: BuilderLogoMode;
+  heroLabel?: string; heroTitle?: string; heroSubtitle?: string; logoMode?: BuilderLogoMode;
   cardRadius?: number; buttonLabel?: string;
   accentColor?: string; heroOverlayColor?: string; heroTextColor?: string;
   buttonBackground?: string; buttonTextColor?: string; cardBackground?: string;
@@ -56,7 +56,9 @@ export interface BuilderContext {
   questions?: SurveyQuestion[];
   questionsConfirmed?: boolean;
   anonymous?: boolean;
+  heroLabel?: string;
   heroTitle?: string;
+  heroSubtitle?: string;
   questionFontSize?: number;
   introText?: string;
   mainColor?: string;
