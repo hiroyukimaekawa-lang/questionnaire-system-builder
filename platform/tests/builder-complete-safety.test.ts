@@ -6,19 +6,22 @@ import {join} from 'node:path';
 const root=join(import.meta.dirname,'..');
 const source=(path:string)=>readFileSync(join(root,path),'utf8');
 
-test('completeは固定POST APIを使い、成功時だけ遷移する',()=>{
+test('completeは固定POST APIを使い、成功時だけfull document navigationする',()=>{
   const ui=source('components/builder/BuilderWorkspace.tsx');
   const complete=ui.slice(ui.indexOf('const complete='),ui.indexOf('const version='));
   assert.doesNotMatch(ui,/completeBuilderAction/);
+  assert.doesNotMatch(ui,/useRouter|router\.push/);
   assert.match(complete,/if\(pending\)return/);
   assert.match(complete,/fetch\('\/api\/admin\/surveys\/create-from-builder'/);
   assert.match(complete,/method:'POST',headers:\{'content-type':'application\/json'\},body:JSON\.stringify\(\{sessionId,context\}\)/);
   assert.match(complete,/try\{json=await response\.json\(\)[^]*catch\{json=\{\};\}/);
-  assert.match(complete,/if\(response\.ok&&typeof json\.surveyId==='string'&&json\.surveyId\)\{router\.push/);
+  assert.match(complete,/if\(response\.ok&&typeof json\.surveyId==='string'&&json\.surveyId\)\{window\.location\.assign\(`\/admin\/surveys\/\$\{json\.surveyId\}`\);return;\}/);
   assert.match(complete,/アンケートを作成できませんでした。もう一度お試しください。/);
   assert.match(complete,/通信エラーが発生しました。画面を再読み込みして、もう一度お試しください。/);
   assert.match(complete,/catch\{setSaveStatus\('error'\)/);
-  assert.equal((complete.match(/router\.push/g)??[]).length,1);
+  assert.equal((complete.match(/window\.location\.assign/g)??[]).length,1);
+  const successEnd=complete.indexOf('setSaveStatus',complete.indexOf('window.location.assign'));
+  assert.equal(complete.slice(successEnd).includes('window.location.assign'),false);
 });
 
 test('作成中はボタンをdisabledにする',()=>{
