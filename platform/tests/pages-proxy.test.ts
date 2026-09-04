@@ -19,7 +19,7 @@ test('Pages proxy preserves path, query, and RSC query', () => {
   assert.equal(url.search, '?status=draft&_rsc=abc');
 });
 
-test('Pages proxy forwards request headers and POST body without proxy headers', async () => {
+test('Pages proxy forwards request headers and POST body with the public production host', async () => {
   const body = JSON.stringify({ title: 'Survey' });
   const request = new Request(`${publicOrigin}/api/admin/surveys/create-from-builder?_rsc=abc`, {
     method: 'POST',
@@ -47,7 +47,44 @@ test('Pages proxy forwards request headers and POST body without proxy headers',
   assert.equal(forwarded?.headers.get('content-type'), 'application/json');
   assert.equal(forwarded?.headers.get('rsc'), '1');
   assert.equal(forwarded?.headers.get('next-router-state-tree'), 'state');
-  assert.equal(forwarded?.headers.get('x-forwarded-host'), null);
+  assert.equal(forwarded?.headers.get('x-forwarded-host'), 'crestix-questionnaire.pages.dev');
+  assert.equal(forwarded?.headers.get('x-forwarded-proto'), null);
+  assert.equal(await forwarded?.text(), body);
+});
+
+test('Pages proxy forwards a Server Action with its deployment host and original request data', async () => {
+  const deploymentOrigin = 'https://85d84a89.crestix-questionnaire.pages.dev';
+  const body = 'field=value';
+  const request = new Request(`${deploymentOrigin}/admin`, {
+    method: 'POST',
+    headers: {
+      cookie: 'session=server-action',
+      'content-type': 'application/x-www-form-urlencoded',
+      'next-action': 'action-id',
+      origin: deploymentOrigin,
+      rsc: '1',
+    },
+    body,
+  });
+  let forwarded: Request | undefined;
+  const upstreamResponse = new Response('action result');
+
+  const response = await proxyRequest(request, async (nextRequest) => {
+    forwarded = nextRequest;
+    return upstreamResponse;
+  });
+
+  assert.equal(response, upstreamResponse);
+  assert.equal(forwarded?.url, `${upstreamOrigin}/admin`);
+  assert.equal(forwarded?.headers.get('origin'), deploymentOrigin);
+  assert.equal(
+    forwarded?.headers.get('x-forwarded-host'),
+    '85d84a89.crestix-questionnaire.pages.dev',
+  );
+  assert.equal(forwarded?.headers.get('cookie'), 'session=server-action');
+  assert.equal(forwarded?.headers.get('content-type'), 'application/x-www-form-urlencoded');
+  assert.equal(forwarded?.headers.get('next-action'), 'action-id');
+  assert.equal(forwarded?.headers.get('rsc'), '1');
   assert.equal(forwarded?.headers.get('x-forwarded-proto'), null);
   assert.equal(await forwarded?.text(), body);
 });
@@ -121,14 +158,14 @@ test('rewriteLocation only rewrites absolute upstream URLs', () => {
   assert.equal(rewriteLocation('https://external.example/path', `${publicOrigin}/login`), 'https://external.example/path');
 });
 
-test('Pages proxy source does not mutate normal response or forwarding headers', async () => {
+test('Pages proxy source only sets the required forwarding host and does not mutate normal responses', async () => {
   const source = await readFile(
     new URL('../../cloudflare/crestix-questionnaire-pages/dist/_worker.js', import.meta.url),
     'utf8',
   );
 
   assert.doesNotMatch(source, /headers\.set\(['"]host['"]/i);
-  assert.doesNotMatch(source, /headers\.set\(['"]x-forwarded-host['"]/i);
+  assert.match(source, /upstreamRequest\.headers\.set\(['"]x-forwarded-host['"], original\.host\)/);
   assert.doesNotMatch(source, /headers\.set\(['"]x-forwarded-proto['"]/i);
   assert.doesNotMatch(source, /headers\.set\(['"]cache-control['"]/i);
   assert.doesNotMatch(source, /appendVaryCookie|Vary:\s*Cookie/i);

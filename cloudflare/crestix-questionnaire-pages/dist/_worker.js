@@ -35,6 +35,7 @@ export async function proxyRequest(request, fetchImpl = fetch) {
 
   try {
     const upstreamRequest = new Request(upstreamUrl(request.url), request);
+    upstreamRequest.headers.set('x-forwarded-host', original.host);
     const upstream = await fetchImpl(upstreamRequest, { redirect: 'manual' });
     const location = upstream.headers.get('Location');
     const rewrittenLocation = isRedirect(upstream.status)
