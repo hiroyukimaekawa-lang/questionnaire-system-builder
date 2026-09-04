@@ -3,10 +3,10 @@
 import Link from 'next/link';
 import {useEffect,useRef,useState} from 'react';
 import {ActionForm} from '@/components/admin/ActionForm';
-import {archiveAction,publishAction,unpublishAction} from '@/app/actions';
+import {publishAction,unpublishAction} from '@/app/actions';
 import type {Role} from '@/types/database';
 
-export function SurveyActionsMenu({surveyId,status,role}:{surveyId:string;status:string;role:Role}){
+export function SurveyActionsMenu({surveyId,status}:{surveyId:string;status:string;role:Role}){
   const [open,setOpen]=useState(false),[position,setPosition]=useState({top:0,left:0});
   const rootRef=useRef<HTMLDivElement>(null),buttonRef=useRef<HTMLButtonElement>(null);
 
@@ -24,5 +24,5 @@ export function SurveyActionsMenu({surveyId,status,role}:{surveyId:string;status
     setOpen(value=>!value);
   };
 
-  return <div className="row-actions" ref={rootRef}><button ref={buttonRef} type="button" aria-haspopup="menu" aria-expanded={open} onClick={toggle}>操作 <span aria-hidden="true">⌄</span></button>{open?<div className="actions-popover" role="menu" style={position}><Link role="menuitem" href={`/admin/surveys/${surveyId}`}>編集</Link><Link role="menuitem" href={`/admin/surveys/${surveyId}/preview`}>プレビュー</Link><Link role="menuitem" href={`/admin/surveys/${surveyId}/responses`}>回答を見る</Link><Link role="menuitem" href={`/admin/surveys/new?duplicate=${surveyId}`}>複製する</Link>{status==='published'?<ActionForm action={unpublishAction.bind(null,surveyId)} label="非公開にする" className="link-action"/>:<ActionForm action={publishAction.bind(null,surveyId)} label="この内容で公開" className="link-action"/>}{role==='admin'?<ActionForm action={archiveAction.bind(null,surveyId)} label="アーカイブ" className="link-action danger-link" confirmText="回答は削除せず、このアンケートをアーカイブしますか？"/>:null}</div>:null}</div>;
+  return <div className="row-actions" ref={rootRef}><button ref={buttonRef} type="button" aria-haspopup="menu" aria-expanded={open} onClick={toggle}>操作 <span aria-hidden="true">⌄</span></button>{open?<div className="actions-popover" role="menu" style={position}><Link role="menuitem" href={`/admin/surveys/${surveyId}`}>編集</Link><Link role="menuitem" href={`/admin/surveys/${surveyId}/preview`}>プレビュー</Link><Link role="menuitem" href={`/admin/surveys/${surveyId}/responses`}>回答を見る</Link><Link role="menuitem" href={`/admin/surveys/new?duplicate=${surveyId}`}>複製する</Link>{status==='published'?<ActionForm action={unpublishAction.bind(null,surveyId)} label="非公開にする" className="link-action"/>:<ActionForm action={publishAction.bind(null,surveyId)} label="この内容で公開" className="link-action"/>}</div>:null}</div>;
 }
