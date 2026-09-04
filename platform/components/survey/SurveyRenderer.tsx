@@ -23,11 +23,6 @@ function questionNumber(index:number){
   return index<20?String.fromCodePoint(0x2460+index):`${index+1}.`;
 }
 
-function questionTitleParts(title:string){
-  const match=title.match(/^(.*?)(教えてください。|お願いします。|いかがですか？|でしょうか？|でしたか？|ください。)$/);
-  return match?{text:match[1],tail:match[2]}:{text:title,tail:''};
-}
-
 export function SurveyRenderer({name,slug,version,preview=false,onEditTarget}:{name:string;slug:string;version:SurveyVersion;preview?:boolean;onEditTarget?:(target:string)=>void}){
   const config=resolveSurveyTheme(version.config),router=useRouter();
   const [answers,setAnswers]=useState<Record<string,AnswerValue>>({});
@@ -66,10 +61,9 @@ export function SurveyRenderer({name,slug,version,preview=false,onEditTarget}:{n
       <form onSubmit={submit} noValidate>
         {version.questions.map((question,index)=>{
           const headingId=`question-heading-${question.id}`;
-          const titleParts=questionTitleParts(question.title);
           return <section className="question-block preview-question-card" key={question.id} ref={element=>{refs.current[question.id]=element;}} tabIndex={-1} onClickCapture={()=>onEditTarget?.(`question-${question.id}`)}>
             <header className="question-heading">
-              <h2 className="question-title" id={headingId}><span className="question-number" aria-hidden="true">{questionNumber(index)}</span><span className="question-title-body"><span className="question-title-text">{titleParts.text}{titleParts.tail&&<span className="question-title-tail">{titleParts.tail}</span>}</span>{question.required&&<span className="required-badge">※必須</span>}</span></h2>
+              <h2 className="question-title" id={headingId}><span className="question-number" aria-hidden="true">{questionNumber(index)}</span><span className="question-title-body"><span className="question-title-text">{question.title}</span>{question.required&&<span className="required-badge">※必須</span>}</span></h2>
               {question.description&&<p className="muted question-description">{question.description}</p>}
             </header>
             <div className="answer-card" role="group" aria-labelledby={headingId}>

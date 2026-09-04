@@ -34,8 +34,7 @@ test('質問タイトルは番号列と本文列に分け、必須表示を本�
   assert.match(css,/\.question-title-body\{min-width:0;line-height:inherit\}/);
   assert.match(css,/\.question-title-text\{min-width:0;line-break:strict;word-break:normal;overflow-wrap:break-word;text-wrap:pretty\}/);
   assert.doesNotMatch(css,/\.question-title-text\{[^}]*overflow-wrap:anywhere/);
-  assert.match(renderer,/className="question-title-tail"/);
-  assert.match(css,/\.question-title-tail\{white-space:nowrap\}/);
+  assert.match(renderer,/<span className="question-title-text">\{question\.title\}<\/span>/);
   assert.match(css,/\.required-badge\{display:inline;[^}]*margin-left:6px;[^}]*white-space:nowrap\}/);
   assert.doesNotMatch(css,/\.question-title\{[^}]*flex-wrap/);
 });

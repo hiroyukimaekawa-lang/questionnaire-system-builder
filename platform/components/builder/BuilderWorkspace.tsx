@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useState, useTransition } from 'react';
 import { useRouter } from 'next/navigation';
-import { completeBuilderAction, saveBuilderSessionAction } from '@/app/actions';
+import { saveBuilderSessionAction } from '@/app/actions';
 import { LiveSurveyPreview } from '@/components/admin/LiveSurveyPreview';
 import {buildBuilderPreviewVersion,reopenBuilderStep,resolveBuilderPreviewTarget} from '@/components/builder/builderPreview';
 import type {HeroCopyField} from '@/components/builder/builderPreview';
@@ -35,7 +35,7 @@ export function BuilderWorkspace({initial={},initialSessionId=null}:{initial?:Bu
   const answer=(value:unknown,label?:string)=>{if(!step)return;let actual=value;if(step.id==='introText'&&!value)actual=defaultIntroText(context.anonymous??true);if(step.id==='completionText'&&!value)actual=defaultCompletionText;setContext(ruleBasedBuilderEngine.applyAnswer(context,step.id,actual));setPreviewHeroTitle(null);setPreviewQuestionFontSize(null);setHistory(entries=>[...entries,{step,value:actual,label:label??labels[String(actual)]??String(actual)}]);setMessage('');setSaveStatus('idle');};
   const edit=(index:number)=>{const entry=history[index];setContext(current=>reopenBuilderStep(current,entry.step.id));setHistory(entries=>entries.slice(0,index));setEditingQuestionId(null);setSaveStatus('idle');};
   const save=()=>{setSaveStatus('saving');setMessage('');startTransition(async()=>{const result=await saveBuilderSessionAction(sessionId,context,step?.id??'summary');if(result.sessionId)setSessionId(result.sessionId);if(result.error){setSaveStatus('error');setMessage('保存できませんでした。入力内容は保持されています。');}else{setSaveStatus('saved');setMessage('保存しました');}});};
-  const complete=()=>startTransition(async()=>{setMessage('');try{const result=await completeBuilderAction(sessionId,context);if(result.surveyId){router.push(`/admin/surveys/${result.surveyId}`);return;}setSaveStatus('error');setMessage(result.error??'アンケートを作成できませんでした。');}catch{setSaveStatus('error');setMessage('作成処理でエラーが発生しました。画面を再読み込みして、もう一度お試しください。');}});
+  const complete=()=>{if(pending)return;startTransition(async()=>{setMessage('');try{const response=await fetch('/api/admin/surveys/create-from-builder',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({sessionId,context})});let json:Record<string,unknown>;try{json=await response.json() as Record<string,unknown>;}catch{json={};}if(response.ok&&typeof json.surveyId==='string'&&json.surveyId){router.push(`/admin/surveys/${json.surveyId}`);return;}setSaveStatus('error');setMessage('アンケートを作成できませんでした。もう一度お試しください。');}catch{setSaveStatus('error');setMessage('通信エラーが発生しました。画面を再読み込みして、もう一度お試しください。');}})};
   const version=useMemo(()=>{const heroPreviewContext=previewHeroTitle===null?context:{...context,heroTitle:previewHeroTitle};return buildBuilderPreviewVersion(previewQuestionFontSize===null?heroPreviewContext:{...heroPreviewContext,questionFontSize:previewQuestionFontSize})},[context,previewHeroTitle,previewQuestionFontSize]);
   const updateQuestion=useCallback((questionId:string,patch:Partial<SurveyQuestion>)=>{setContext(current=>({...current,questions:current.questions?.map(question=>question.id===questionId?{...question,...patch}:question)}));setSaveStatus('idle');},[]);
   const previewQuestions=useCallback((questions:SurveyQuestion[])=>{setContext(current=>({...current,questions}));setSaveStatus('idle');},[]);
