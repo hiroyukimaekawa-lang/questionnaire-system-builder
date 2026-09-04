@@ -28,6 +28,7 @@ export interface SurveyConfig {
   accentColor?: string; heroOverlayColor?: string; heroTextColor?: string;
   buttonBackground?: string; buttonTextColor?: string; cardBackground?: string;
   logoBadgeBackground?: string;
+  questionFontSize?: number;
 }
 export interface QuestionOption { id?: string; label: string; value: string; sortOrder: number }
 export interface SurveyQuestion {
@@ -56,6 +57,7 @@ export interface BuilderContext {
   questionsConfirmed?: boolean;
   anonymous?: boolean;
   heroTitle?: string;
+  questionFontSize?: number;
   introText?: string;
   mainColor?: string;
   logoMode?: BuilderLogoMode;
@@ -67,7 +69,7 @@ export interface BuilderContext {
   sourceSurveyId?: string;
 }
 
-export type BuilderInputType = 'choice' | 'text' | 'url' | 'color' | 'question_builder' | 'question_review' | 'summary';
+export type BuilderInputType = 'choice' | 'text' | 'url' | 'color' | 'number' | 'question_builder' | 'question_review' | 'summary';
 export interface BuilderStep {
   id: string;
   question: string;

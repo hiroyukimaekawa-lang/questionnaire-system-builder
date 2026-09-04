@@ -25,6 +25,7 @@ export function buildBuilderPreviewVersion(context:BuilderContext):SurveyVersion
       themeId:theme.id,
       title:context.storeName?`${context.storeName} お客様アンケート`:theme.config.heroTitle,
       heroTitle:context.heroTitle??theme.config.heroTitle,
+      questionFontSize:context.questionFontSize??17,
       heroSubtitle:theme.config.heroSubtitle,
       introText:context.introText??defaultIntroText(context.anonymous??true),
       anonymousText:context.anonymous===false?'回答内容は運営者が確認します。':defaultConfig.anonymousText,

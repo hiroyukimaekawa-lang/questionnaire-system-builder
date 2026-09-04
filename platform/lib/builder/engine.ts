@@ -31,6 +31,7 @@ export class RuleBasedBuilderEngine implements BuilderEngine {
     if (!c.questionsConfirmed) return { id: 'questionsConfirmed', question: '質問を1件ずつ確認してください。この構成で進めますか？', reason: '生成前に質問文・種類・必須設定を確認するためです。', required: true, inputType: 'question_review', options: [{ value: 'confirmed', label: 'この構成で進む' }] };
     if (c.anonymous === undefined) return { id: 'anonymous', question: 'このアンケートは匿名にしますか？', reason: '冒頭説明と個人情報の扱いを確定するためです。', required: true, inputType: 'choice', options: [{value:'true',label:'匿名にする'},{value:'false',label:'匿名にしない'}] };
     if (!c.heroTitle?.trim()) return { id: 'heroTitle', question: 'アンケートのタイトルを設定してください。', reason: '公開画面上部に大きく表示されるタイトルです。', required: true, inputType: 'text' };
+    if (c.questionFontSize === undefined) return { id: 'questionFontSize', question: '質問文の文字サイズを設定してください。', reason: '公開画面の質問文の大きさです。標準は17pxです。', required: true, inputType: 'number' };
     if (!c.introText) return { id: 'introText', question: 'アンケート冒頭の文章はこちらでいかがですか？', reason: '回答者へ目的と匿名性をわかりやすく伝えるためです。', required: true, inputType: 'text' };
     if (!c.mainColor) return { id: 'mainColor', question: '店舗のメインカラーはありますか？', reason: '公開画面のボタンや見出しに反映します。', required: true, inputType: 'color', options: [{value:'#5E969E',label:'おすすめ'}] };
     if (!c.logoMode) return { id: 'logoMode', question: 'ロゴを使用しますか？', reason: 'ヘッダーの表示方法を確定するためです。', required: true, inputType: 'choice', options: [{value:'none',label:'ロゴなし'},{value:'icon',label:'アイコンのみ'},{value:'upload',label:'ロゴをアップロード'}] };
@@ -45,7 +46,7 @@ export class RuleBasedBuilderEngine implements BuilderEngine {
     const missing: string[] = [];
     if (!c.purpose) missing.push('purpose'); if (!c.storeName) missing.push('storeName'); if (!c.businessType) missing.push('businessType');
     if (!c.startingPoint) missing.push('startingPoint'); if (!c.questions?.length) missing.push('questions'); if (!c.questionsConfirmed) missing.push('questionsConfirmed');
-    if (c.anonymous === undefined) missing.push('anonymous'); if (!c.heroTitle?.trim()) missing.push('heroTitle'); if (!c.introText) missing.push('introText'); if (!c.mainColor) missing.push('mainColor'); if (!c.logoMode) missing.push('logoMode');
+    if (c.anonymous === undefined) missing.push('anonymous'); if (!c.heroTitle?.trim()) missing.push('heroTitle'); if (c.questionFontSize === undefined) missing.push('questionFontSize'); if (!c.introText) missing.push('introText'); if (!c.mainColor) missing.push('mainColor'); if (!c.logoMode) missing.push('logoMode');
     if (c.logoMode === 'upload' && !c.logoUrl) missing.push('logoUrl'); if (c.googleReviewEnabled === undefined) missing.push('googleReviewEnabled');
     if (c.googleReviewEnabled && !c.googleReviewUrl) missing.push('googleReviewUrl'); if (!c.completionText) missing.push('completionText');
     return missing;
@@ -70,6 +71,7 @@ export class RuleBasedBuilderEngine implements BuilderEngine {
     }
     if (stepId === 'questionsConfirmed') next.questionsConfirmed = value === 'confirmed' || value === true;
     if (stepId === 'heroTitle') next.heroTitle = String(value).trim();
+    if (stepId === 'questionFontSize') next.questionFontSize = Math.min(22,Math.max(14,Math.round(Number(value)||17)));
     if (stepId === 'anonymous' || stepId === 'googleReviewEnabled') (next as Record<string, unknown>)[stepId] = value === true || value === 'true';
     if (stepId === 'googleReviewEnabled' && !(next.googleReviewEnabled)) delete next.googleReviewUrl;
     if (stepId === 'logoMode' && value !== 'upload') delete next.logoUrl;

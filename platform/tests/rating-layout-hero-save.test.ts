@@ -29,10 +29,13 @@ test('Builder入力中previewとcomplete actionがheroTitleを反映・保存す
 test('質問タイトルは番号列と本文列に分け、必須表示を本文側に置く',()=>{
   const renderer=source('components/survey/SurveyRenderer.tsx');
   const css=source('app/survey.css');
-  assert.match(renderer,/<h2 className="question-title"[^>]*><span className="question-number"[^>]*>.*?<\/span><span className="question-title-body"><span className="question-title-text">\{question\.title\}<\/span>\{question\.required&&<span className="required-badge">※必須<\/span>\}<\/span><\/h2>/);
+  assert.match(renderer,/<h2 className="question-title"[^>]*><span className="question-number"[^>]*>.*?<\/span><span className="question-title-body"><span className="question-title-text">.*?<\/span>\{question\.required&&<span className="required-badge">※必須<\/span>\}<\/span><\/h2>/);
   assert.match(css,/\.question-title\{display:grid;grid-template-columns:auto minmax\(0,1fr\);[^}]*align-items:start;[^}]*column-gap:8px/);
   assert.match(css,/\.question-title-body\{min-width:0;line-height:inherit\}/);
-  assert.match(css,/\.question-title-text\{overflow-wrap:anywhere\}/);
+  assert.match(css,/\.question-title-text\{min-width:0;line-break:strict;word-break:normal;overflow-wrap:break-word;text-wrap:pretty\}/);
+  assert.doesNotMatch(css,/\.question-title-text\{[^}]*overflow-wrap:anywhere/);
+  assert.match(renderer,/className="question-title-tail"/);
+  assert.match(css,/\.question-title-tail\{white-space:nowrap\}/);
   assert.match(css,/\.required-badge\{display:inline;[^}]*margin-left:6px;[^}]*white-space:nowrap\}/);
   assert.doesNotMatch(css,/\.question-title\{[^}]*flex-wrap/);
 });
