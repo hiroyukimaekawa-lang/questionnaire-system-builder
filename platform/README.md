@@ -74,6 +74,18 @@ Google口コミURLが設定されている場合、完了画面では評価点�
 
 CloudflareアカウントはAccount ID `739ef6b0d4cc5d4e1b5fb1a1ebae94af`、Wrangler profile `crestix-matsuoka` を使用します。deploy前に必ず確認してください。
 
+### Runtime Variables / Build Variables（Git自動デプロイ）
+
+Cloudflare DashboardのGit連携ビルドでは、以下3つを **Runtime Variables** と **Build Variables** の両方に設定します。
+
+- `NEXT_PUBLIC_SUPABASE_URL`
+- `NEXT_PUBLIC_SUPABASE_ANON_KEY`
+- `NEXT_PUBLIC_APP_URL`
+
+Build Variablesはビルド時（`npx opennextjs-cloudflare build`）専用で、Next.jsのビルド出力に埋め込まれます。Runtime Variablesはデプロイ後にWorkerが実行時に参照する値です。
+
+Cloudflareの仕様上、Dashboard側で管理したRuntime Variablesは `wrangler deploy` 実行時に上書き・削除される可能性があるため、`wrangler.jsonc` に `keep_vars: true` を設定し、Git自動デプロイのたびにRuntime Variablesが消えないようにしています。これら3つの値はコードにハードコードせず、`SUPABASE_SERVICE_ROLE_KEY` はこのアプリでは不要なため設定しません（公開クライアントに渡してはいけないため）。
+
 ```bash
 cd platform
 npx wrangler whoami --profile crestix-matsuoka

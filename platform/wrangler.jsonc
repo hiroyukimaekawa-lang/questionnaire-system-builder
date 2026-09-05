@@ -3,6 +3,7 @@
   "name": "questionnaire-system-builder",
   "main": ".open-next/worker.js",
   "compatibility_date": "2026-09-01",
+  "keep_vars": true,
   "compatibility_flags": ["nodejs_compat", "global_fetch_strictly_public"],
   "workers_dev": true,
   "assets": {
