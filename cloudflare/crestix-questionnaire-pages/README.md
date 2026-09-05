@@ -1,12 +1,16 @@
 # crestix-questionnaire Pages proxy
 
-`crestix-questionnaire.pages.dev` で受けたリクエストを、path・query・method・body・Cookie・Authorization を保ったまま `survey-pages.hiroyuki-maekawa.workers.dev` へ転送する Pages Advanced Mode Worker です。
+> DEPRECATED / rollback only
 
-`/login`、`/admin/*`、`/auth/*` は `private, no-store, max-age=0` と `Vary: Cookie` を保証します。upstream 自身を指す絶対 redirect だけ公開 host に戻し、相対 redirect と外部 redirect は変更しません。Cookie の Domain は必要性が確認されていないため書き換えません。
+このPages Advanced Mode proxyは、旧本番経路 `crestix-questionnaire.pages.dev` → `survey-pages.hiroyuki-maekawa.workers.dev` をロールバック用に残しているものです。新しい本番構成では使用しません。
 
-検証・デプロイ（本タスクでは未実行）:
+現在の本番移行先は `platform/` を直接Cloudflare Worker `crestix-questionnaire` として配備する構成です。新Workerの動作確認が完了するまでは、このPagesプロジェクトと旧 `survey-pages` Workerを削除しないでください。
+
+旧proxyはpath・query・method・body・Cookie・Authorizationを保ったままupstreamへ転送し、`/login`、`/admin/*`、`/auth/*` を `private, no-store, max-age=0` + `Vary: Cookie` で扱います。
+
+ロールバック時のみ再デプロイします。
 
 ```bash
 cd cloudflare/crestix-questionnaire-pages
-npx wrangler pages deploy dist --project-name crestix-questionnaire
+npx wrangler pages deploy dist --project-name crestix-questionnaire --profile crestix-matsuoka
 ```

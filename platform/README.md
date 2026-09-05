@@ -11,12 +11,12 @@ cp .env.example .env.local
 npm run dev
 ```
 
-`http://localhost:3000/login` を開きます。本番の正式 URL は `https://crestix-questionnaire.pages.dev` です。
+`http://localhost:3000/login` を開きます。本番はCloudflare Worker `crestix-questionnaire` へ直接配備します。実際の `workers.dev` URLは初回deploy後に確定します。
 
 ## Supabase準備とmigration
 
 1. Supabaseプロジェクトを1つ作成します。
-2. Supabase CLIで接続し、timestamp順の migration を `supabase db push` で適用します。Auth/security hardening は `202609030001_auth_security_hardening.sql` です。本番では先に `supabase db push --dry-run` とbackupを確認します。
+2. timestamp順のmigrationを適用します。本番ではmigration内容とbackupを確認してから反映します。
 3. 必要なら `supabase/seed.sql` を実行し、水谷眼科診療所と三宮胃腸内科の下書きを登録します。
 4. Storageの `questionnaire-assets` bucketとRLSはmigrationで作成されます。
 
@@ -28,19 +28,15 @@ NEXT_PUBLIC_SUPABASE_ANON_KEY=
 NEXT_PUBLIC_APP_URL=http://localhost:3000
 ```
 
-Productionでは `NEXT_PUBLIC_APP_URL=https://crestix-questionnaire.pages.dev` とします。Service Role Keyは通常処理では不要で、ブラウザへ絶対に公開しません。
+Productionでは、初回Worker deployで確定した実URLを `NEXT_PUBLIC_APP_URL=https://<actual-worker-host>.workers.dev` に設定し、再build / redeployします。Service Role Keyは通常処理では不要で、ブラウザへ絶対に公開しません。
 
-Supabase DashboardではSite URLを正式URL、Redirect URLsを `/auth/confirm` と `/admin/account/update-password` の正式URLに設定します。Recovery templateは `token_hash`、`type=recovery`、内部 `next` を `/auth/confirm` へ渡すPKCE/OTP形式にします。詳細は [SECURITY_REVIEW.md](./SECURITY_REVIEW.md) を参照してください。
+Supabase DashboardではSite URLを正式Worker URL、Redirect URLsを `/auth/confirm` と `/admin/account/update-password` の正式Worker URLに設定します。Recovery templateは `token_hash`、`type=recovery`、内部 `next` を `/auth/confirm` へ渡すPKCE/OTP形式にします。詳細は [SECURITY_REVIEW.md](./SECURITY_REVIEW.md) を参照してください。
 
 ## 初期ユーザーと権限
 
-Supabase Authenticationでメール＋パスワードのユーザーを作ると、トリガーで `profiles` が作成され、初期権限は `sales` になります。最初の管理者はSQL Editorで安全に昇格します。
+新規登録は `@crestix-inc.com` の完全一致ドメインだけを許可します。対象ユーザーはトリガーで `role='sales'`、`is_active=true` として作成され、管理者の手動承認なしで利用開始できます。既存adminは変更しません。
 
-```sql
-update public.profiles set role = 'admin' where email = '実際の管理者メール';
-```
-
-`admin` は全操作とアーカイブ、`sales` は作成・編集・プレビュー・公開・回答閲覧・CSVが可能です。
+`admin` は全操作とアーカイブ、`sales` は作成・編集・プレビュー・公開・回答閲覧・CSVが可能です。`/admin/users` は利用停止・再有効化・role管理に使います。
 
 ## 運用
 
@@ -48,11 +44,11 @@ update public.profiles set role = 'admin' where email = '実際の管理者メ�
 - 複製: 一覧の「複製」を開き、新名称と新slugを入力。
 - 下書き: 基本情報、文章・デザイン、質問Builderを保存。公開版には未反映。
 - プレビュー: 編集タブの「プレビュー」で現在の下書きを確認。
-- 公開: 「この下書きを公開」。公開スナップショットを固定し、次の編集用下書きを自動生成。
-- 非公開: 一覧または編集画面から非公開。`/s/[slug]` は回答不可になる。
-- 回答: `/s/[slug]` から匿名送信。公開バージョンIDとともにSupabaseへ保存。
+- 公開: 「アンケートを公開する」。公開スナップショットを固定し、次の編集用下書きを自動生成。
+- 非公開: 一覧または編集画面から非公開。公開URLは回答不可になる。
+- 回答: `/{slug}` から匿名送信。公開バージョンIDとともにSupabaseへ保存。
 - 回答一覧/CSV: 「回答」タブ。CSVはUTF-8 BOM付き。
-- QR: 公開中アンケートの回答画面で表示・PNG保存。
+- QR: 公開中アンケートの公開URLから生成。
 
 Google口コミURLが設定されている場合、完了画面では評価点に関係なく全回答者へ同じCTAを表示します。回答者自身の自由記述だけをコピーできます。
 
@@ -62,23 +58,43 @@ Google口コミURLが設定されている場合、完了画面では評価点�
 
 作成後の日常編集は通常の基本・質問・プレビュー・回答画面で行います。既存アンケートの「複製」または「チャットで再設定」は内容を引き継ぎ、全質問を聞き直しません。
 
-## Cloudflare Pages → Worker 公開
+## Cloudflare Worker 公開
 
-本番経路は `crestix-questionnaire` Pages → Repository管理のAdvanced Mode proxy → `survey-pages` Worker → Supabaseです。アプリは `@opennextjs/cloudflare` とWranglerでWorkerへ配置します。
+本番本体は `platform/` をOpenNextで直接Cloudflare Worker `crestix-questionnaire` へ配備します。Pages proxyは本番経路から外し、ロールバック用としてのみ残します。
+
+`wrangler.jsonc` は以下を設定済みです。
+
+- Worker名: `crestix-questionnaire`
+- `main`: `.open-next/worker.js`
+- `nodejs_compat`
+- static assets binding `ASSETS`
+- `WORKER_SELF_REFERENCE` → `crestix-questionnaire`
+- observability
+- `workers_dev: true`
+
+CloudflareアカウントはAccount ID `739ef6b0d4cc5d4e1b5fb1a1ebae94af`、Wrangler profile `crestix-matsuoka` を使用します。deploy前に必ず確認してください。
 
 ```bash
-npm run preview  # Workers runtimeでローカル確認
-npm run deploy   # Cloudflareへbuild + deploy
+cd platform
+npx wrangler whoami --profile crestix-matsuoka
+npm test
+npm run lint
+npm run typecheck
+npm run build
+npx opennextjs-cloudflare build
 ```
 
-Pages proxyはアプリWorker確認後に別途更新します（本タスクではどちらもdeployしません）。
+Cloudflareへの実deployは手動で行います。
 
 ```bash
-cd cloudflare/crestix-questionnaire-pages
-npx wrangler pages deploy dist --project-name crestix-questionnaire
+npm run deploy:crestix-worker
 ```
 
-`wrangler.jsonc` は `nodejs_compat`、static assets、self service binding、observabilityを設定済みです。Supabaseの外部PostgreSQLへ直接接続せずHTTPS APIを使うため、Hyperdriveは不要です。店舗追加や質問変更はDBの下書きと公開操作で完結し、再デプロイは不要です。
+初回deploy後に表示された実 `workers.dev` URLを確認し、`NEXT_PUBLIC_APP_URL` とSupabase AuthのSite URL / Redirect URLsを正式Worker URLへ変更してから再deployします。URLは推測で設定しません。
+
+旧 `cloudflare/crestix-questionnaire-pages/` と旧 `survey-pages` Workerは、新Workerで `/login`、`/signup`、`/admin`、Server Actions、公開アンケート、回答送信まで確認できるまでは削除しません。
+
+Supabaseの外部PostgreSQLへ直接接続せずHTTPS APIを使うため、Hyperdriveは不要です。店舗追加や質問変更はDBの下書きと公開操作で完結し、再デプロイは不要です。
 
 ## 品質確認
 
