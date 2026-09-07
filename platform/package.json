@@ -11,6 +11,7 @@
     "test": "node --import tsx --test tests/**/*.test.ts",
     "preview": "opennextjs-cloudflare build && opennextjs-cloudflare preview",
     "deploy": "opennextjs-cloudflare build && opennextjs-cloudflare deploy",
+    "upload": "opennextjs-cloudflare build && opennextjs-cloudflare upload",
     "deploy:crestix-worker": "opennextjs-cloudflare build && wrangler deploy --profile crestix-matsuoka",
     "cf-typegen": "wrangler types --env-interface CloudflareEnv cloudflare-env.d.ts"
   },

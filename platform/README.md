@@ -76,6 +76,22 @@ CloudflareアカウントはAccount ID `739ef6b0d4cc5d4e1b5fb1a1ebae94af`、Wran
 
 ### Runtime Variables / Build Variables（Git自動デプロイ）
 
+Cloudflare DashboardのWorker → Settings → Buildsで、Git自動デプロイを以下に統一します。
+
+| 項目 | 設定値 |
+| --- | --- |
+| Production branch | `main` |
+| Root directory | `platform` |
+| Build command | 空欄（deploy / upload script内でビルド） |
+| Production Deploy command | `npm run deploy` |
+| Version / Preview branch command（Non-production branch deploy command） | `npm run upload` |
+
+非本番ブランチのビルドを有効にすると、`upload` がOpenNextでビルドしたWorkerを新しいバージョンとしてアップロードします。`npm run preview` はローカル確認用です。
+
+モノレポのリポジトリ直下には `package.json` / `wrangler.jsonc` がないため、Root directoryは必ず `platform` に設定してください。設定が異なるとこれらを見つけられず失敗します。`upload` scriptの追加だけではコマンドの実行ディレクトリは変わりません。`npx wrangler versions upload` をリポジトリルートから直接実行しないでください。
+
+参考: [Cloudflare Builds設定](https://developers.cloudflare.com/workers/ci-cd/builds/configuration/)、[OpenNext CLI](https://opennext.js.org/cloudflare/cli)。
+
 Cloudflare DashboardのGit連携ビルドでは、以下3つを **Runtime Variables** と **Build Variables** の両方に設定します。
 
 - `NEXT_PUBLIC_SUPABASE_URL`
