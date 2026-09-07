@@ -49,21 +49,21 @@ The queue status RPC requires both `response_id` and a random `googleSheetsSyncT
 
 Use the spreadsheet `アンケート回答データ管理`.
 
-1. Open the spreadsheet and create/open a bound Apps Script project via **Extensions → Apps Script**.
+1. Open the spreadsheet and choose **Extensions → Apps Script**.
 2. Replace the script with `platform/integrations/google-sheets/Code.gs`.
-3. In **Project Settings → Script Properties**, set:
-   - `SPREADSHEET_ID` = the spreadsheet ID.
-   - `WEBHOOK_SECRET` = a long random secret.
-4. Deploy as **Web app**.
-5. Execute as the script owner and allow access required for the deployed web app endpoint.
-6. Copy the `/exec` deployment URL.
+3. Save it and run the `setup()` function once. The script automatically stores the prepared spreadsheet ID and generates a random `WEBHOOK_SECRET`.
+4. Open the execution log and copy the generated `WEBHOOK_SECRET`.
+5. Choose **Deploy → New deployment → Web app**.
+6. Execute as the script owner and allow access required for the deployed web app endpoint.
+7. Copy the `/exec` deployment URL.
+8. Opening the `/exec` URL in a browser should return JSON with `{"ok":true,"configured":true}`.
 
 ### Cloudflare runtime configuration
 
 Set both values on the `questionnaire` Worker as runtime secrets/variables:
 
 - `GOOGLE_SHEETS_WEBHOOK_URL` = Apps Script `/exec` URL.
-- `GOOGLE_SHEETS_WEBHOOK_SECRET` = the exact same secret used in Script Properties.
+- `GOOGLE_SHEETS_WEBHOOK_SECRET` = the secret printed by `setup()`.
 
 Then redeploy `main`. The sender has a 4-second timeout. If the webhook is unavailable or misconfigured, the questionnaire response still succeeds in Supabase and the queue records the failed/pending state for recovery.
 
