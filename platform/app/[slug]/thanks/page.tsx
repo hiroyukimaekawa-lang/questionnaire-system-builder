@@ -12,11 +12,11 @@ export default async function Thanks({ params }: { params: Promise<{ slug: strin
   }
   const config = data.version.config;
   return (
-    <main className="survey-phone" style={{ padding: '10vh 16px', background: config.backgroundColor }}>
+    <main className="survey-phone thanks-page" style={{ background: config.backgroundColor }}>
       <ThanksPanel
         slug={slug}
         text={config.completionText}
-        reviewUrl={googleReviewMode(config)==='all'?config.googleReviewUrl:null}
+        reviewUrl={googleReviewMode(config) === 'all' ? config.googleReviewUrl : null}
         primaryColor={config.primaryColor}
       />
     </main>
