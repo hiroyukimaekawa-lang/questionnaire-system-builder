@@ -7,65 +7,272 @@ import { choicePresentation, scoreMax, validateAnswers } from '@/lib/survey';
 import { isAnonymousSurvey, publicSurveyTitle } from '@/lib/public-survey';
 import { resolveSurveyTheme } from '@/lib/theme/templates';
 
-function questionNumber(index:number){
-  return index<20?String.fromCodePoint(0x2460+index):`${index+1}.`;
+function questionNumber(index: number) {
+  return index < 20 ? String.fromCodePoint(0x2460 + index) : `${index + 1}.`;
 }
 
-export function SurveyRenderer({name,slug,version,preview=false,onEditTarget}:{name:string;slug:string;version:SurveyVersion;preview?:boolean;onEditTarget?:(target:string)=>void}){
-  const config=resolveSurveyTheme(version.config),router=useRouter();
-  const [answers,setAnswers]=useState<Record<string,AnswerValue>>({});
-  const [errors,setErrors]=useState<Record<string,string>>({});
-  const [pending,setPending]=useState(false);
-  const [submitError,setSubmitError]=useState('');
-  const refs=useRef<Record<string,HTMLElement|null>>({});
-  const set=(id:string,value:AnswerValue)=>{setAnswers(current=>({...current,[id]:value}));setErrors(current=>({...current,[id]:''}));};
-  async function submit(event:React.FormEvent){event.preventDefault();if(preview)return;const found=validateAnswers(version.questions,answers);setErrors(found);const first=Object.keys(found)[0];if(first){refs.current[first]?.scrollIntoView({behavior:'smooth',block:'center'});refs.current[first]?.focus();return;}setPending(true);setSubmitError('');try{const response=await fetch('/api/responses',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({slug,versionId:version.id,answers})});const json=await response.json();if(!response.ok)throw new Error(json.error||'送信できませんでした。');const comment=version.questions.filter(question=>question.type==='textarea').map(question=>answers[question.id]).find(Boolean);sessionStorage.setItem(`survey-completion:${slug}`,JSON.stringify({responseId:json.id,message:json.completionMessage,comment:comment?String(comment):''}));router.push(`/${slug}/thanks`);}catch(error){setSubmitError(error instanceof Error?error.message:'通信エラーが発生しました。');setPending(false);}}
+export function SurveyRenderer({
+  name,
+  slug,
+  version,
+  preview = false,
+  onEditTarget,
+}: {
+  name: string;
+  slug: string;
+  version: SurveyVersion;
+  preview?: boolean;
+  onEditTarget?: (target: string) => void;
+}) {
+  const config = resolveSurveyTheme(version.config), router = useRouter();
+  const [answers, setAnswers] = useState<Record<string, AnswerValue>>({});
+  const [errors, setErrors] = useState<Record<string, string>>({});
+  const [pending, setPending] = useState(false);
+  const [submitError, setSubmitError] = useState('');
+  const refs = useRef<Record<string, HTMLElement | null>>({});
+  const set = (id: string, value: AnswerValue) => {
+    setAnswers((current) => ({ ...current, [id]: value }));
+    setErrors((current) => ({ ...current, [id]: '' }));
+  };
 
-  const heroLabel=config.heroLabel?.trim()||'QUESTIONNAIRE';
-  const heroTitle=publicSurveyTitle(name,config);
-  const heroSubtitle=version.config.heroSubtitle?.trim()||version.config.description?.trim()||'サービス向上のため、ご意見をお聞かせください。';
-  const heroBackground=config.heroBackgroundType==='solid'?config.heroOverlayColor:`linear-gradient(145deg, ${config.heroOverlayColor}, ${config.primaryColor} 62%, ${config.accentColor})`;
-  const themeStyle={background:config.backgroundColor,'--survey-brand':config.primaryColor,'--survey-secondary':config.secondaryColor,'--survey-accent':config.accentColor,'--survey-hero-text':config.heroTextColor,'--survey-button':config.buttonBackground,'--survey-button-text':config.buttonTextColor,'--survey-card':config.cardBackground,'--survey-logo-badge':config.logoBadgeBackground,'--survey-radius':`${config.cardRadius}px`,'--survey-question-font-size':`${config.questionFontSize}px`} as React.CSSProperties;
+  async function submit(event: React.FormEvent) {
+    event.preventDefault();
+    if (preview) return;
+    const found = validateAnswers(version.questions, answers);
+    setErrors(found);
+    const first = Object.keys(found)[0];
+    if (first) {
+      refs.current[first]?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      refs.current[first]?.focus();
+      return;
+    }
+    setPending(true);
+    setSubmitError('');
+    try {
+      const response = await fetch('/api/responses', {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ slug, versionId: version.id, answers }),
+      });
+      const json = await response.json();
+      if (!response.ok) throw new Error(json.error || '送信できませんでした。');
+      const comment = version.questions
+        .filter((question) => question.type === 'textarea')
+        .map((question) => answers[question.id])
+        .find(Boolean);
+      sessionStorage.setItem(
+        `survey-completion:${slug}`,
+        JSON.stringify({
+          responseId: json.id,
+          message: json.completionMessage,
+          comment: comment ? String(comment) : '',
+        }),
+      );
+      router.push(`/${slug}/thanks`);
+    } catch (error) {
+      setSubmitError(error instanceof Error ? error.message : '通信エラーが発生しました。');
+      setPending(false);
+    }
+  }
 
-  return <div className={`survey-phone survey-theme survey-theme-${config.themeId}`} style={themeStyle}>
-    <header className="survey-brand-header">
-      {preview?<button type="button" className="preview-editable brand-editable" onClick={()=>onEditTarget?.('name')}><strong className="survey-business-name">{name}</strong></button>:<strong className="survey-business-name">{name}</strong>}
-    </header>
-    <section className="survey-hero" style={{background:heroBackground}}>
-      <div className="survey-hero-inner">
-        {preview?<button type="button" className="preview-editable hero-label-editable" onClick={()=>onEditTarget?.('heroLabel')}><p className="survey-hero-label">{heroLabel}</p></button>:<p className="survey-hero-label">{heroLabel}</p>}
-        {preview?<button type="button" className="preview-editable hero-editable" onClick={()=>onEditTarget?.('heroTitle')}><h1>{heroTitle}</h1></button>:<h1>{heroTitle}</h1>}
-        <span className="survey-hero-rule" aria-hidden="true"/>
-        {preview?<button type="button" className="preview-editable hero-editable" onClick={()=>onEditTarget?.('heroSubtitle')}><p className="survey-hero-subtitle">{heroSubtitle}</p></button>:<p className="survey-hero-subtitle">{heroSubtitle}</p>}
-      </div>
-    </section>
-    <main className="survey-content">
-      {isAnonymousSurvey(config)&&<div className="survey-intro">
-        {preview?<button type="button" className="preview-editable intro-editable" onClick={()=>onEditTarget?.('anonymousText')}><p className="survey-anonymous-note">※こちらのアンケートは匿名です。</p></button>:<p className="survey-anonymous-note">※こちらのアンケートは匿名です。</p>}
-      </div>}
-      <form onSubmit={submit} noValidate>
-        {version.questions.map((question,index)=>{
-          const headingId=`question-heading-${question.id}`;
-          return <section className="question-block preview-question-card" key={question.id} ref={element=>{refs.current[question.id]=element;}} tabIndex={-1} onClickCapture={()=>onEditTarget?.(`question-${question.id}`)}>
-            <header className="question-heading">
-              <h2 className="question-title" id={headingId}><span className="question-number" aria-hidden="true">{questionNumber(index)}</span><span className="question-title-body"><span className="question-title-text">{question.title}</span>{question.required&&<span className="required-badge">※必須</span>}</span></h2>
-              {question.description&&<p className="muted question-description">{question.description}</p>}
-            </header>
-            <div className="answer-card" role="group" aria-labelledby={headingId}>
-              {question.type==='rating_10'&&<><div className={`rating-grid rating-grid-${scoreMax(question)}`} role="radiogroup" aria-label={question.title}>{Array.from({length:scoreMax(question)},(_,number)=>number+1).map(number=><button type="button" className="rating-button" key={number} role="radio" aria-checked={answers[question.id]===number} onClick={()=>set(question.id,number)}>{number}</button>)}</div><div className="rating-labels"><span>{question.settings.minLabel||'非常に不満'}</span><span>{question.settings.maxLabel||'非常に満足'}</span></div></>}
-              {question.type==='single_choice'&&choicePresentation(question)==='select'&&<select className="survey-select" aria-label={question.title} value={String(answers[question.id]??'')} onChange={event=>set(question.id,event.target.value)}><option value="">選択してください</option>{question.options.map(option=><option key={option.value} value={option.value}>{option.label}</option>)}</select>}
-              {question.type==='single_choice'&&choicePresentation(question)==='radio'&&question.options.map(option=><label className="choice" key={option.value}><input type="radio" name={question.id} checked={answers[question.id]===option.value} onChange={()=>set(question.id,option.value)}/><span>{option.label}</span></label>)}
-              {question.type==='multiple_choice'&&question.options.map(option=>{const selected=Array.isArray(answers[question.id])?answers[question.id] as string[]:[];return <label className="choice" key={option.value}><input type="checkbox" checked={selected.includes(option.value)} onChange={event=>set(question.id,event.target.checked?[...selected,option.value]:selected.filter(value=>value!==option.value))}/><span>{option.label}</span></label>;})}
-              {question.type==='textarea'&&<textarea aria-label={question.title} rows={5} placeholder={question.settings.placeholder} value={String(answers[question.id]??'')} onChange={event=>set(question.id,event.target.value)} className="survey-text-input survey-textarea"/>}
-              {question.type==='text'&&<input aria-label={question.title} placeholder={question.settings.placeholder} value={String(answers[question.id]??'')} onChange={event=>set(question.id,event.target.value)} className="survey-text-input"/>}
-              {errors[question.id]&&<p className="error question-error" role="alert">{errors[question.id]}</p>}
-            </div>
-          </section>;
-        })}
-        {submitError&&<p className="error" role="alert">{submitError}</p>}
-        <button className="btn survey-submit" disabled={pending} type={preview?'button':'submit'} onClick={preview?()=>onEditTarget?.('submitLabel'):undefined}>{preview?config.buttonLabel:pending?'送信中…':config.buttonLabel}</button>
-      </form>
-      <p className="survey-footer">ご協力ありがとうございます</p>
-    </main>
-  </div>;
+  const heroLabel = config.heroLabel?.trim() || 'QUESTIONNAIRE';
+  const heroTitle = publicSurveyTitle(name, config);
+  const heroSubtitle = version.config.heroSubtitle?.trim() || version.config.description?.trim() || 'サービス向上のため、ご意見をお聞かせください。';
+  const heroBackground = config.heroBackgroundType === 'solid'
+    ? config.heroOverlayColor
+    : `linear-gradient(145deg, ${config.heroOverlayColor}, ${config.primaryColor} 62%, ${config.accentColor})`;
+  const themeStyle = {
+    background: config.backgroundColor,
+    '--survey-brand': config.primaryColor,
+    '--survey-secondary': config.secondaryColor,
+    '--survey-accent': config.accentColor,
+    '--survey-hero-text': config.heroTextColor,
+    '--survey-button': config.buttonBackground,
+    '--survey-button-text': config.buttonTextColor,
+    '--survey-card': config.cardBackground,
+    '--survey-logo-badge': config.logoBadgeBackground,
+    '--survey-radius': `${config.cardRadius}px`,
+    '--survey-question-font-size': `${config.questionFontSize}px`,
+  } as React.CSSProperties;
+
+  return (
+    <div className={`survey-phone survey-theme survey-theme-${config.themeId}`} style={themeStyle}>
+      <header className="survey-brand-header">
+        {preview ? (
+          <button type="button" className="preview-editable brand-editable" onClick={() => onEditTarget?.('name')}>
+            <strong className="survey-business-name jp-heading">{name}</strong>
+          </button>
+        ) : (
+          <strong className="survey-business-name jp-heading">{name}</strong>
+        )}
+      </header>
+
+      <section className="survey-hero" style={{ background: heroBackground }}>
+        <div className="survey-hero-inner">
+          {preview ? (
+            <button type="button" className="preview-editable hero-label-editable" onClick={() => onEditTarget?.('heroLabel')}>
+              <p className="survey-hero-label">{heroLabel}</p>
+            </button>
+          ) : (
+            <p className="survey-hero-label">{heroLabel}</p>
+          )}
+          {preview ? (
+            <button type="button" className="preview-editable hero-editable" onClick={() => onEditTarget?.('heroTitle')}>
+              <h1 className="jp-heading">{heroTitle}</h1>
+            </button>
+          ) : (
+            <h1 className="jp-heading">{heroTitle}</h1>
+          )}
+          <span className="survey-hero-rule" aria-hidden="true" />
+          {preview ? (
+            <button type="button" className="preview-editable hero-editable" onClick={() => onEditTarget?.('heroSubtitle')}>
+              <p className="survey-hero-subtitle jp-copy">{heroSubtitle}</p>
+            </button>
+          ) : (
+            <p className="survey-hero-subtitle jp-copy">{heroSubtitle}</p>
+          )}
+        </div>
+      </section>
+
+      <main className="survey-content">
+        {isAnonymousSurvey(config) && (
+          <div className="survey-intro">
+            {preview ? (
+              <button type="button" className="preview-editable intro-editable" onClick={() => onEditTarget?.('anonymousText')}>
+                <p className="survey-anonymous-note jp-copy">※こちらのアンケートは匿名です。</p>
+              </button>
+            ) : (
+              <p className="survey-anonymous-note jp-copy">※こちらのアンケートは匿名です。</p>
+            )}
+          </div>
+        )}
+
+        <form onSubmit={submit} noValidate>
+          {version.questions.map((question, index) => {
+            const headingId = `question-heading-${question.id}`;
+            return (
+              <section
+                className="question-block preview-question-card"
+                key={question.id}
+                ref={(element) => { refs.current[question.id] = element; }}
+                tabIndex={-1}
+                onClickCapture={() => onEditTarget?.(`question-${question.id}`)}
+              >
+                <header className="question-heading">
+                  <h2 className="question-title" id={headingId}>
+                    <span className="question-number" aria-hidden="true">{questionNumber(index)}</span>
+                    <span className="question-title-body">
+                      <span className="question-title-text jp-copy">{question.title}</span>
+                      {question.required && <span className="required-badge">※必須</span>}
+                    </span>
+                  </h2>
+                  {question.description && <p className="muted question-description jp-copy">{question.description}</p>}
+                </header>
+
+                <div className="answer-card" role="group" aria-labelledby={headingId}>
+                  {question.type === 'rating_10' && (
+                    <>
+                      <div className={`rating-grid rating-grid-${scoreMax(question)}`} role="radiogroup" aria-label={question.title}>
+                        {Array.from({ length: scoreMax(question) }, (_, number) => number + 1).map((number) => (
+                          <button
+                            type="button"
+                            className="rating-button"
+                            key={number}
+                            role="radio"
+                            aria-checked={answers[question.id] === number}
+                            onClick={() => set(question.id, number)}
+                          >
+                            {number}
+                          </button>
+                        ))}
+                      </div>
+                      <div className="rating-labels jp-copy">
+                        <span>{question.settings.minLabel || '非常に不満'}</span>
+                        <span>{question.settings.maxLabel || '非常に満足'}</span>
+                      </div>
+                    </>
+                  )}
+
+                  {question.type === 'single_choice' && choicePresentation(question) === 'select' && (
+                    <select
+                      className="survey-select"
+                      aria-label={question.title}
+                      value={String(answers[question.id] ?? '')}
+                      onChange={(event) => set(question.id, event.target.value)}
+                    >
+                      <option value="">選択してください</option>
+                      {question.options.map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}
+                    </select>
+                  )}
+
+                  {question.type === 'single_choice' && choicePresentation(question) === 'radio' && question.options.map((option) => (
+                    <label className="choice" key={option.value}>
+                      <input
+                        type="radio"
+                        name={question.id}
+                        checked={answers[question.id] === option.value}
+                        onChange={() => set(question.id, option.value)}
+                      />
+                      <span className="jp-copy">{option.label}</span>
+                    </label>
+                  ))}
+
+                  {question.type === 'multiple_choice' && question.options.map((option) => {
+                    const selected = Array.isArray(answers[question.id]) ? answers[question.id] as string[] : [];
+                    return (
+                      <label className="choice" key={option.value}>
+                        <input
+                          type="checkbox"
+                          checked={selected.includes(option.value)}
+                          onChange={(event) => set(
+                            question.id,
+                            event.target.checked
+                              ? [...selected, option.value]
+                              : selected.filter((value) => value !== option.value),
+                          )}
+                        />
+                        <span className="jp-copy">{option.label}</span>
+                      </label>
+                    );
+                  })}
+
+                  {question.type === 'textarea' && (
+                    <textarea
+                      aria-label={question.title}
+                      rows={5}
+                      placeholder={question.settings.placeholder}
+                      value={String(answers[question.id] ?? '')}
+                      onChange={(event) => set(question.id, event.target.value)}
+                      className="survey-text-input survey-textarea"
+                    />
+                  )}
+                  {question.type === 'text' && (
+                    <input
+                      aria-label={question.title}
+                      placeholder={question.settings.placeholder}
+                      value={String(answers[question.id] ?? '')}
+                      onChange={(event) => set(question.id, event.target.value)}
+                      className="survey-text-input"
+                    />
+                  )}
+                  {errors[question.id] && <p className="error question-error jp-copy" role="alert">{errors[question.id]}</p>}
+                </div>
+              </section>
+            );
+          })}
+
+          {submitError && <p className="error jp-copy" role="alert">{submitError}</p>}
+          <button
+            className="btn survey-submit jp-ui-label"
+            disabled={pending}
+            type={preview ? 'button' : 'submit'}
+            onClick={preview ? () => onEditTarget?.('submitLabel') : undefined}
+          >
+            {preview ? config.buttonLabel : pending ? '送信中…' : config.buttonLabel}
+          </button>
+        </form>
+        <p className="survey-footer jp-copy">ご協力ありがとうございます</p>
+      </main>
+    </div>
+  );
 }
