@@ -1,6 +1,6 @@
 'use client';
 import {useActionState,useMemo,useState} from 'react';
-import {saveCompletionSettingsAction} from '@/app/actions';
+import {saveCompletionSettingsAction} from '@/app/completion-actions';
 import {googleReviewMode,scoreMax} from '@/lib/survey';
 import type {CompletionRule,GoogleReviewMode,GoogleReviewRule,RuleCondition,SurveyConfig,SurveyQuestion} from '@/types/database';
 const MAX_RULES=20,MAX_CONDITIONS=10;
