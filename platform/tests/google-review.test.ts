@@ -44,3 +44,9 @@ test('5点満点の質問でも設定した閾値で判定する',()=>{
   assert.equal(evaluateGoogleReviewEligibility(config,[five],{[five.id]:3}),false);
   assert.equal(evaluateGoogleReviewEligibility({...config,googleReviewRule:{logic:'and',conditions:[{questionId:five.id,operator:'gte',value:6}]}},[five],{[five.id]:5}),false);
 });
+
+test('旧conditional/googleReviewRulesもAND条件として安全に評価する',()=>{
+  const legacy={...defaultConfig,googleReviewUrl:url,googleReviewMode:'conditional',googleReviewRules:[{id:'legacy',logic:'and',conditions:[{questionId:q1.id,operator:'gte',value:9},{questionId:q2.id,operator:'gte',value:9}]}]} as any;
+  assert.equal(evaluateGoogleReviewEligibility(legacy,questions,{[q1.id]:9,[q2.id]:9}),true);
+  assert.equal(evaluateGoogleReviewEligibility(legacy,questions,{[q1.id]:10,[q2.id]:8}),false);
+});
