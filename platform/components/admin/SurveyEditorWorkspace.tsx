@@ -14,7 +14,37 @@ export function SurveyEditorWorkspace({survey,draft,publicUrl,publishAction,unpu
   const [name,setName]=useState(survey.name as string),[config,setConfig]=useState(draft.config),[questions,setQuestions]=useState(draft.questions);
   const syncForm=(event:React.FormEvent<HTMLElement>)=>{const input=event.target as HTMLInputElement|HTMLTextAreaElement|HTMLSelectElement;if(!input.name)return;if(input.name==='anonymous'){setConfig(current=>({...current,anonymous:input.value==='true'}));return;}if(input.name==='name'){setName(input.value);return;}if(['primaryColor','backgroundColor','secondaryColor','accentColor','heroOverlayColor','heroTextColor','buttonBackground','buttonTextColor','cardBackground','logoBadgeBackground','title','heroLabel','heroTitle','questionFontSize','heroSubtitle','description','introText','anonymousText','completionText','submitLabel','logoUrl','iconUrl','logoMode','heroBackgroundType','themeId','googleReviewMode','googleReviewUrl'].includes(input.name))setConfig(current=>input.name==='submitLabel'?{...current,submitLabel:input.value,buttonLabel:input.value}:{...current,[input.name]:input.name==='questionFontSize'?Number(input.value):input.value});};
   const questionsChanged=useCallback((next:SurveyQuestion[])=>setQuestions(next),[]);
-  const focusTarget=(target:string)=>{if(target.startsWith('question-')){const index=questions.findIndex(q=>q.id===target.slice(9));const card=document.querySelectorAll<HTMLElement>('.editor-questions .question-builder-card')[index];card?.scrollIntoView({behavior:'smooth',block:'center'});card?.querySelector<HTMLInputElement>('input')?.focus();return;}const element=document.querySelector<HTMLElement>(`[name="${target}"]`)??document.getElementById(target);element?.scrollIntoView({behavior:'smooth',block:'center'});element?.focus();element?.classList.add('edit-target-flash');window.setTimeout(()=>element?.classList.remove('edit-target-flash'),1000);};
+
+  const revealTarget=(container:HTMLElement|null,focusable?:HTMLElement|null)=>{
+    if(!container)return;
+    container.scrollIntoView({behavior:'smooth',block:'center'});
+    const target=focusable??container.querySelector<HTMLElement>('input,textarea,select,button');
+    window.setTimeout(()=>target?.focus({preventScroll:true}),250);
+    container.classList.add('edit-target-flash');
+    window.setTimeout(()=>container.classList.remove('edit-target-flash'),1200);
+  };
+
+  const focusTarget=(target:string)=>{
+    if(target.startsWith('question-')){
+      const questionId=target.slice(9);
+      const card=Array.from(document.querySelectorAll<HTMLElement>('.editor-questions .question-builder-card')).find(element=>element.dataset.questionId===questionId)??null;
+      revealTarget(card,card?.querySelector<HTMLElement>('[data-question-title]'));
+      return;
+    }
+
+    const named=document.querySelector<HTMLElement>(`[name="${target}"]`);
+    if(named){revealTarget(named.closest<HTMLElement>('.field')??named,named);return;}
+
+    if(target==='googleReview'){
+      const section=document.getElementById('completion-settings');
+      revealTarget(section,section?.querySelector<HTMLElement>('input[name="googleReviewMode"],input[name="googleReviewUrl"],select,button'));
+      return;
+    }
+
+    const byId=document.getElementById(target);
+    revealTarget(byId);
+  };
+
   const version={...draft,config,questions};
   return <div className="preview-first-layout"><div className="editor-panel" onInput={syncForm} onChange={syncForm}>
     <nav className="editor-section-nav" aria-label="編集セクション"><a href="#basic-information">基本情報</a><a href="#design-copy">デザイン・文章</a><a href="#questions">質問</a><a href="#completion-settings">口コミ・完了条件</a><a href="#publish-settings">公開設定</a></nav>
