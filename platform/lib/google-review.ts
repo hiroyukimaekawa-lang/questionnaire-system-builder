@@ -1,4 +1,4 @@
-import type { AnswerValue, RuleCondition, SurveyConfig, SurveyQuestion } from '@/types/database';
+import type { AnswerValue, GoogleReviewRule, RuleCondition, SurveyConfig, SurveyQuestion } from '@/types/database';
 import { googleReviewMode, scoreMax } from '@/lib/survey';
 
 function matchesCondition(
@@ -17,6 +17,18 @@ function matchesCondition(
   return actual === condition.value;
 }
 
+function reviewRule(config: SurveyConfig): GoogleReviewRule | null {
+  if (config.googleReviewRule?.conditions.length) return config.googleReviewRule;
+  const legacy = (config as SurveyConfig & { googleReviewRules?: unknown }).googleReviewRules;
+  if (!Array.isArray(legacy)) return null;
+  const first = legacy.find((candidate) => {
+    if (!candidate || typeof candidate !== 'object') return false;
+    const rule = candidate as Partial<GoogleReviewRule>;
+    return (rule.logic === 'and' || rule.logic === 'or') && Array.isArray(rule.conditions) && rule.conditions.length > 0;
+  }) as GoogleReviewRule | undefined;
+  return first ?? null;
+}
+
 export function evaluateGoogleReviewEligibility(
   config: SurveyConfig,
   questions: SurveyQuestion[],
@@ -26,7 +38,7 @@ export function evaluateGoogleReviewEligibility(
   if (mode === 'disabled' || !config.googleReviewUrl) return false;
   if (mode === 'all') return true;
 
-  const rule = config.googleReviewRule;
+  const rule = reviewRule(config);
   if (!rule?.conditions.length) return false;
 
   const ratingMaxByQuestionId = new Map(
