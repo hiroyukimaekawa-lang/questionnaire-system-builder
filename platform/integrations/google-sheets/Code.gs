@@ -4,20 +4,22 @@ const TAB_STORES = '店舗・医院マスタ';
 const TAB_EVENTS = 'イベント';
 
 function doPost(e) {
+  const lock = LockService.getScriptLock();
   try {
+    lock.waitLock(10000);
     const body = JSON.parse((e && e.postData && e.postData.contents) || '{}');
     const props = PropertiesService.getScriptProperties();
     const expectedSecret = props.getProperty('WEBHOOK_SECRET');
     const spreadsheetId = props.getProperty('SPREADSHEET_ID');
 
     if (!expectedSecret || !spreadsheetId) {
-      return jsonResponse({ ok: false, error: 'Script Properties are not configured.' }, 500);
+      return jsonResponse({ ok: false, error: 'Script Properties are not configured.' });
     }
     if (!body.secret || body.secret !== expectedSecret) {
-      return jsonResponse({ ok: false, error: 'Unauthorized.' }, 401);
+      return jsonResponse({ ok: false, error: 'Unauthorized.' });
     }
     if (!body.response || !body.response.id) {
-      return jsonResponse({ ok: false, error: 'response.id is required.' }, 400);
+      return jsonResponse({ ok: false, error: 'response.id is required.' });
     }
 
     const ss = SpreadsheetApp.openById(spreadsheetId);
@@ -25,13 +27,21 @@ function doPost(e) {
     const store = body.store || {};
     const answers = Array.isArray(body.answers) ? body.answers : [];
     const events = Array.isArray(body.events) ? body.events : [];
+    const responseSheet = ss.getSheetByName(TAB_RESPONSES);
+    const answerSheet = ss.getSheetByName(TAB_ANSWERS);
+    const storeSheet = ss.getSheetByName(TAB_STORES);
+    const eventSheet = ss.getSheetByName(TAB_EVENTS);
 
-    // Idempotency: retries must not duplicate an already exported response.
-    if (findExactInColumn(ss.getSheetByName(TAB_RESPONSES), 1, response.id)) {
-      return jsonResponse({ ok: true, duplicate: true });
+    if (!responseSheet || !answerSheet || !storeSheet || !eventSheet) {
+      return jsonResponse({ ok: false, error: 'Required spreadsheet tabs are missing.' });
     }
 
-    ss.getSheetByName(TAB_RESPONSES).appendRow([
+    // Idempotency: the response UUID is the write key. Retries never duplicate rows.
+    if (findExactInColumn(responseSheet, 1, response.id)) {
+      return jsonResponse({ ok: true, duplicate: true, responseId: response.id });
+    }
+
+    responseSheet.appendRow([
       response.id,
       response.submittedAt || '',
       store.name || '',
@@ -46,7 +56,6 @@ function doPost(e) {
       new Date(),
     ]);
 
-    const answerSheet = ss.getSheetByName(TAB_ANSWERS);
     answers.forEach(function(answer) {
       answerSheet.appendRow([
         response.id,
@@ -60,9 +69,8 @@ function doPost(e) {
       ]);
     });
 
-    upsertStore(ss.getSheetByName(TAB_STORES), store, response);
+    upsertStore(storeSheet, store, response);
 
-    const eventSheet = ss.getSheetByName(TAB_EVENTS);
     events.forEach(function(event) {
       eventSheet.appendRow([
         event.id || Utilities.getUuid(),
@@ -78,7 +86,9 @@ function doPost(e) {
 
     return jsonResponse({ ok: true, responseId: response.id });
   } catch (error) {
-    return jsonResponse({ ok: false, error: String(error && error.message ? error.message : error) }, 500);
+    return jsonResponse({ ok: false, error: String(error && error.message ? error.message : error) });
+  } finally {
+    try { lock.releaseLock(); } catch (_) {}
   }
 }
 
@@ -94,7 +104,7 @@ function upsertStore(sheet, store, response) {
     store.googleReviewUrl || '',
     store.publishedAt || '',
     response.submittedAt || '',
-    Number(store.responseCount || 0),
+    store.responseCount == null ? '' : Number(store.responseCount),
   ]];
   if (row) {
     sheet.getRange(row, 1, 1, values[0].length).setValues(values);
