@@ -11,12 +11,14 @@ export default async function Thanks({ params }: { params: Promise<{ slug: strin
     return <main className="survey-phone" style={{ padding: 24 }}>現在このアンケートは公開されていません。</main>;
   }
   const config = data.version.config;
+  const reviewMode = googleReviewMode(config);
   return (
     <main className="survey-phone thanks-page" style={{ background: config.backgroundColor }}>
       <ThanksPanel
         slug={slug}
         text={config.completionText}
-        reviewUrl={googleReviewMode(config) === 'all' ? config.googleReviewUrl : null}
+        reviewUrl={reviewMode === 'disabled' ? null : config.googleReviewUrl}
+        reviewMode={reviewMode}
         primaryColor={config.primaryColor}
       />
     </main>
