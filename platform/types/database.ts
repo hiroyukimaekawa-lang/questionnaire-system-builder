@@ -3,10 +3,14 @@ export type SurveyStatus = 'draft' | 'published' | 'unpublished' | 'archived';
 export type QuestionType = 'single_choice' | 'multiple_choice' | 'rating_10' | 'textarea' | 'text';
 export type SurveyThemeId = 'clinic-clean' | 'restaurant-clean' | 'salon-clean';
 export type HeroBackgroundType = 'solid' | 'soft-gradient';
-export type GoogleReviewMode = 'disabled' | 'all';
+export type GoogleReviewMode = 'disabled' | 'all' | 'score';
 export type RuleOperator = 'gte' | 'lte' | 'eq';
 
 export interface RuleCondition { questionId: string; operator: RuleOperator; value: number }
+export interface GoogleReviewRule {
+  logic: 'and' | 'or';
+  conditions: RuleCondition[];
+}
 export interface CompletionRule {
   id: string;
   logic: 'and' | 'or';
@@ -22,6 +26,7 @@ export interface SurveyConfig {
   backgroundColor: string; logoUrl: string | null; iconUrl: string | null;
   googleReviewUrl: string | null;
   googleReviewMode?: GoogleReviewMode;
+  googleReviewRule?: GoogleReviewRule | null;
   completionRules?: CompletionRule[];
   themeId?: SurveyThemeId; secondaryColor?: string; heroBackgroundType?: HeroBackgroundType;
   heroLabel?: string; heroTitle?: string; heroSubtitle?: string; logoMode?: BuilderLogoMode;
@@ -66,6 +71,8 @@ export interface BuilderContext {
   logoMode?: BuilderLogoMode;
   logoUrl?: string | null;
   googleReviewEnabled?: boolean;
+  googleReviewMode?: GoogleReviewMode;
+  googleReviewRule?: GoogleReviewRule | null;
   googleReviewUrl?: string | null;
   completionText?: string;
   themeId?: SurveyThemeId;
