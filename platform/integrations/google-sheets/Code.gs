@@ -2,6 +2,25 @@ const TAB_RESPONSES = '回答一覧';
 const TAB_ANSWERS = '回答詳細';
 const TAB_STORES = '店舗・医院マスタ';
 const TAB_EVENTS = 'イベント';
+const DEFAULT_SPREADSHEET_ID = '1diiL76VHtmVFGQPeUfUJ2V7lEz_mM7fWO-oVCnRwu0s';
+
+function setup() {
+  const props = PropertiesService.getScriptProperties();
+  props.setProperty('SPREADSHEET_ID', DEFAULT_SPREADSHEET_ID);
+  if (!props.getProperty('WEBHOOK_SECRET')) {
+    props.setProperty('WEBHOOK_SECRET', Utilities.getUuid() + Utilities.getUuid());
+  }
+  Logger.log('SPREADSHEET_ID=' + props.getProperty('SPREADSHEET_ID'));
+  Logger.log('WEBHOOK_SECRET=' + props.getProperty('WEBHOOK_SECRET'));
+}
+
+function doGet() {
+  const props = PropertiesService.getScriptProperties();
+  return jsonResponse({
+    ok: true,
+    configured: Boolean(props.getProperty('SPREADSHEET_ID') && props.getProperty('WEBHOOK_SECRET')),
+  });
+}
 
 function doPost(e) {
   const lock = LockService.getScriptLock();
@@ -10,7 +29,7 @@ function doPost(e) {
     const body = JSON.parse((e && e.postData && e.postData.contents) || '{}');
     const props = PropertiesService.getScriptProperties();
     const expectedSecret = props.getProperty('WEBHOOK_SECRET');
-    const spreadsheetId = props.getProperty('SPREADSHEET_ID');
+    const spreadsheetId = props.getProperty('SPREADSHEET_ID') || DEFAULT_SPREADSHEET_ID;
 
     if (!expectedSecret || !spreadsheetId) {
       return jsonResponse({ ok: false, error: 'Script Properties are not configured.' });
