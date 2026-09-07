@@ -66,6 +66,7 @@ export function SurveyRenderer({
           responseId: json.id,
           message: json.completionMessage,
           comment: comment ? String(comment) : '',
+          reviewEligible: json.reviewEligible === true,
         }),
       );
       router.push(`/${slug}/thanks`);
