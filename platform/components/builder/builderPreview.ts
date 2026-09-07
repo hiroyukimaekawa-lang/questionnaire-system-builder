@@ -63,7 +63,8 @@ export function resolveBuilderPreviewTarget(target:string,context:BuilderContext
 
 export function reopenBuilderStep(context:BuilderContext,stepId:string):BuilderContext{
   const next={...context};
-  delete (next as Record<string,unknown>)[stepId];
+  // Custom questions remain editable while their confirmation is reopened.
+  if(stepId!=='questions'||context.template!=='custom')delete (next as Record<string,unknown>)[stepId];
   if(stepId==='businessType'){
     delete next.template;delete next.questions;delete next.questionsConfirmed;
   }
