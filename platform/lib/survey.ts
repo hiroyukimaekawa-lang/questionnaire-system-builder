@@ -3,7 +3,7 @@ export const defaultConfig: SurveyConfig = { title:'お客様アンケート',qu
 export function normalizeQuestionFontSize(value:unknown){const number=Number(value);return Number.isFinite(number)?Math.min(22,Math.max(14,Math.round(number))):17;}
 export function scoreMax(q:SurveyQuestion):5|10{return q.settings.maxScore===5?5:10;}
 export function choicePresentation(q:SurveyQuestion):'radio'|'select'{return q.settings.presentation==='select'?'select':'radio';}
-export function googleReviewMode(config:SurveyConfig):'disabled'|'all'|'score'{if(!config.googleReviewUrl)return 'disabled';if(config.googleReviewMode==='disabled')return 'disabled';if(config.googleReviewMode==='score')return 'score';return 'all';}
+export function googleReviewMode(config:SurveyConfig):'disabled'|'all'|'score'{if(!config.googleReviewUrl)return 'disabled';const rawMode=(config as SurveyConfig&{googleReviewMode?:string}).googleReviewMode;if(rawMode==='disabled')return 'disabled';if(rawMode==='score'||rawMode==='conditional')return 'score';return 'all';}
 export function slugify(value:string){ return value.normalize('NFKC').toLowerCase().trim().replace(/[^a-z0-9]+/g,'-').replace(/^-|-$/g,'').slice(0,60); }
 export function validateSlug(value:string){ return /^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(value) && value.length <= 60; }
 export function validateQuestion(q:SurveyQuestion){ if(!q.title.trim()) return '質問文を入力してください。'; if((q.type==='single_choice'||q.type==='multiple_choice')&&q.options.filter(o=>o.label.trim()).length<2) return '選択式には2件以上の選択肢が必要です。'; return null; }
