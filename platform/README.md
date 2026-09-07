@@ -11,7 +11,7 @@ cp .env.example .env.local
 npm run dev
 ```
 
-`http://localhost:3000/login` を開きます。本番はCloudflare Worker `crestix-questionnaire` へ直接配備します。実際の `workers.dev` URLは初回deploy後に確定します。
+`http://localhost:3000/login` を開きます。本番はCloudflare Worker `questionnaire` へ直接配備します。実際の `workers.dev` URLは初回deploy後に確定します。
 
 ## Supabase準備とmigration
 
@@ -60,15 +60,15 @@ Google口コミURLが設定されている場合、完了画面では評価点�
 
 ## Cloudflare Worker 公開
 
-本番本体は `platform/` をOpenNextで直接Cloudflare Worker `crestix-questionnaire` へ配備します。Pages proxyは本番経路から外し、ロールバック用としてのみ残します。
+本番本体は `platform/` をOpenNextで直接Cloudflare Worker `questionnaire` へ配備します。Pages proxyは本番経路から外し、ロールバック用としてのみ残します。
 
 `wrangler.jsonc` は以下を設定済みです。
 
-- Worker名: `crestix-questionnaire`
+- Worker名: `questionnaire`
 - `main`: `.open-next/worker.js`
 - `nodejs_compat`
 - static assets binding `ASSETS`
-- `WORKER_SELF_REFERENCE` → `crestix-questionnaire`
+- `WORKER_SELF_REFERENCE` → `questionnaire`
 - observability
 - `workers_dev: true`
 
@@ -102,7 +102,9 @@ Cloudflareへの実deployは手動で行います。
 npm run deploy:crestix-worker
 ```
 
-初回deploy後に表示された実 `workers.dev` URLを確認し、`NEXT_PUBLIC_APP_URL` とSupabase AuthのSite URL / Redirect URLsを正式Worker URLへ変更してから再deployします。URLは推測で設定しません。
+想定本番URLは `https://questionnaire.survey.workers.dev` です。新しい `questionnaire` WorkerのRuntime Variables / Build Variablesに上記3項目を設定し、`NEXT_PUBLIC_APP_URL` はこのURLを使用します。Supabaseの接続先とキーは既存の値を保持してください。初回deploy後に実URLを確認します。Supabase AuthのSite URL / Redirect URLsの対応状況は別途確認し、今回のWorker名変更ではSupabase設定を変更しません。
+
+デプロイ後は `/login`、`/admin`、`/admin/surveys/new`、`/sanglier` でログイン、アンケート作成、Builderの「← ひとつ前に戻る」、公開表示、回答保存、既存データの利用を確認します。既存の `questionnaire-system-builder` Workerは、新Workerの動作確認が完了するまで残します。
 
 旧 `cloudflare/crestix-questionnaire-pages/` と旧 `survey-pages` Workerは、新Workerで `/login`、`/signup`、`/admin`、Server Actions、公開アンケート、回答送信まで確認できるまでは削除しません。
 
