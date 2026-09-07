@@ -16,33 +16,58 @@ The managed spreadsheet uses these tabs:
 1. `回答一覧` — one row per response.
 2. `回答詳細` — one row per question answer.
 3. `店舗・医院マスタ` — one row per store/clinic.
-4. `イベント` — behavioral events such as review CTA display/click (Phase 3).
+4. `イベント` — behavioral events. Phase 2 writes `response_submitted`; Phase 3 adds view/start/review CTA events.
 
-## Phase 1 — completed in repository
+## Phase 1 — completed
 
-- Add `google_sheets_sync_queue`.
-- Automatically enqueue every new response with a database trigger.
-- Backfill existing responses into the queue.
-- Keep queue writes server/database-only; staff can read queue status.
-- Add an idempotent Apps Script webhook receiver template (`Code.gs`).
+- `google_sheets_sync_queue` is created.
+- Every new response is automatically queued by a database trigger.
+- Historical responses are backfilled into the queue.
+- Queue writes remain server/database-only; staff can read status.
+- `Code.gs` provides an idempotent Apps Script webhook receiver.
 
-Applying the migration is required in the production Supabase project before the queue becomes active.
+## Phase 2 — live response sync implemented
 
-## Phase 2 — connect the live spreadsheet
+The public response API now follows this order:
 
-Deploy `Code.gs` as a Google Apps Script Web App, then configure Script Properties:
+1. Validate the answer.
+2. Save it to Supabase first.
+3. Build the Google Sheets payload from the exact published survey/version and submitted answers.
+4. POST it to the Apps Script Web App.
+5. Mark the queue row `synced` or `failed` with a server-generated one-time sync token.
+6. Return success to the respondent even when Google Sheets is temporarily unavailable.
 
-- `SPREADSHEET_ID`: the target Google Sheet ID.
-- `WEBHOOK_SECRET`: a long random secret shared only with the Cloudflare Worker.
+This keeps Supabase authoritative and prevents a Sheets outage from losing questionnaire answers.
 
-After deployment, configure Cloudflare runtime secrets/variables:
+### Security
 
-- `GOOGLE_SHEETS_WEBHOOK_URL`
-- `GOOGLE_SHEETS_WEBHOOK_SECRET`
+`GOOGLE_SHEETS_WEBHOOK_SECRET` is server-only and must never use a `NEXT_PUBLIC_` prefix.
 
-The Worker-side sender should POST one response payload at a time. `response.id` is the idempotency key, so retries do not duplicate rows.
+The queue status RPC requires both `response_id` and a random `googleSheetsSyncToken` stored in response metadata. The token is created on the server and is never included in the browser response, so anonymous clients cannot arbitrarily mark queue rows as synced.
 
-Expected payload shape:
+### Google Apps Script one-time setup
+
+Use the spreadsheet `アンケート回答データ管理`.
+
+1. Open the spreadsheet and create/open a bound Apps Script project via **Extensions → Apps Script**.
+2. Replace the script with `platform/integrations/google-sheets/Code.gs`.
+3. In **Project Settings → Script Properties**, set:
+   - `SPREADSHEET_ID` = the spreadsheet ID.
+   - `WEBHOOK_SECRET` = a long random secret.
+4. Deploy as **Web app**.
+5. Execute as the script owner and allow access required for the deployed web app endpoint.
+6. Copy the `/exec` deployment URL.
+
+### Cloudflare runtime configuration
+
+Set both values on the `questionnaire` Worker as runtime secrets/variables:
+
+- `GOOGLE_SHEETS_WEBHOOK_URL` = Apps Script `/exec` URL.
+- `GOOGLE_SHEETS_WEBHOOK_SECRET` = the exact same secret used in Script Properties.
+
+Then redeploy `main`. The sender has a 4-second timeout. If the webhook is unavailable or misconfigured, the questionnaire response still succeeds in Supabase and the queue records the failed/pending state for recovery.
+
+### Expected payload
 
 ```json
 {
@@ -53,9 +78,7 @@ Expected payload shape:
     "industry": "clinic",
     "slug": "example",
     "status": "published",
-    "googleReviewUrl": "https://...",
-    "publishedAt": "2026-09-07T00:00:00Z",
-    "responseCount": 10
+    "googleReviewUrl": "https://..."
   },
   "response": {
     "id": "uuid",
@@ -76,7 +99,14 @@ Expected payload shape:
       "score": 9
     }
   ],
-  "events": []
+  "events": [
+    {
+      "id": "uuid",
+      "createdAt": "2026-09-07T00:00:00Z",
+      "type": "response_submitted",
+      "metadata": {}
+    }
+  ]
 }
 ```
 
