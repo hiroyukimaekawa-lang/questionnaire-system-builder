@@ -2,11 +2,13 @@
 
 import { useState } from 'react';
 import type { CSSProperties } from 'react';
+import type { GoogleReviewMode } from '@/types/database';
 
 type StoredCompletion = {
   responseId?: string;
   message?: string;
   comment?: string;
+  reviewEligible?: boolean;
 };
 
 type ThanksPanelStyle = CSSProperties & {
@@ -17,11 +19,13 @@ export function ThanksPanel({
   slug,
   text,
   reviewUrl,
+  reviewMode,
   primaryColor,
 }: {
   slug: string;
   text: string;
   reviewUrl: string | null;
+  reviewMode: GoogleReviewMode;
   primaryColor: string;
 }) {
   const [stored] = useState<StoredCompletion>(() => {
@@ -34,13 +38,16 @@ export function ThanksPanel({
   });
   const [copied, setCopied] = useState(false);
   const comment = stored.comment ?? '';
+  const showReview = Boolean(reviewUrl) && (
+    reviewMode === 'all' || (reviewMode === 'score' && stored.reviewEligible === true)
+  );
 
   async function review() {
     if (comment) {
       await navigator.clipboard.writeText(comment);
       setCopied(true);
     }
-    if (reviewUrl) window.open(reviewUrl, '_blank', 'noopener,noreferrer');
+    if (showReview && reviewUrl) window.open(reviewUrl, '_blank', 'noopener,noreferrer');
   }
 
   const style = { '--thanks-brand': primaryColor } as ThanksPanelStyle;
@@ -64,7 +71,7 @@ export function ThanksPanel({
         </div>
       )}
 
-      {reviewUrl && (
+      {showReview && (
         <div className="thanks-review-block">
           <p className="thanks-review-copy jp-copy">
             <span className="jp-keep">よろしければ、</span>
@@ -74,9 +81,11 @@ export function ThanksPanel({
             {comment ? '感想をコピーしてGoogleクチコミへ' : 'Googleクチコミを書く'}
           </button>
           {copied && <p className="notice thanks-copy-notice" role="status">感想をコピーしました。</p>}
-          <small className="muted thanks-review-note">
-            この案内は回答内容や点数にかかわらず、すべての回答者に同じ条件で表示されます。
-          </small>
+          {reviewMode === 'all' && (
+            <small className="muted thanks-review-note">
+              この案内はすべての回答者に同じ条件で表示されます。
+            </small>
+          )}
         </div>
       )}
     </section>
