@@ -29,6 +29,7 @@ export function buildBuilderPreviewVersion(context:BuilderContext):SurveyVersion
       questionFontSize:context.questionFontSize??17,
       heroSubtitle:context.heroSubtitle??theme.config.heroSubtitle,
       introText:context.introText??defaultIntroText(context.anonymous??true),
+      anonymous:context.anonymous??true,
       anonymousText:context.anonymous===false?'回答内容は運営者が確認します。':defaultConfig.anonymousText,
       completionText:context.completionText??defaultCompletionText,
       primaryColor:context.mainColor??theme.config.primaryColor,

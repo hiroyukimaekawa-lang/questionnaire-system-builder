@@ -16,6 +16,7 @@ export interface CompletionRule {
 }
 
 export interface SurveyConfig {
+  anonymous?: boolean;
   title: string; description: string; introText: string; anonymousText: string;
   completionText: string; submitLabel: string; primaryColor: string;
   backgroundColor: string; logoUrl: string | null; iconUrl: string | null;

@@ -56,7 +56,7 @@ export async function POST(request:Request){
     const heroTitle=context.heroTitle?.trim()||theme.config.heroTitle;
     const heroSubtitle=context.heroSubtitle?.trim()||theme.config.heroSubtitle;
     const reviewUrl=context.googleReviewEnabled===true&&context.googleReviewUrl?.trim()?context.googleReviewUrl.trim():null;
-    const config={...defaultConfig,...theme.config,themeId,title:heroTitle,heroLabel,heroTitle,heroSubtitle,introText:context.introText!,anonymousText:context.anonymous?'こちらのアンケートは匿名です。':'回答内容は運営者が確認します。',completionText:context.completionText!,questionFontSize:normalizeQuestionFontSize(context.questionFontSize),primaryColor:context.mainColor!,logoMode:context.logoMode,logoUrl:context.logoUrl??null,googleReviewMode:reviewUrl?'all' as const:'disabled' as const,googleReviewUrl:reviewUrl};
+    const config={...defaultConfig,...theme.config,themeId,title:heroTitle,heroLabel,heroTitle,heroSubtitle,introText:context.introText!,anonymous:context.anonymous,anonymousText:context.anonymous?'こちらのアンケートは匿名です。':'回答内容は運営者が確認します。',completionText:context.completionText!,questionFontSize:normalizeQuestionFontSize(context.questionFontSize),primaryColor:context.mainColor!,logoMode:context.logoMode,logoUrl:context.logoUrl??null,googleReviewMode:reviewUrl?'all' as const:'disabled' as const,googleReviewUrl:reviewUrl};
     const {data:version,error:versionError}=await s.from('survey_versions').insert({survey_id:surveyId,version:1,status:'draft',config,created_by:user.id}).select('id').single();
     if(versionError||!version){logFailure('survey_versions.insert',versionError,surveyId,sessionId);return jsonError(genericError,500)}
 
