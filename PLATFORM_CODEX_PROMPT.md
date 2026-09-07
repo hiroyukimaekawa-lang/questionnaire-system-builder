@@ -7,6 +7,8 @@
 必ず以下を最初から最後まで確認してください。
 
 - `SKILL.md`
+- `SURVEY_DESIGN_SKILL.md`
+- `JAPANESE_WEB_TYPOGRAPHY_SKILL.md`
 - `USAGE.md`
 - `CODEX_IMPLEMENTATION_SPEC.md`
 - `CODEX_PROMPT.md`
@@ -202,6 +204,59 @@ Google口コミURLが設定されている場合は、回答完了画面にGoogl
 
 ---
 
+## Japanese Web Typography
+
+日本語の公開アンケート、管理画面Preview、Thanks画面は `JAPANESE_WEB_TYPOGRAPHY_SKILL.md` を必ず適用してください。
+
+コードとして表示できれば合格ではありません。実際の画面で日本語として自然に読めることを合格条件とします。
+
+### 固定ルール
+
+- 文字数ではなく意味単位で折り返す
+- `ありがとうございまし / た。` のような活用語尾の分断は禁止
+- 助詞・句読点・1〜2文字だけの孤立を避ける
+- 店舗名・医院名・ブランド名を不自然に分断しない
+- 本文へ固定 `<br>` を乱用しない
+- 日本語見出し・本文で `word-break: break-all` を使用しない
+- 見出し・固有名詞へ `overflow-wrap: anywhere` を安易に使用しない
+- `line-break: strict` / `word-break: normal` を基本とする
+- 対応ブラウザでは `word-break: auto-phrase` をprogressive enhancementとして使用してよい
+- 見出しは `text-wrap: balance`、本文は `text-wrap: pretty` を補助として利用してよい
+- 短い意味単位だけ `inline-block + nowrap` を使用してよい
+- 公開画面とPreviewで別々のTypography実装を作らない
+- Thanks画面まで必ずQAする
+
+### Visual QA
+
+最低限以下を実画面またはスクリーンショットで確認してください。
+
+```text
+375px
+390px
+430px
+768px
+1024px
+Desktop
+```
+
+確認対象:
+
+- 店舗・医院名
+- Hero label / H1 / subtitle
+- 全質問タイトル
+- 必須表示
+- 全選択肢
+- 評価ラベル
+- 送信CTA
+- Thanks H1
+- 完了メッセージ
+- 自由記述再表示
+- Google口コミ案内 / CTA
+
+問題を見つけた場合は、修正→再表示→再確認を繰り返し、問題を残したまま完了しないでください。
+
+---
+
 ## Supabase
 
 Supabase migrationをリポジトリ内で管理してください。
@@ -285,6 +340,8 @@ platform/IMPLEMENTATION_PLAN.md
 - URL設計
 - 質問Builder設計
 - 公開Renderer設計
+- Thanks画面設計
+- Japanese Typography / Visual QA設計
 - 回答保存設計
 - CSV設計
 - シードデータ設計
@@ -307,11 +364,11 @@ Phase 5  アンケートCRUD
 Phase 6  質問Builder
 Phase 7  デザイン設定
 Phase 8  Draft / Preview / Publish
-Phase 9  公開アンケートRenderer
+Phase 9  公開アンケートRenderer / ThanksPanel / Japanese Typography
 Phase 10 回答保存
 Phase 11 回答一覧 / CSV
 Phase 12 水谷眼科・三宮胃腸内科シード
-Phase 13 テスト / README / セキュリティ監査
+Phase 13 test / lint / typecheck / build / Visual QA / README / セキュリティ監査
 ```
 
 ---
@@ -340,6 +397,9 @@ npm run build
 - 必須Validation
 - 二重送信防止
 - 375 / 390 / 430px
+- 768px / Desktop
+- Hero / 質問 / CTA / Thanks / Google口コミ案内の日本語改行
+- `ありがとうございました。` 等の語尾が分断されない
 - Google口コミCTAが点数に依存していない
 - 回答保存
 - CSV出力
@@ -365,6 +425,7 @@ npm run build
 - 下書き
 - プレビュー
 - 公開
+- Japanese Typography / Visual QA
 - 回答一覧
 - CSV
 - Vercel公開
@@ -382,6 +443,8 @@ npm run build
 - 架空Supabase URLを設定する
 - 点数によるGoogle口コミCTA選別
 - 高得点回答者だけ口コミへ誘導する
+- 日本語本文・見出しで `word-break: break-all` を使う
+- 不自然な改行を残したままコードだけで完了判定する
 - 営業担当者へGitHub / Codex / Vercel操作を要求する
 
 ---
@@ -413,11 +476,15 @@ npm run build
 ↓
 回答
 ↓
+Thanks画面
+↓
 Supabase保存
 ↓
 回答一覧
 ↓
 CSVダウンロード
 ```
+
+さらに `JAPANESE_WEB_TYPOGRAPHY_SKILL.md` の最終ゲートをすべて満たしてください。
 
 MVP完成まで進めてください。
