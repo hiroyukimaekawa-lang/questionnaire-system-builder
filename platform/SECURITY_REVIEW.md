@@ -28,13 +28,13 @@ The RPC validates object/payload shape, question ownership, required answers, pe
 
 ## Admin/config/completion and headers
 
-Current passwords are never stored or displayed. The final admin cannot be demoted. Design saves merge into existing config, retaining completion, Google review, and unknown future fields. Google review ON/OFF and URL belong to completion settings.
+Current passwords are never stored or displayed. The final admin cannot be demoted. Design saves merge into existing config, retaining completion, Google review, and unknown future fields. Google review mode (disabled / all / score), score conditions, and URL belong to completion settings.
 
 Completion rules use Zod: max 20 rules, 10 conditions each, `and|or`, `gte|lte|eq`, finite integer values, and 1000-character messages. Server validation confirms every question belongs to the current draft, is `rating_10`, and the value is within maxScore.
 
 Headers include nosniff, strict-origin referrer, frame deny, camera/microphone/geolocation deny, plus CSP `frame-ancestors 'none'; object-src 'none'; base-uri 'self'`. A strict script-src and HSTS were not added to avoid breaking Next.js or duplicating Cloudflare configuration.
 
-Google review mode remains `disabled|all`. When `all` has a URL, every respondent sees the same CTA regardless of score, answers, completion result, or needsFollowUp.
+Google review supports `disabled|all|score`: disabled hides the CTA; score displays it when the configured rating-question conditions match. Score conditions support per-question thresholds and multiple conditions combined with AND / OR. The basic UI uses “○点以上” (`operator = gte`), retaining compatibility with existing `gte|lte|eq` conditions. When `all` has a URL, every respondent sees the same CTA regardless of score, answers, completion result, or needsFollowUp.
 
 ## Fixed issues and residual risk
 

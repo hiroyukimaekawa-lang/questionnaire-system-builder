@@ -26,7 +26,7 @@ test('質問文サイズと編集項目ラベルはcompact classで公開表示C
   const form=source('components/admin/SurveyForms.tsx');
   const adminCss=source('app/admin.css');
   const builderCss=source('app/builder.css');
-  const surveyCss=source('app/survey.css');
+  const surveyCss=source('app/survey.css').replace(/\s*([{}:;,])\s*/g,'$1');
   assert.match(form,/question-font-size-field/);
   assert.match(form,/question-font-size-control/);
   assert.match(form,/question-font-size-unit">px/);

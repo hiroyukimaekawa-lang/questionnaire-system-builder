@@ -17,7 +17,7 @@ test('質問文サイズを14〜22の整数に安全に正規化する',()=>{
   assert.equal(normalizeQuestionFontSize(Number.NaN),17);
 });
 test('Rendererとmobile CSSはCSS variableをsingle source of truthとする',()=>{
-  const renderer=source('components/survey/SurveyRenderer.tsx'),css=source('app/survey.css');
+  const renderer=source('components/survey/SurveyRenderer.tsx'),css=source('app/survey.css').replace(/\s*([{}:;,])\s*/g,'$1');
   assert.match(renderer,/--survey-question-font-size/);
   assert.match(css,/font-size:var\(--survey-question-font-size,17px\)/);
   assert.doesNotMatch(css,/\.question-title\{font-size:(?:16|17)px/);

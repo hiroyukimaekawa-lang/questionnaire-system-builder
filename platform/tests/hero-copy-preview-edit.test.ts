@@ -15,7 +15,7 @@ test('SurveyConfigとdefaultConfigがheroLabelを持つ',()=>{
 
 test('旧configと空のheroLabelはRendererでQUESTIONNAIREへfallbackする',()=>{
   const renderer=read('components/survey/SurveyRenderer.tsx');
-  assert.match(renderer,/config\.heroLabel\?\.trim\(\)\|\|'QUESTIONNAIRE'/);
+  assert.match(renderer,/config\.heroLabel\?\.trim\(\)\s*\|\|\s*'QUESTIONNAIRE'/);
   assert.doesNotMatch(renderer,/<p className="survey-hero-label">QUESTIONNAIRE<\/p>/);
 });
 
@@ -49,7 +49,7 @@ test('作成保存と既存編集にhero 3項目が接続される',()=>{
   const actions=read('app/actions.ts');
   const form=read('components/admin/SurveyForms.tsx');
   const editor=read('components/admin/SurveyEditorWorkspace.tsx');
-  assert.match(actions,/heroLabel=context\.heroLabel\?\.trim\(\)\|\|'QUESTIONNAIRE'/);
+  assert.match(actions,/heroLabel=context\.heroLabel\?\.trim\(\)\s*\|\|\s*'QUESTIONNAIRE'/);
   assert.match(actions,/heroSubtitle=context\.heroSubtitle\?\.trim\(\)\|\|theme\.config\.heroSubtitle/);
   assert.match(form,/name="heroLabel"/);
   assert.match(actions,/heroLabel:val\('heroLabel'\)\|\|'QUESTIONNAIRE'/);

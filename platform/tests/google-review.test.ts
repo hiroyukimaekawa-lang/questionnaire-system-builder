@@ -50,3 +50,15 @@ test('旧conditional/googleReviewRulesもAND条件として安全に評価する
   assert.equal(evaluateGoogleReviewEligibility(legacy,questions,{[q1.id]:9,[q2.id]:9}),true);
   assert.equal(evaluateGoogleReviewEligibility(legacy,questions,{[q1.id]:10,[q2.id]:8}),false);
 });
+
+test('不正URLを拒否しhttp/httpsのみ許可する',()=>{
+  for(const googleReviewUrl of ['javascript:alert(1)','data:text/html,test','ftp://example.com','not a url'])assert.equal(evaluateGoogleReviewEligibility({...defaultConfig,googleReviewMode:'all',googleReviewUrl},questions,{}),false);
+  assert.equal(evaluateGoogleReviewEligibility({...defaultConfig,googleReviewMode:'all',googleReviewUrl:'http://example.com/review'},questions,{}),true);
+});
+test('既存lteとeqの条件互換性を保持する',()=>{
+  for(const operator of ['lte','eq'] as const){
+    const config={...defaultConfig,googleReviewMode:'score' as const,googleReviewUrl:url,googleReviewRule:{logic:'and' as const,conditions:[{questionId:q1.id,operator,value:5}]}};
+    assert.equal(evaluateGoogleReviewEligibility(config,questions,{[q1.id]:5}),true);
+    assert.equal(evaluateGoogleReviewEligibility(config,questions,{[q1.id]:6}),false);
+  }
+});

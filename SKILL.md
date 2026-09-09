@@ -12,8 +12,8 @@ description: 店舗・クリニック・施設向けのアンケート→Google�
 - 既存テンプレートを壊さず、新しい店舗用に複製して作る。
 - 原則モバイルファーストで設計する。
 - 質問項目が未定の場合は、業種に合わせた初期案を提案する。
-- スコアによってGoogle口コミ導線の表示・非表示を分けない。
-- Google口コミ導線は全回答者に同条件で表示する。
+- Google口コミ導線は `disabled`（非表示）、`all`（全回答者に表示）、`score`（指定したrating質問のスコア条件を満たす場合に表示）の3モードを許可する。
+- `score` は質問単位の閾値と複数条件のAND / ORに対応する。基本UIは「○点以上」（`operator = gte`）とし、既存の `gte` / `lte` / `eq` との互換性を維持する。
 - 自由記述をGoogle口コミに再利用する場合は、回答者本人が入力した文章を「コピー → Google口コミ画面へ移動」できる形にする。
 - 店舗側が生成した好意的な文章を自動投稿・自動入力させる設計にはしない。
 - APIキー、秘密情報、認証情報をGitへコミットしない。
@@ -30,7 +30,7 @@ description: 店舗・クリニック・施設向けのアンケート→Google�
 - 最後の admin の demotion を server で拒否する。
 - config は existing object への partial update とし unknown fields を保持する。
 - completion rules は Zod と draft question ownership/maxScore の server validation を必須にする。
-- Google review gating を禁止し、`disabled|all` だけを許可する。score、回答、rule、follow-up で CTA を出し分けない。
+- Google口コミCTAは `disabled|all|score` の設定に従って表示し、`score` の条件は回答送信時に判定する。
 
 ## 標準テンプレート
 
@@ -170,7 +170,7 @@ https://github.com/hiroyukimaekawa-lang/kawaratani-clinic-questionnaire
 
 ## Google口コミ導線
 
-アンケート送信後はサンクス画面へ遷移する。
+アンケート送信後はサンクス画面へ遷移する。以下の口コミ案内・ボタンは、設定されたモードの表示条件を満たす場合に表示する。
 
 標準文言:
 
@@ -386,8 +386,6 @@ GAS保存: あり / 未設定
 
 ## 禁止事項
 
-- 高評価者だけGoogle口コミへ誘導する実装
-- 低評価者だけGoogle口コミボタンを隠す実装
 - 店舗側が用意した好意的な口コミ文を本人の意思確認なしで投稿させる実装
 - Google口コミ欄への非公式な自動入力を前提にした実装
 - `.env.local`、APIキー、秘密情報のGitコミット
@@ -400,7 +398,7 @@ GAS保存: あり / 未設定
 - Question Builderで営業・管理者へ見せる回答形式は「短文テキスト」「長文テキスト」「ラジオボタン」「チェックボックス」「プルダウン」「スコアリング」とし、内部型名は表示しない。
 - 内部表現は `text`、`textarea`、`single_choice + settings.presentation=radio|select`、`multiple_choice`、`rating_10 + settings.maxScore=5|10` を使う。旧 `rating_10` のmaxScore未設定は10として扱う。
 - 質問ごとに必須/任意、選択肢の追加・削除・編集・並び替えを設定可能にする。
-- Google口コミは `googleReviewMode=disabled|all` のみ。旧configでURLだけがある場合はall、URLなしはdisabledとして扱う。スコアや回答内容によるレビューゲーティングは禁止する。
+- Google口コミは `googleReviewMode=disabled|all|score` を許可する。旧configでURLだけがある場合はall、URLなしはdisabledとして扱う。scoreでは指定したrating質問の条件を個別に評価し、AND / ORで結合する。
 - 回答後条件はGoogle口コミから分離する。`CompletionRule` / `RuleCondition` / `evaluateCompletionRules()` 等の型とpure functionを使い、スコア質問への以上・以下・等しい、AND/OR、条件別完了メッセージ、follow-upフラグを扱う。
 - 判定結果は送信時にサーバー側で計算し、`responses.metadata` 等の既存JSON領域を優先して保存する。不要なmigrationは作らない。
 - Builderの作成内容確認では店舗名、業種、目的、匿名、質問数、各質問の形式・必須・選択肢・評価段階/ラベル、Google口コミモード/URL、Theme/メインカラーを確認する。

@@ -31,6 +31,7 @@ export function PublishSection({status,hasPublishedBefore,publicUrl,slug,publish
         <strong>{justPublished?'公開しました ✓':'公開中 ✓'}</strong>
         {variant==='full'&&<p className="muted">{justPublished?'店舗へ公開URLを共有できます。':'このアンケートは現在公開されています。'}</p>}
       </div>
+      <form action={publishFormAction}><button className="btn" disabled={publishPending}>{publishPending?'公開中…':'変更内容を公開する'}</button>{publishState?.error&&<span className="error" role="alert">{publishState.error}</span>}</form>
       <PublicUrlActions url={publicUrl} slug={slug} compact={variant==='compact'}/>
       <form action={unpublishFormAction}><button className="btn secondary" disabled={unpublishPending}>{unpublishPending?'処理中…':'非公開にする'}</button>{unpublishState?.error&&<span className="error" role="alert"> {unpublishState.error}</span>}</form>
     </div>;

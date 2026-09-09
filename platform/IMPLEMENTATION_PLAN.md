@@ -28,7 +28,7 @@
 | 複製後の差分確認 | 🟡 | ✅ | 複製元DraftをBuilderContextへ引き継ぎ、必要項目から再開 |
 | Draft / Published分離 | ✅ | ✅ | versionスナップショットとpublish RPCを維持 |
 | 公開Renderer / 375〜430px | ✅ | ✅ | 共通SurveyRenderer、10段階を10列gridで表示 |
-| 口コミCTAの公平性 | ✅ | ✅ | URL設定有無だけで表示。点数条件なし |
+| 口コミCTAの表示設定 | ✅ | ✅ | disabled / all / scoreに対応。scoreはrating質問単位の閾値と複数条件のAND / ORで判定 |
 | 回答・version固定・CSV | ✅ | ✅ | transaction RPC、survey/version保持、BOM付きCSV |
 | email/password認証 | ✅ | ✅ | Supabase Auth。Magic Link必須なし |
 | Admin / Sales | ✅ | ✅ | RLSとサーバー再検証、permission単体テストを追加 |
@@ -69,7 +69,7 @@ BuilderContextは目的、店舗名、業種、開始状態、テンプレート
 
 - Builder: 目的・業種・starting point・テンプレート、不要質問skip、不足・完成、依存再計算、ロゴ・口コミ分岐。
 - Survey: 必須回答、評価集計、質問validation、slug、CSV。
-- Review CTA: 実装上URL有無のみ。点数をprops/state/条件に使用しない。
+- Review CTA: URLとdisabled / all / scoreの設定に従って表示する。scoreはrating質問単位の閾値と複数条件のAND / ORに対応し、基本UIは「○点以上」（operator = gte）、既存gte / lte / eq互換を維持する。
 - Permission: AdminとSalesの許可差分。
 - Quality gate: `npm test`、`npm run lint`、`npm run typecheck`、`npm audit`、`npm run build`、`npm run preview`、`git diff --check`。
 

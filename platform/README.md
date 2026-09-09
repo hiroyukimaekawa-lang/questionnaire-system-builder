@@ -50,7 +50,7 @@ Supabase DashboardではSite URLを正式Worker URL、Redirect URLsを `/auth/co
 - 回答一覧/CSV: 「回答」タブ。CSVはUTF-8 BOM付き。
 - QR: 公開中アンケートの公開URLから生成。
 
-Google口コミURLが設定されている場合、完了画面では評価点に関係なく全回答者へ同じCTAを表示します。回答者自身の自由記述だけをコピーできます。
+Google口コミ導線は `disabled`（非表示）、`all`（全回答者に表示）、`score`（指定したrating質問のスコア条件を満たす場合に表示）の3モードを許可する。 `score` は質問単位の閾値と複数条件のAND / ORに対応する。基本UIは「○点以上」（`operator = gte`）とし、既存の `gte` / `lte` / `eq` との互換性を維持する。 Google口コミURLが設定され、モードの表示条件を満たす場合に完了画面でCTAを表示します。回答者自身の自由記述だけをコピーできます。
 
 ## 設計チャットによる新規作成
 

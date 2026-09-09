@@ -130,7 +130,8 @@ Visual QAはコード確認だけで完了としません。
 
 ## 絶対条件
 
-- スコアによってGoogle口コミへの導線を出し分けない
+- Google口コミ導線は `disabled`（非表示）、`all`（全回答者に表示）、`score`（指定したrating質問のスコア条件を満たす場合に表示）の3モードを許可する。
+- `score` は質問単位の閾値と複数条件のAND / ORに対応する。基本UIは「○点以上」（`operator = gte`）とし、既存の `gte` / `lte` / `eq` との互換性を維持する。
 - 375〜430pxのスマホで崩れない
 - 日本語の意味途中・活用語尾で不自然に折り返さない
 - Thanks画面までJapanese Web Typography Skillを適用する

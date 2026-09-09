@@ -35,7 +35,7 @@ export function evaluateGoogleReviewEligibility(
   answers: Record<string, AnswerValue>,
 ) {
   const mode = googleReviewMode(config);
-  if (mode === 'disabled' || !config.googleReviewUrl) return false;
+  if (mode === 'disabled' || !safeGoogleReviewUrl(config.googleReviewUrl)) return false;
   if (mode === 'all') return true;
 
   const rule = reviewRule(config);
@@ -49,4 +49,13 @@ export function evaluateGoogleReviewEligibility(
 
   const test = (condition: RuleCondition) => matchesCondition(condition, answers, ratingMaxByQuestionId);
   return rule.logic === 'or' ? rule.conditions.some(test) : rule.conditions.every(test);
+}
+
+/** Only navigable web URLs are allowed, including for legacy stored config. */
+export function safeGoogleReviewUrl(value: string | null | undefined): string | null {
+  if (!value) return null;
+  try {
+    const url = new URL(value);
+    return url.protocol === 'https:' || url.protocol === 'http:' ? url.href : null;
+  } catch { return null; }
 }

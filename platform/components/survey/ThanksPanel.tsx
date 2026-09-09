@@ -1,5 +1,6 @@
 'use client';
 
+import { safeGoogleReviewUrl } from '@/lib/google-review';
 import { useState } from 'react';
 import type { CSSProperties } from 'react';
 import type { GoogleReviewMode } from '@/types/database';
@@ -38,16 +39,22 @@ export function ThanksPanel({
   });
   const [copied, setCopied] = useState(false);
   const comment = stored.comment ?? '';
-  const showReview = Boolean(reviewUrl) && (
+  const href = safeGoogleReviewUrl(reviewUrl);
+  const [copyFailed, setCopyFailed] = useState(false);
+  const showReview = Boolean(href) && (
     reviewMode === 'all' || (reviewMode === 'score' && stored.reviewEligible === true)
   );
 
   async function review() {
-    if (comment) {
+    if (!comment) return;
+    try {
       await navigator.clipboard.writeText(comment);
       setCopied(true);
+      setCopyFailed(false);
+    } catch {
+      setCopied(false);
+      setCopyFailed(true);
     }
-    if (showReview && reviewUrl) window.open(reviewUrl, '_blank', 'noopener,noreferrer');
   }
 
   const style = { '--thanks-brand': primaryColor } as ThanksPanelStyle;
@@ -77,9 +84,10 @@ export function ThanksPanel({
             <span className="jp-keep">よろしければ、</span>
             Googleでもご感想をお聞かせください。
           </p>
-          <button className="btn thanks-review-button jp-ui-label" onClick={review} type="button">
+          <a className="btn thanks-review-button jp-ui-label" href={href!} target="_blank" rel="noopener noreferrer" onClick={() => { void review(); }}>
             {comment ? '感想をコピーしてGoogleクチコミへ' : 'Googleクチコミを書く'}
-          </button>
+          </a>
+          {copyFailed && <p className="notice thanks-copy-notice" role="status">コピーできませんでした。必要な場合は感想を選択してコピーしてください。</p>}
           {copied && <p className="notice thanks-copy-notice" role="status">感想をコピーしました。</p>}
           {reviewMode === 'all' && (
             <small className="muted thanks-review-note">

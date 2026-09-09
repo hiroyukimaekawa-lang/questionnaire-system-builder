@@ -27,8 +27,8 @@ test('作成プレビューは匿名の真偽値を引き継ぐ',()=>{
 
 test('共通公開テンプレートは匿名OFFで親要素を省略し装飾を出力しない',()=>{
   const renderer=readFileSync(new URL('../components/survey/SurveyRenderer.tsx',import.meta.url),'utf8');
-  assert.match(renderer,/isAnonymousSurvey\(config\)&&<div className="survey-intro">/);
-  assert.match(renderer,/<strong className="survey-business-name">\{name\}<\/strong>/);
-  assert.match(renderer,/<h1>\{heroTitle\}<\/h1>/);
+  assert.match(renderer,/isAnonymousSurvey\(config\)\s*&&\s*\(\s*<div className="survey-intro">/);
+  assert.match(renderer,/<strong className="survey-business-name jp-heading">\{name\}<\/strong>/);
+  assert.match(renderer,/<h1 className="jp-heading">\{heroTitle\}<\/h1>/);
   assert.doesNotMatch(renderer,/YOUR VOICE MATTERS|rating-scale|→|←|survey-icon-fallback/);
 });

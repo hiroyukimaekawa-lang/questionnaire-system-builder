@@ -1,5 +1,6 @@
 'use server';
 
+import { safeGoogleReviewUrl } from '@/lib/google-review';
 import { revalidatePath } from 'next/cache';
 import { createClient } from '@/lib/supabase/server';
 import { completionSettingsConfig } from '@/lib/config';
@@ -39,7 +40,7 @@ export async function saveCompletionSettingsAction(
     const mode = reviewMode(form.get('googleReviewMode'));
     const reviewUrl = String(form.get('googleReviewUrl') || '').trim();
     if (reviewUrl) {
-      try { new URL(reviewUrl); } catch { return { error: 'Google口コミURLが不正です。' }; }
+      if (!safeGoogleReviewUrl(reviewUrl)) return { error: 'Google口コミURLはhttp/https形式で入力してください。' };
     }
     if (mode !== 'disabled' && !reviewUrl) return { error: 'Google口コミURLを入力してください。' };
 
@@ -82,7 +83,7 @@ export async function saveCompletionSettingsAction(
     if (error) throw error;
 
     revalidatePath(`/admin/surveys/${surveyId}`);
-    return { success: '回答後設定を保存しました。' };
+    return { success: '回答後設定を下書き保存しました。公開画面へ反映するには「変更内容を公開する」を押してください。' };
   } catch (error) {
     return { error: error instanceof Error ? error.message : '回答後設定を保存できませんでした。' };
   }

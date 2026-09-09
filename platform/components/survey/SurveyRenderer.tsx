@@ -127,23 +127,27 @@ export function SurveyRenderer({
           <span className="survey-hero-rule" aria-hidden="true" />
           {preview ? (
             <button type="button" className="preview-editable hero-editable" onClick={() => onEditTarget?.('heroSubtitle')}>
-              <p className="survey-hero-subtitle jp-copy">{heroSubtitle}</p>
+              <p className="survey-hero-subtitle jp-copy jp-preserve-lines">{heroSubtitle}</p>
             </button>
           ) : (
-            <p className="survey-hero-subtitle jp-copy">{heroSubtitle}</p>
+            <p className="survey-hero-subtitle jp-copy jp-preserve-lines">{heroSubtitle}</p>
           )}
         </div>
       </section>
 
       <main className="survey-content">
+        {(['description', 'introText'] as const).map(field => config[field] && (
+          preview ? <button key={field} type="button" className="preview-editable intro-editable" onClick={() => onEditTarget?.(field)}><p className="survey-description jp-copy jp-preserve-lines">{config[field]}</p></button>
+            : <p key={field} className="survey-description jp-copy jp-preserve-lines">{config[field]}</p>
+        ))}
         {isAnonymousSurvey(config) && (
           <div className="survey-intro">
             {preview ? (
               <button type="button" className="preview-editable intro-editable" onClick={() => onEditTarget?.('anonymousText')}>
-                <p className="survey-anonymous-note jp-copy">※こちらのアンケートは匿名です。</p>
+                <p className="survey-anonymous-note jp-copy jp-preserve-lines">{config.anonymousText?.trim() ? config.anonymousText : '※こちらのアンケートは匿名です。'}</p>
               </button>
             ) : (
-              <p className="survey-anonymous-note jp-copy">※こちらのアンケートは匿名です。</p>
+              <p className="survey-anonymous-note jp-copy jp-preserve-lines">{config.anonymousText?.trim() ? config.anonymousText : '※こちらのアンケートは匿名です。'}</p>
             )}
           </div>
         )}
