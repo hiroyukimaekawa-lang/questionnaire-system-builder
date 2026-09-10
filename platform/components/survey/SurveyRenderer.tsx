@@ -1,4 +1,5 @@
 'use client';
+import {reviewComment} from '@/lib/builder/settings';
 
 import { useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
@@ -56,10 +57,7 @@ export function SurveyRenderer({
       });
       const json = await response.json();
       if (!response.ok) throw new Error(json.error || '送信できませんでした。');
-      const comment = version.questions
-        .filter((question) => question.type === 'textarea')
-        .map((question) => answers[question.id])
-        .find(Boolean);
+      const comment = reviewComment(version.config,version.questions,answers);
       sessionStorage.setItem(
         `survey-completion:${slug}`,
         JSON.stringify({
@@ -94,11 +92,19 @@ export function SurveyRenderer({
     '--survey-logo-badge': config.logoBadgeBackground,
     '--survey-radius': `${config.cardRadius}px`,
     '--survey-question-font-size': `${config.questionFontSize}px`,
+    '--survey-business-size': `${config.fontSizes?.business??18}px`,
+    '--survey-title-size': `${config.fontSizes?.title??26}px`,
+    '--survey-description-size': `${config.fontSizes?.description??15}px`,
+    '--survey-choice-size': `${config.fontSizes?.choice??16}px`,
+    '--survey-button-size': `${config.fontSizes?.button??17}px`,
   } as React.CSSProperties;
 
   return (
     <div className={`survey-phone survey-theme survey-theme-${config.themeId}`} style={themeStyle}>
       <header className="survey-brand-header">
+        {config.logoMode==='upload'&&config.logoUrl&&<span className="survey-logo" role="img" aria-label={`${name}のロゴ`} style={{backgroundImage:`url(${config.logoUrl})`}}/>}
+        {config.logoMode==='icon'&&<span className="survey-logo-icon" aria-hidden="true">✦</span>}
+        <div>
         {preview ? (
           <button type="button" className="preview-editable brand-editable" onClick={() => onEditTarget?.('name')}>
             <strong className="survey-business-name jp-heading">{name}</strong>
@@ -106,6 +112,7 @@ export function SurveyRenderer({
         ) : (
           <strong className="survey-business-name jp-heading">{name}</strong>
         )}
+        {config.subtitle&&<p className="jp-copy survey-subtitle">{config.subtitle}</p>}</div>
       </header>
 
       <section className="survey-hero" style={{ background: heroBackground }}>
@@ -159,6 +166,7 @@ export function SurveyRenderer({
               <section
                 className="question-block preview-question-card"
                 key={question.id}
+                style={question.settings.fontSize?{'--survey-question-font-size':`${question.settings.fontSize}px`} as React.CSSProperties:undefined}
                 ref={(element) => { refs.current[question.id] = element; }}
                 tabIndex={-1}
                 onClickCapture={() => onEditTarget?.(`question-${question.id}`)}
@@ -205,7 +213,7 @@ export function SurveyRenderer({
                       value={String(answers[question.id] ?? '')}
                       onChange={(event) => set(question.id, event.target.value)}
                     >
-                      <option value="">選択してください</option>
+                      <option value="">{question.settings.placeholder || '選択してください'}</option>
                       {question.options.map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}
                     </select>
                   )}

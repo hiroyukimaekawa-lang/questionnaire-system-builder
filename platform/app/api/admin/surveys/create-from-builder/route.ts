@@ -1,9 +1,10 @@
 import {NextResponse} from 'next/server';
 import {ruleBasedBuilderEngine} from '@/lib/builder/engine';
-import {defaultConfig,normalizeQuestionFontSize,slugify,validateQuestion} from '@/lib/survey';
+import {normalizeQuestionFontSize,slugify,validateQuestion} from '@/lib/survey';
 import {createClient} from '@/lib/supabase/server';
 import {getThemeTemplate,themeIdForBusiness} from '@/lib/theme/templates';
 import type {BuilderContext,SurveyQuestion} from '@/types/database';
+import {builderConfig,validateReviewSettings} from '@/lib/builder/settings';
 
 const genericError='アンケートを作成できませんでした。もう一度お試しください。';
 
@@ -37,6 +38,9 @@ export async function POST(request:Request){
   try{missing=ruleBasedBuilderEngine.getMissingFields(context);}catch{return jsonError('入力内容を確認してください。',400)}
   if(missing.length||!Array.isArray(context.questions)||context.questions.length===0)return jsonError('未確定の項目があります。',400);
   try{for(const question of context.questions){if(!isQuestion(question))return jsonError('質問内容を確認してください。',400);const validation=validateQuestion(question);if(validation)return jsonError('質問内容を確認してください。',400)}}catch{return jsonError('質問内容を確認してください。',400)}
+  const finalConfig=builderConfig(context);
+  const reviewValidation=validateReviewSettings(finalConfig,context.questions);
+  if(reviewValidation)return jsonError(reviewValidation,400);
 
   let surveyId:string|null=null;
   try{
@@ -47,7 +51,7 @@ export async function POST(request:Request){
       if(!data)break;
       slug=`${base}-${n}`;
     }
-    const {data:survey,error:surveyError}=await s.from('surveys').insert({name,slug,industry:context.businessType,owner_user_id:user.id,created_by:user.id,updated_by:user.id}).select('id').single();
+    const {data:survey,error:surveyError}=await s.from('surveys').insert({name,slug,industry:context.industry??context.businessType,owner_user_id:user.id,created_by:user.id,updated_by:user.id}).select('id').single();
     if(surveyError||!survey){logFailure('surveys.insert',surveyError,surveyId,sessionId);return jsonError(genericError,500)}
     surveyId=survey.id as string;
 
@@ -56,12 +60,12 @@ export async function POST(request:Request){
     const heroTitle=context.heroTitle?.trim()||theme.config.heroTitle;
     const heroSubtitle=context.heroSubtitle?.trim()||theme.config.heroSubtitle;
     const reviewUrl=context.googleReviewEnabled===true&&context.googleReviewUrl?.trim()?context.googleReviewUrl.trim():null;
-    const config={...defaultConfig,...theme.config,themeId,title:heroTitle,heroLabel,heroTitle,heroSubtitle,introText:context.introText!,anonymous:context.anonymous,anonymousText:context.anonymous?'こちらのアンケートは匿名です。':'回答内容は運営者が確認します。',completionText:context.completionText!,questionFontSize:normalizeQuestionFontSize(context.questionFontSize),primaryColor:context.mainColor!,logoMode:context.logoMode,logoUrl:context.logoUrl??null,googleReviewMode:reviewUrl?'all' as const:'disabled' as const,googleReviewUrl:reviewUrl};
+    const config={...finalConfig,themeId,title:heroTitle,heroLabel,heroTitle,heroSubtitle,introText:context.introText!,anonymous:context.anonymous,anonymousText:context.anonymous?'こちらのアンケートは匿名です。':'回答内容は運営者が確認します。',completionText:context.completionText!,questionFontSize:normalizeQuestionFontSize(context.questionFontSize),primaryColor:context.mainColor!,logoMode:context.logoMode,logoUrl:context.logoUrl??null,googleReviewUrl:reviewUrl};
     const {data:version,error:versionError}=await s.from('survey_versions').insert({survey_id:surveyId,version:1,status:'draft',config,created_by:user.id}).select('id').single();
     if(versionError||!version){logFailure('survey_versions.insert',versionError,surveyId,sessionId);return jsonError(genericError,500)}
 
     for(const [index,q] of context.questions.entries()){
-      const {data:created,error:questionError}=await s.from('questions').insert({survey_version_id:version.id,type:q.type,title:q.title.trim(),description:q.description.trim(),required:q.required,sort_order:index,settings:q.settings}).select('id').single();
+      const {data:created,error:questionError}=await s.from('questions').insert({id:q.id,survey_version_id:version.id,type:q.type,title:q.title.trim(),description:q.description.trim(),required:q.required,sort_order:index,settings:q.settings}).select('id').single();
       if(questionError||!created){logFailure('questions.insert',questionError,surveyId,sessionId);return jsonError(genericError,500)}
       if(q.options.length){
         const options=q.options.filter(option=>option.label.trim()).map((option,n)=>({question_id:created.id,label:option.label.trim(),value:option.value.trim()||`option-${n+1}`,sort_order:n}));

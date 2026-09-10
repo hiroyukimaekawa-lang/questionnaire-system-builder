@@ -613,3 +613,7 @@ body {
     grid-column: auto;
   }
 }
+
+[hidden] { display:none !important; }
+.review-settings fieldset { min-width:0; }
+.review-settings .condition-row { align-items:end; }

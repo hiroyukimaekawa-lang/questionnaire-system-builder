@@ -79,6 +79,13 @@ export async function saveCompletionSettingsAction(
     }
 
     const config = completionSettingsConfig(version.config, mode, reviewUrl, completionRules, googleReviewRule);
+    if(form.has('reviewTextQuestionId')) {
+      const id=String(form.get('reviewTextQuestionId')||'');
+      if(id!=='__legacy') {
+        if(id&&!questions.some(q=>q.id===id&&q.type==='textarea'))return {error:'口コミ用文章の質問を選び直してください。'};
+        config.reviewTextQuestionId=id||null;
+      }
+    }
     const { error } = await s.from('survey_versions').update({ config }).eq('id', versionId).eq('survey_id', surveyId).eq('status', 'draft');
     if (error) throw error;
 

@@ -55,8 +55,8 @@ test('作成APIは認証・validation・全保存stageを備え、秘密情報�
   assert.match(route,/heroLabel=context\.heroLabel\?\.trim\(\)\|\|'QUESTIONNAIRE'/);
   assert.match(route,/heroTitle=context\.heroTitle\?\.trim\(\)\|\|theme\.config\.heroTitle/);
   assert.match(route,/heroSubtitle=context\.heroSubtitle\?\.trim\(\)\|\|theme\.config\.heroSubtitle/);
-  assert.match(route,/googleReviewMode:reviewUrl\?'all' as const:'disabled' as const/);
-  assert.doesNotMatch(route,/googleReviewMode:[^\n]*(score|rating|conditional)/i);
+  assert.match(route,/const finalConfig=builderConfig\(context\)/);
+  assert.match(route,/validateReviewSettings\(finalConfig,context\.questions\)/);
   assert.doesNotMatch(route,/console\.error[^]*(password|token|cookie|authorization|email)/i);
   assert.doesNotMatch(route,/\.delete\(/);
 });

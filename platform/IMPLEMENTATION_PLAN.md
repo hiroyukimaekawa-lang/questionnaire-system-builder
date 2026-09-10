@@ -78,3 +78,15 @@ BuilderContextは目的、店舗名、業種、開始状態、テンプレート
 - Supabase projectの作成、環境変数設定、2本のmigration適用、初期Admin昇格。
 - Cloudflare dashboard / Workers Buildsへ環境変数とsecretを登録。
 - 実Supabaseを使うログイン→Builder→公開→回答→CSVの実機E2E。
+
+## 2026-09-10 作成・口コミ・デザイン・公開の拡張
+
+- 既存Next.js / Supabase / Workers、認証・RLS、公開URL、回答一覧・CSVを維持。
+- 新規作成を基本情報・質問・口コミ・デザイン・確認の5段階へ統合。既存作成途中データも読めるようにする。
+- 業態・都道府県・サブタイトル・文字サイズ・口コミ文章質問を既存config JSONへ追加。unknown fieldsを保持し、不要なテーブル追加を避ける。
+- 口コミ設定を共通コンポーネント化。おすすめ・日本語条件文・条件テスト・文章質問選択を作成と編集で共用。
+- 質問保存・複製・公開時のID変更に伴う条件参照を補正。下書き／公開版分離を維持する。
+- SurveyRendererとThanksPanelをライブプレビューでも共用し、ロゴ・文字・コピー成功／失敗を検証。
+- 保存状態と離脱警告、公開済みとの差分状態を表示。
+- 条件境界値・後方互換・保存経路のテスト、lint/typecheck/build、スマホ各幅とPCのVisual QA、Workersビルドと配備確認。
+- 分析ダッシュボードは追加しない。

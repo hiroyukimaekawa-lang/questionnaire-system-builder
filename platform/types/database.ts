@@ -20,6 +20,11 @@ export interface CompletionRule {
 }
 
 export interface SurveyConfig {
+  businessCategory?: string;
+  prefecture?: string;
+  subtitle?: string;
+  reviewTextQuestionId?: string | null;
+  fontSizes?: Partial<Record<'business' | 'title' | 'description' | 'choice' | 'button', number>>;
   anonymous?: boolean;
   title: string; description: string; introText: string; anonymousText: string;
   completionText: string; submitLabel: string; primaryColor: string;
@@ -39,7 +44,7 @@ export interface SurveyConfig {
 export interface QuestionOption { id?: string; label: string; value: string; sortOrder: number }
 export interface SurveyQuestion {
   id: string; type: QuestionType; title: string; description: string;
-  required: boolean; sortOrder: number; settings: { minLabel?: string; maxLabel?: string; placeholder?: string; presentation?: 'radio' | 'select'; maxScore?: 5 | 10 };
+  required: boolean; sortOrder: number; settings: { minLabel?: string; maxLabel?: string; placeholder?: string; fontSize?: number; presentation?: 'radio' | 'select'; maxScore?: 5 | 10 };
   options: QuestionOption[];
 }
 export interface SurveyVersion { id: string; surveyId: string; version: number; status: 'draft'|'published'|'superseded'; config: SurveyConfig; questions: SurveyQuestion[] }
@@ -53,6 +58,10 @@ export type BuilderLogoMode = 'none' | 'icon' | 'upload';
 export type BuilderTemplate = 'clinic_standard' | 'restaurant_standard' | 'salon_standard' | 'custom';
 
 export interface BuilderContext {
+  config?: Partial<SurveyConfig>;
+  businessCategory?: string;
+  prefecture?: string;
+  industry?: string;
   purpose?: BuilderPurpose;
   purposeDetail?: string;
   storeName?: string;

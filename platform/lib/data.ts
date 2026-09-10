@@ -16,7 +16,7 @@ export async function getVersion(id:string){ const supabase=await createClient()
 export async function getDraftForSurvey(id:string){ const survey=await getSurvey(id); if(!survey?.current_draft_version_id)return null; return getVersion(survey.current_draft_version_id); }
 export const getAdminSurveys = cache(async()=>{
   const supabase=await createClient();
-  const {data}=await supabase.from('surveys').select('id,name,slug,industry,status,updated_at,published_at,responses(count),owner:profiles!surveys_owner_user_id_fkey(name,email)').order('updated_at',{ascending:false});
+  const {data}=await supabase.from('surveys').select('id,name,slug,industry,status,updated_at,published_at,responses(count),owner:profiles!surveys_owner_user_id_fkey(name,email),draft:survey_versions!surveys_current_draft_version_id_fkey(config)').order('updated_at',{ascending:false});
   return data??[];
 });
 export const getAdminBuilderSessions = cache(async()=>{

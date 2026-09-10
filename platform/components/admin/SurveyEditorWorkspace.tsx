@@ -49,9 +49,9 @@ export function SurveyEditorWorkspace({survey,draft,publicUrl,publishAction,unpu
   return <div className="preview-first-layout"><div className="editor-panel" onInput={syncForm} onChange={syncForm}>
     <nav className="editor-section-nav" aria-label="編集セクション"><a href="#basic-information">基本情報</a><a href="#design-copy">デザイン・文章</a><a href="#questions">質問</a><a href="#completion-settings">口コミ・完了条件</a><a href="#publish-settings">公開設定</a></nav>
     <section id="basic-information" className="editor-section"><BasicForm survey={survey}/></section>
-    <section id="design-copy" className="editor-section"><ConfigForm surveyId={survey.id} versionId={draft.id} config={draft.config}/></section>
+    <section id="design-copy" className="editor-section"><ConfigForm surveyId={survey.id} versionId={draft.id} config={draft.config} onChange={patch=>setConfig(c=>({...c,...patch}))}/></section>
     <section id="questions" className="editor-section editor-questions"><QuestionBuilder surveyId={survey.id} versionId={draft.id} initial={draft.questions} onChange={questionsChanged}/></section>
-    <section id="completion-settings" className="editor-section"><CompletionSettingsForm surveyId={survey.id} versionId={draft.id} config={draft.config} questions={questions}/></section>
+    <section id="completion-settings" className="editor-section"><CompletionSettingsForm surveyId={survey.id} versionId={draft.id} config={draft.config} questions={questions} onChange={patch=>setConfig(c=>({...c,...patch}))}/></section>
     <section id="publish-settings" className="editor-section card publish-help"><PublishSection variant="full" status={survey.status} hasPublishedBefore={Boolean(survey.current_published_version_id)} publicUrl={publicUrl} slug={survey.slug} publishAction={publishAction} unpublishAction={unpublishAction}/></section>
   </div><LiveSurveyPreview name={name||'店舗・医院名'} version={version} onEdit={focusTarget}/></div>;
 }

@@ -47,7 +47,7 @@ test('公開URLはappUrl()ベースのcanonical Pages URLを使い、workers.dev
 test('保存フォーム(BasicForm/ConfigForm/QuestionBuilder/CompletionSettingsForm)は公開操作に統合されない',()=>{
   const workspace=source('components/admin/SurveyEditorWorkspace.tsx');
   assert.match(workspace,/<BasicForm survey=\{survey\}\/>/);
-  assert.match(workspace,/<ConfigForm surveyId=\{survey\.id\} versionId=\{draft\.id\} config=\{draft\.config\}\/>/);
+  assert.match(workspace,/<ConfigForm surveyId=\{survey\.id\} versionId=\{draft\.id\} config=\{draft\.config\}/);
   assert.match(workspace,/<QuestionBuilder surveyId=\{survey\.id\} versionId=\{draft\.id\}/);
   assert.match(workspace,/<CompletionSettingsForm surveyId=\{survey\.id\} versionId=\{draft\.id\}/);
   assert.doesNotMatch(workspace,/保存して公開/);

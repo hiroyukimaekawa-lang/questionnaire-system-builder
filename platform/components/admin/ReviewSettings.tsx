@@ -1,0 +1,26 @@
+'use client';
+import {useState} from 'react';
+import type {SurveyConfig,SurveyQuestion,RuleCondition} from '@/types/database';
+import {scoreMax} from '@/lib/survey';
+import {evaluateGoogleReviewEligibility,safeGoogleReviewUrl} from '@/lib/google-review';
+import {recommendedReviewRule,reviewRuleDescription} from '@/lib/builder/settings';
+
+export function ReviewSettings({config,questions,onChange}:{config:SurveyConfig;questions:SurveyQuestion[];onChange:(patch:Partial<SurveyConfig>)=>void}) {
+  const scores=questions.filter(q=>q.type==='rating_10');
+  const mode=config.googleReviewMode??(config.googleReviewUrl?'all':'disabled');
+  const rule=config.googleReviewRule??{logic:'and' as const,conditions:[]};
+  const [answers,setAnswers]=useState<Record<string,number>>({});
+  const patchCondition=(index:number,patch:Partial<RuleCondition>)=>onChange({googleReviewRule:{...rule,conditions:rule.conditions.map((c,i)=>i===index?{...c,...patch}:c)}});
+  const link=safeGoogleReviewUrl(config.googleReviewUrl);
+  return <div className="stack review-settings"><fieldset><legend>Google口コミへの案内</legend>{([['disabled','使用しない'],['all','全回答者へ表示'],['score','条件を満たした人だけ表示']] as const).map(([value,label])=><label className="choice" key={value}><input type="radio" name="googleReviewMode" checked={mode===value} value={value} onChange={()=>onChange({googleReviewMode:value})}/>{label}</label>)}</fieldset>
+    {mode!=='disabled'&&<><label className="field">Google口コミURL<input name="googleReviewUrl" type="url" value={config.googleReviewUrl??''} onChange={e=>onChange({googleReviewUrl:e.target.value})} placeholder="https://g.page/r/…/review"/></label>{link&&<a className="btn secondary" href={link} target="_blank" rel="noopener noreferrer">口コミページを確認</a>}</>}
+    {mode==='score'&&<section className="completion-rule stack"><h3>口コミへ進ませる条件</h3>{scores.length>=2&&<><button type="button" className="btn secondary" onClick={()=>onChange({googleReviewRule:recommendedReviewRule(questions)})}>おすすめ設定を使う</button><small className="muted">最初の2つのスコア質問を両方9点以上に設定します。5段階の質問は5点以上になります。</small></>}
+      {rule.conditions.map((c,i)=>{const q=scores.find(q=>q.id===c.questionId);return <div className="condition-row" key={i}><strong>条件 {i+1}</strong><label className="field">質問<select value={c.questionId} onChange={e=>{const selected=scores.find(q=>q.id===e.target.value)!;patchCondition(i,{questionId:selected.id,value:Math.min(c.value,scoreMax(selected))})}}><option value="" disabled>質問を選択してください</option>{!q&&c.questionId&&<option value={c.questionId}>質問を選び直してください</option>}{scores.map(q=><option key={q.id} value={q.id}>Q{questions.indexOf(q)+1} {q.title}</option>)}</select></label><label className="field">条件<select value={c.value} onChange={e=>patchCondition(i,{value:Number(e.target.value)})}>{Array.from({length:q?scoreMax(q):10},(_,n)=>n+1).map(n=><option key={n} value={n}>{n}点{c.operator==='lte'?'以下':c.operator==='eq'?'と等しい':'以上'}</option>)}</select></label><details><summary>比較方法</summary><select aria-label={`条件${i+1}の比較方法`} value={c.operator} onChange={e=>patchCondition(i,{operator:e.target.value as RuleCondition['operator']})}><option value="gte">以上</option><option value="lte">以下</option><option value="eq">等しい</option></select></details><button type="button" className="btn danger" onClick={()=>onChange({googleReviewRule:{...rule,conditions:rule.conditions.filter((_,n)=>i!==n)}})}>条件を削除</button></div>})}
+      <button type="button" className="btn secondary" disabled={!scores.length||rule.conditions.length>=10} onClick={()=>onChange({googleReviewRule:{...rule,conditions:[...rule.conditions,{questionId:scores[0].id,operator:'gte',value:Math.min(9,scoreMax(scores[0]))}]}})}>＋ 条件を追加</button>
+      {rule.conditions.length>1&&<label className="field">条件のつなぎ方<select value={rule.logic} onChange={e=>onChange({googleReviewRule:{...rule,logic:e.target.value as 'and'|'or'}})}><option value="and">すべて満たす（AND）</option><option value="or">いずれかを満たす（OR）</option></select></label>}
+      <p className="notice" aria-live="polite">{reviewRuleDescription(rule,questions)}</p>
+    </section>}
+    {mode!=='disabled'&&<label className="field">口コミ用文章として使用する質問<select name="reviewTextQuestionId" value={config.reviewTextQuestionId===undefined?'__legacy':config.reviewTextQuestionId??''} onChange={e=>onChange({reviewTextQuestionId:e.target.value||null})}>{config.reviewTextQuestionId===undefined&&<option value="__legacy">既存設定：最初の入力済み長文</option>}<option value="">使用しない</option>{questions.filter(q=>q.type==='textarea').map(q=><option key={q.id} value={q.id}>Q{questions.indexOf(q)+1} {q.title}</option>)}</select></label>}
+    <details className="completion-rule" open><summary>Google口コミ条件をテスト</summary><div className="stack">{scores.map(q=><label className="field" key={q.id}>Q{questions.indexOf(q)+1} {q.title}<select aria-label={`テスト ${q.title}`} value={answers[q.id]??''} onChange={e=>setAnswers(a=>({...a,[q.id]:Number(e.target.value)}))}><option value="">未回答</option>{Array.from({length:scoreMax(q)},(_,i)=>i+1).map(n=><option value={n} key={n}>{n}点</option>)}</select></label>)}<p role="status">{evaluateGoogleReviewEligibility(config,questions,answers)?'✓ Google口コミを表示します':'Google口コミは表示されません'}</p></div></details>
+  </div>;
+}
