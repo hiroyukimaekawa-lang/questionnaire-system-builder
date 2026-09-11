@@ -38,10 +38,9 @@ test('publishActionとunpublishActionをそのまま利用し、上部と最下�
   assert.doesNotMatch(page,/この下書きを公開/);
 });
 
-test('公開URLはappUrl()ベースのcanonical Pages URLを使い、workers.devを表示しない',()=>{
+test('公開URLは共通のpublicSurveyUrlで正式URLを生成する',()=>{
   const page=source('app/admin/surveys/[id]/page.tsx');
-  assert.match(page,/const publicUrl=`\$\{appUrl\(\)\}\/\$\{survey\.slug\}`/);
-  assert.doesNotMatch(page,/workers\.dev/);
+  assert.ok(page.includes('const publicUrl=publicSurveyUrl(appUrl(),survey.slug)'));
 });
 
 test('保存フォーム(BasicForm/ConfigForm/QuestionBuilder/CompletionSettingsForm)は公開操作に統合されない',()=>{

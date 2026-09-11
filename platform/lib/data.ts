@@ -1,4 +1,5 @@
 import { cache } from 'react';
+import {requireQueryData} from '@/lib/query-result';
 import { createClient } from '@/lib/supabase/server';
 import type { SurveyConfig, SurveyVersion } from '@/types/database';
 
@@ -16,12 +17,12 @@ export async function getVersion(id:string){ const supabase=await createClient()
 export async function getDraftForSurvey(id:string){ const survey=await getSurvey(id); if(!survey?.current_draft_version_id)return null; return getVersion(survey.current_draft_version_id); }
 export const getAdminSurveys = cache(async()=>{
   const supabase=await createClient();
-  const {data}=await supabase.from('surveys').select('id,name,slug,industry,status,updated_at,published_at,responses(count),owner:profiles!surveys_owner_user_id_fkey(name,email),draft:survey_versions!surveys_current_draft_version_id_fkey(config)').order('updated_at',{ascending:false});
-  return data??[];
+  const {data,error}=await supabase.from('surveys').select('id,name,slug,industry,status,updated_at,published_at,responses(count),owner:profiles!surveys_owner_user_id_fkey(name,email),draft:survey_versions!surveys_draft_fk(config)').order('updated_at',{ascending:false});
+  return requireQueryData(data,error,'surveys.list');
 });
 export const getAdminBuilderSessions = cache(async()=>{
   const supabase=await createClient();
-  const {data}=await supabase.from('builder_sessions').select('id,context,current_step,updated_at').eq('status','in_progress').order('updated_at',{ascending:false});
-  return data??[];
+  const {data,error}=await supabase.from('builder_sessions').select('id,context,current_step,updated_at').eq('status','in_progress').order('updated_at',{ascending:false});
+  return requireQueryData(data,error,'builder_sessions.list');
 });
 export async function getPublicSurvey(slug:string){ const supabase=await createClient(); const {data:survey}=await supabase.from('surveys').select('id,name,slug,industry,status,current_published_version_id').eq('slug',slug).eq('status','published').maybeSingle(); if(!survey?.current_published_version_id)return null; const version=await getVersion(survey.current_published_version_id); return version?{survey,version}:null; }

@@ -67,7 +67,7 @@ export function SurveyRenderer({
           reviewEligible: json.reviewEligible === true,
         }),
       );
-      router.push(`/${slug}/thanks`);
+      router.push(`/s/${slug}/thanks`);
     } catch (error) {
       setSubmitError(error instanceof Error ? error.message : '通信エラーが発生しました。');
       setPending(false);

@@ -1,3 +1,4 @@
+import {revalidatePath} from 'next/cache';
 import {NextResponse} from 'next/server';
 import {ruleBasedBuilderEngine} from '@/lib/builder/engine';
 import {normalizeQuestionFontSize,slugify,validateQuestion} from '@/lib/survey';
@@ -79,6 +80,9 @@ export async function POST(request:Request){
       const {data:completedSession,error:sessionError}=await s.from('builder_sessions').update({status:'completed',survey_id:surveyId,context,current_step:'completed',updated_at:new Date().toISOString()}).eq('id',sessionId).eq('user_id',user.id).eq('status','in_progress').select('id').maybeSingle();
       if(sessionError||!completedSession){logFailure('builder_sessions.completed.update',sessionError,surveyId,sessionId);return jsonError(genericError,500)}
     }
+    const {data:verified,error:verifyError}=await s.from('surveys').select('id,name,slug,industry,status,owner_user_id,current_draft_version_id,created_at,updated_at').eq('id',surveyId).single();
+    if(verifyError||!verified||verified.current_draft_version_id!==version.id||verified.owner_user_id!==user.id){logFailure('surveys.verify',verifyError,surveyId,sessionId);return jsonError(genericError,500)}
+    revalidatePath('/admin');
     return NextResponse.json({surveyId},{status:200});
   }catch(error){logFailure('unexpected',error,surveyId,sessionId);return jsonError(genericError,500)}
 }

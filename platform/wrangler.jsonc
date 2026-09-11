@@ -4,7 +4,10 @@
   "main": ".open-next/worker.js",
   "compatibility_date": "2026-09-01",
   "keep_vars": true,
-  "compatibility_flags": ["nodejs_compat", "global_fetch_strictly_public"],
+  "compatibility_flags": [
+    "nodejs_compat",
+    "global_fetch_strictly_public"
+  ],
   "workers_dev": true,
   "assets": {
     "directory": ".open-next/assets",
@@ -19,5 +22,9 @@
   "observability": {
     "enabled": true,
     "head_sampling_rate": 1
+  },
+  "account_id": "739ef6b0d4cc5d4e1b5fb1a1ebae94af",
+  "vars": {
+    "NEXT_PUBLIC_APP_URL": "https://questionnaire.survey-system.workers.dev"
   }
 }

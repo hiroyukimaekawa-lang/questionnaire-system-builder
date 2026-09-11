@@ -1,6 +1,26 @@
-import { permanentRedirect } from 'next/navigation';
+import { getPublicSurvey } from '@/lib/data';
+import { ThanksPanel } from '@/components/survey/ThanksPanel';
+import { googleReviewMode } from '@/lib/survey';
 
-export default async function LegacyThanks({ params }: { params: Promise<{ slug: string }> }) {
+export const metadata = { robots: { index: false, follow: false } };
+
+export default async function Thanks({ params }: { params: Promise<{ slug: string }> }) {
   const { slug } = await params;
-  permanentRedirect(`/${slug}/thanks`);
+  const data = await getPublicSurvey(slug);
+  if (!data) {
+    return <main className="survey-phone" style={{ padding: 24 }}>現在このアンケートは公開されていません。</main>;
+  }
+  const config = data.version.config;
+  const reviewMode = googleReviewMode(config);
+  return (
+    <main className="survey-phone thanks-page" style={{ background: config.backgroundColor }}>
+      <ThanksPanel
+        slug={slug}
+        text={config.completionText}
+        reviewUrl={reviewMode === 'disabled' ? null : config.googleReviewUrl}
+        reviewMode={reviewMode}
+        primaryColor={config.primaryColor}
+      />
+    </main>
+  );
 }

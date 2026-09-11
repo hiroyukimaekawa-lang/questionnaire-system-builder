@@ -28,7 +28,7 @@ NEXT_PUBLIC_SUPABASE_ANON_KEY=
 NEXT_PUBLIC_APP_URL=http://localhost:3000
 ```
 
-Productionでは、初回Worker deployで確定した実URLを `NEXT_PUBLIC_APP_URL=https://<actual-worker-host>.workers.dev` に設定し、再build / redeployします。Service Role Keyは通常処理では不要で、ブラウザへ絶対に公開しません。
+Productionでは `NEXT_PUBLIC_APP_URL=https://questionnaire.survey-system.workers.dev` に固定します。Service Role Keyは通常処理では不要で、ブラウザへ絶対に公開しません。
 
 Supabase DashboardではSite URLを正式Worker URL、Redirect URLsを `/auth/confirm` と `/admin/account/update-password` の正式Worker URLに設定します。Recovery templateは `token_hash`、`type=recovery`、内部 `next` を `/auth/confirm` へ渡すPKCE/OTP形式にします。詳細は [SECURITY_REVIEW.md](./SECURITY_REVIEW.md) を参照してください。
 
@@ -100,7 +100,7 @@ Cloudflare DashboardのGit連携ビルドでは、以下3つを **Runtime Variab
 
 Build Variablesはビルド時（`npx opennextjs-cloudflare build`）専用で、Next.jsのビルド出力に埋め込まれます。Runtime Variablesはデプロイ後にWorkerが実行時に参照する値です。
 
-Cloudflareの仕様上、Dashboard側で管理したRuntime Variablesは `wrangler deploy` 実行時に上書き・削除される可能性があるため、`wrangler.jsonc` に `keep_vars: true` を設定し、Git自動デプロイのたびにRuntime Variablesが消えないようにしています。これら3つの値はコードにハードコードせず、`SUPABASE_SERVICE_ROLE_KEY` はこのアプリでは不要なため設定しません（公開クライアントに渡してはいけないため）。
+Cloudflareの仕様上、Dashboard側で管理したRuntime Variablesは `wrangler deploy` 実行時に上書き・削除される可能性があるため、`wrangler.jsonc` に `keep_vars: true` を設定し、Git自動デプロイのたびにRuntime Variablesが消えないようにしています。公開URLとプロジェクトIDはデプロイ検証に固定し、キーは環境変数で渡します。`SUPABASE_SERVICE_ROLE_KEY` はこのアプリでは不要なため設定しません（公開クライアントに渡してはいけないため）。
 
 ```bash
 cd platform
@@ -112,17 +112,13 @@ npm run build
 npx opennextjs-cloudflare build
 ```
 
-Cloudflareへの実deployは手動で行います。
+本番は survey アカウントの `questionnaire` Workerのみです。mainへのpushはCloudflare Buildsから `npm run deploy` を実行します。旧 `questionnaire-system-builder` のGit連携は解除し、非本番ブランチの自動ビルドも有効にしません。CLIのデプロイ前チェックでWorker名・アカウント・本番URL・Supabase接続先を検証します。
 
-```bash
-npm run deploy:crestix-worker
-```
+正式URL: `https://questionnaire.survey-system.workers.dev`、管理画面: `/admin`、公開アンケート: `/s/{slug}`。従来の `/{slug}` は既存リンク・旧308キャッシュの互換性のため同じRendererに委譲し、URL/QRは `/s/{slug}` のみ生成します。
 
-想定本番URLは `https://questionnaire.survey.workers.dev` です。新しい `questionnaire` WorkerのRuntime Variables / Build Variablesに上記3項目を設定し、`NEXT_PUBLIC_APP_URL` はこのURLを使用します。Supabaseの接続先とキーは既存の値を保持してください。初回deploy後に実URLを確認します。Supabase AuthのSite URL / Redirect URLsの対応状況は別途確認し、今回のWorker名変更ではSupabase設定を変更しません。
+Supabaseは `acfheksrpwdbxoahnwit` を使用します。旧Workerも同じプロジェクトを参照していたためデータ移行は不要です。WorkerにはASSETSと自己参照のService bindingだけがあり、アンケート・回答の正本はSupabaseです。旧WorkerはGit連携解除後に公開アクセスを停止し、復旧用に保持できます。
 
-デプロイ後は `/login`、`/admin`、`/admin/surveys/new`、`/sanglier` でログイン、アンケート作成、Builderの「← ひとつ前に戻る」、公開表示、回答保存、既存データの利用を確認します。既存の `questionnaire-system-builder` Workerは、新Workerの動作確認が完了するまで残します。
-
-旧 `cloudflare/crestix-questionnaire-pages/` と旧 `survey-pages` Workerは、新Workerで `/login`、`/signup`、`/admin`、Server Actions、公開アンケート、回答送信まで確認できるまでは削除しません。
+一覧は `surveys_draft_fk` で下書きを取得します。存在しない外部キー名でPGRST200になった場合も0件にせず、ログと再試行可能なエラー画面を表示します。「すべて」は正式アンケート（archived以外）、「作成途中」はbuilder_sessionsのみです。公開RPC成功後はSurveyを再取得し、公開状態・公開版ID・公開日時を検証します。
 
 Supabaseの外部PostgreSQLへ直接接続せずHTTPS APIを使うため、Hyperdriveは不要です。店舗追加や質問変更はDBの下書きと公開操作で完結し、再デプロイは不要です。
 
