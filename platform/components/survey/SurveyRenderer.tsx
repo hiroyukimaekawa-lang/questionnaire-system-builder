@@ -175,11 +175,11 @@ export function SurveyRenderer({
                   <h2 className="question-title" id={headingId}>
                     <span className="question-number" aria-hidden="true">{questionNumber(index)}</span>
                     <span className="question-title-body">
-                      <span className="question-title-text jp-copy">{question.title}</span>
+                      <span className="question-title-text jp-copy jp-preserve-lines">{question.title}</span>
                       {question.required && <span className="required-badge">※必須</span>}
                     </span>
                   </h2>
-                  {question.description && <p className="muted question-description jp-copy">{question.description}</p>}
+                  {question.description && <p className="muted question-description jp-copy jp-preserve-lines">{question.description}</p>}
                 </header>
 
                 <div className="answer-card" role="group" aria-labelledby={headingId}>

@@ -18,7 +18,7 @@ test('QuestionQuickEditorは必須toggleを回答形式gridの外に置く',()=>
 
 test('既存QuestionBuilderは質問文直後にchecked値を保存する必須toggleを置く',()=>{
   const ui=source('components/admin/QuestionBuilder.tsx');
-  assert.match(ui,/質問文<input[^]*?<\/label><label className="question-required-toggle"><input type="checkbox" checked=\{q\.required\} onChange=\{e=>patch\(i,\{required:e\.target\.checked\}\)\}\/><span>必須にする<\/span><\/label><label className="field editor-field-label">補足説明/);
+  assert.match(ui,/質問文<textarea[^]*?<\/label><label className="question-required-toggle"><input type="checkbox" checked=\{q\.required\} onChange=\{e=>patch\(i,\{required:e\.target\.checked\}\)\}\/><span>必須にする<\/span><\/label><label className="field editor-field-label">補足説明/);
   assert.doesNotMatch(ui,/回答設定[^]*?required:true/);
 });
 
