@@ -11,19 +11,21 @@ type PublicSurvey = {
   version: SurveyVersion;
 };
 
+export type GoogleSheetsStore = {
+  id: string;
+  name: string;
+  industry: string;
+  slug: string;
+  status: string;
+  googleReviewUrl?: string;
+};
+
 type CompletionResult = {
   needsFollowUp?: boolean;
 };
 
 export type GoogleSheetsPayload = {
-  store: {
-    id: string;
-    name: string;
-    industry: string;
-    slug: string;
-    status: string;
-    googleReviewUrl: string;
-  };
+  store: GoogleSheetsStore;
   response: {
     id: string;
     submittedAt: string;
@@ -48,6 +50,19 @@ export type GoogleSheetsPayload = {
     metadata: Record<string, unknown>;
   }>;
 };
+
+export type GoogleSheetsStorePayload = {
+  action: 'survey_created' | 'survey_updated' | 'survey_archived' | 'survey_restored';
+  occurredAt: string;
+  store: GoogleSheetsStore;
+};
+
+export function buildGoogleSheetsStorePayload(
+  action: GoogleSheetsStorePayload['action'],
+  store: GoogleSheetsStore,
+): GoogleSheetsStorePayload {
+  return {action,occurredAt:new Date().toISOString(),store};
+}
 
 export function buildGoogleSheetsPayload({
   publicSurvey,
@@ -125,7 +140,7 @@ export type GoogleSheetsSyncAttempt = {
   error?: string;
 };
 
-export async function sendGoogleSheetsPayload(payload: GoogleSheetsPayload): Promise<GoogleSheetsSyncAttempt> {
+export async function sendGoogleSheetsPayload(payload: GoogleSheetsPayload | GoogleSheetsStorePayload): Promise<GoogleSheetsSyncAttempt> {
   const url = process.env.GOOGLE_SHEETS_WEBHOOK_URL?.trim();
   const secret = process.env.GOOGLE_SHEETS_WEBHOOK_SECRET?.trim();
   if (!url || !secret) return { attempted: false, ok: false, error: 'Google Sheets webhook is not configured.' };

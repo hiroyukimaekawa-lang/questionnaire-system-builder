@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {buildGoogleSheetsPayload} from '../lib/google-sheets-sync';
+import {buildGoogleSheetsPayload,buildGoogleSheetsStorePayload} from '../lib/google-sheets-sync';
 import {defaultConfig} from '../lib/survey';
 import type {SurveyVersion} from '../types/database';
 
@@ -28,4 +28,12 @@ test('評価質問がなければ平均・合計スコアはnullにする',()=>{
   const payload=buildGoogleSheetsPayload({publicSurvey:{...publicSurvey,version:textVersion},answers:{[q3.id]:'回答'},responseId:'dddddddd-dddd-4ddd-8ddd-dddddddddddd',submittedAt:'2026-09-07T12:00:00.000Z',completion:{},reviewEligible:false});
   assert.equal(payload.response.totalScore,null);
   assert.equal(payload.response.averageScore,null);
+});
+
+test('店舗の作成・削除・復元をSurvey ID付きの同期payloadへ変換する',()=>{
+  const store={id:'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb',name:'サンプル医院',slug:'sample-clinic',industry:'clinic',status:'archived'};
+  const payload=buildGoogleSheetsStorePayload('survey_archived',store);
+  assert.equal(payload.action,'survey_archived');
+  assert.equal(payload.store.id,store.id);
+  assert.match(payload.occurredAt,/^\d{4}-\d{2}-\d{2}T/);
 });

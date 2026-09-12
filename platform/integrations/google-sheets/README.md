@@ -17,6 +17,16 @@ The managed spreadsheet uses these tabs:
 2. `回答詳細` — one row per question answer.
 3. `店舗・医院マスタ` — one row per store/clinic.
 4. `イベント` — behavioral events. Phase 2 writes `response_submitted`; Phase 3 adds view/start/review CTA events.
+5. `店舗タブ管理` — Survey IDと店舗専用タブIDの対応、状態、更新日時。
+
+Each survey also receives a dedicated operational tab named `店舗・医院名 [slug]`. Responses are appended there as one row per submission while the normalized `回答一覧` and `回答詳細` tabs remain authoritative copies. New question IDs add columns without rewriting historical rows.
+
+Survey lifecycle synchronization follows the admin state:
+
+- create: create and register the dedicated tab
+- rename/update: rename the tab and update the registry
+- archive: prefix the tab with `削除済み_` and hide it without deleting responses
+- restore: restore the current name and show the tab again
 
 ## Phase 1 — completed
 

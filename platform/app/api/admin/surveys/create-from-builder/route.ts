@@ -6,6 +6,7 @@ import {createClient} from '@/lib/supabase/server';
 import {getThemeTemplate,themeIdForBusiness} from '@/lib/theme/templates';
 import type {BuilderContext,SurveyQuestion} from '@/types/database';
 import {builderConfig,validateReviewSettings} from '@/lib/builder/settings';
+import {buildGoogleSheetsStorePayload,sendGoogleSheetsPayload} from '@/lib/google-sheets-sync';
 
 const genericError='アンケートを作成できませんでした。もう一度お試しください。';
 
@@ -52,7 +53,7 @@ export async function POST(request:Request){
       if(!data)break;
       slug=`${base}-${n}`;
     }
-    const {data:survey,error:surveyError}=await s.from('surveys').insert({name,slug,industry:context.industry??context.businessType,owner_user_id:user.id,created_by:user.id,updated_by:user.id}).select('id').single();
+    const {data:survey,error:surveyError}=await s.from('surveys').insert({name,slug,industry:context.industry??context.businessType,owner_user_id:user.id,created_by:user.id,updated_by:user.id}).select('id,name,slug,industry,status').single();
     if(surveyError||!survey){logFailure('surveys.insert',surveyError,surveyId,sessionId);return jsonError(genericError,500)}
     surveyId=survey.id as string;
 
@@ -82,6 +83,8 @@ export async function POST(request:Request){
     }
     const {data:verified,error:verifyError}=await s.from('surveys').select('id,name,slug,industry,status,owner_user_id,current_draft_version_id,created_at,updated_at').eq('id',surveyId).single();
     if(verifyError||!verified||verified.current_draft_version_id!==version.id||verified.owner_user_id!==user.id){logFailure('surveys.verify',verifyError,surveyId,sessionId);return jsonError(genericError,500)}
+    const syncResult=await sendGoogleSheetsPayload(buildGoogleSheetsStorePayload('survey_created',{id:verified.id,name:verified.name,slug:verified.slug,industry:verified.industry??'',status:verified.status}));
+    if(syncResult.attempted&&!syncResult.ok)console.error('[google-sheets-store-sync]',{action:'survey_created',surveyId:verified.id,error:syncResult.error});
     revalidatePath('/admin');
     return NextResponse.json({surveyId},{status:200});
   }catch(error){logFailure('unexpected',error,surveyId,sessionId);return jsonError(genericError,500)}

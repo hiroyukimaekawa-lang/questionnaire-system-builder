@@ -9,8 +9,13 @@ import {parseCompletionRulesJson,validateRulesForQuestions} from '@/lib/completi
 import {appUrl} from '@/lib/env';
 import {isVerifiedPublication} from '@/lib/publication';
 import {remapConfigQuestions} from '@/lib/builder/settings';
+import {buildGoogleSheetsStorePayload,sendGoogleSheetsPayload,type GoogleSheetsStorePayload} from '@/lib/google-sheets-sync';
 async function staff(){ const s=await createClient(); const {data:{user}}=await s.auth.getUser(); if(!user) throw new Error('ログインが必要です。'); const {data:p}=await s.from('profiles').select('role,is_active').eq('id',user.id).single(); if(!p)throw new Error('権限がありません。'); if(!p.is_active)throw new Error('アカウントの利用が停止されています。管理者にお問い合わせください。'); if(p.role!=='admin'&&p.role!=='sales')throw new Error('権限がありません。'); return {s,user,p}; }
 async function isActiveSurvey(s:Awaited<ReturnType<typeof createClient>>,id:string){const {data}=await s.from('surveys').select('id').eq('id',id).neq('status','archived').maybeSingle();return Boolean(data)}
+async function syncStore(action:GoogleSheetsStorePayload['action'],store:{id:string;name:string;slug:string;industry:string|null;status:string}){
+  const result=await sendGoogleSheetsPayload(buildGoogleSheetsStorePayload(action,{...store,industry:store.industry??''}));
+  if(result.attempted&&!result.ok)console.error('[google-sheets-store-sync]',{action,surveyId:store.id,error:result.error});
+}
 export async function loginAction(_:unknown,form:FormData){ const s=await createClient(); const {error}=await s.auth.signInWithPassword({email:String(form.get('email')||''),password:String(form.get('password')||'')}); if(error)return {error:'メールアドレスまたはパスワードを確認してください。'}; redirect('/admin'); }
 export async function logoutAction(){ const s=await createClient(); await s.auth.signOut(); redirect('/login'); }
 export async function createSurveyAction(_:unknown,form:FormData){
@@ -19,7 +24,7 @@ export async function createSurveyAction(_:unknown,form:FormData){
     const {s,user}=await staff();
     const name=String(form.get('name')||'').trim(),slug=String(form.get('slug')||slugify(name)),industry=String(form.get('industry')||'').trim();
     if(!name||!validateSlug(slug))return {error:'名称と半角英数字のslugを入力してください。'};
-    const {data:survey,error}=await s.from('surveys').insert({name,slug,industry,owner_user_id:user.id,created_by:user.id,updated_by:user.id}).select('id').single();
+    const {data:survey,error}=await s.from('surveys').insert({name,slug,industry,owner_user_id:user.id,created_by:user.id,updated_by:user.id}).select('id,name,slug,industry,status').single();
     if(error||!survey)return {error:error?.code==='23505'?'このslugは使用済みです。':'作成に失敗しました。'};
     surveyId=survey.id;
     const config={...defaultConfig,title:`${name} お客様アンケート`};
@@ -27,11 +32,12 @@ export async function createSurveyAction(_:unknown,form:FormData){
     if(ve||!v)throw ve;
     const {data:saved,error:se}=await s.from('surveys').update({current_draft_version_id:v.id}).eq('id',surveyId).select('id,current_draft_version_id').single();
     if(se||saved?.current_draft_version_id!==v.id)throw se;
+    await syncStore('survey_created',survey);
   }catch{return {error:'作成に失敗しました。'};}
   revalidatePath('/admin');
   redirect(`/admin/surveys/${surveyId}`);
 }
-export async function saveSurveyAction(id:string,_:unknown,form:FormData){ try{ const {s,user}=await staff();if(!await isActiveSurvey(s,id))return {error:'アンケートを更新できませんでした。'}; const name=String(form.get('name')||'').trim(),slug=String(form.get('slug')||'').trim(); if(!name||!validateSlug(slug))return {error:'名称と有効なslugを入力してください。'}; const {error}=await s.from('surveys').update({name,slug,industry:String(form.get('industry')||''),updated_by:user.id}).eq('id',id).neq('status','archived'); if(error)return {error:error.code==='23505'?'このslugは使用済みです。':'保存に失敗しました。'}; revalidatePath(`/admin/surveys/${id}`); return {success:'基本情報を保存しました。'}; }catch(e){return {error:e instanceof Error?e.message:'保存に失敗しました。'};} }
+export async function saveSurveyAction(id:string,_:unknown,form:FormData){ try{ const {s,user}=await staff();if(!await isActiveSurvey(s,id))return {error:'アンケートを更新できませんでした。'}; const name=String(form.get('name')||'').trim(),slug=String(form.get('slug')||'').trim(); if(!name||!validateSlug(slug))return {error:'名称と有効なslugを入力してください。'}; const {data,error}=await s.from('surveys').update({name,slug,industry:String(form.get('industry')||''),updated_by:user.id}).eq('id',id).neq('status','archived').select('id,name,slug,industry,status').single(); if(error||!data)return {error:error?.code==='23505'?'このslugは使用済みです。':'保存に失敗しました。'}; await syncStore('survey_updated',data); revalidatePath(`/admin/surveys/${id}`); return {success:'基本情報を保存しました。'}; }catch(e){return {error:e instanceof Error?e.message:'保存に失敗しました。'};} }
 export async function saveConfigAction(surveyId:string,versionId:string,_:unknown,form:FormData){ try{ const {s}=await staff();if(!await isActiveSurvey(s,surveyId))return {error:'アンケートを更新できませんでした。'}; const val=(k:string)=>String(form.get(k)||'').trim(); const themeId=val('themeId') as 'clinic-clean'|'restaurant-clean'|'salon-clean';const template=getThemeTemplate(themeId);const {data:current}=await s.from('survey_versions').select('config').eq('id',versionId).eq('survey_id',surveyId).eq('status','draft').single();if(!current)return {error:'下書きが見つかりません。'};const edited={...(form.has('anonymous')?{anonymous:val('anonymous')==='true'}:{}),title:val('title'),description:val('description'),introText:val('introText'),anonymousText:val('anonymousText'),completionText:val('completionText'),submitLabel:val('submitLabel')||'回答を送信',buttonLabel:val('submitLabel')||'回答を送信',primaryColor:val('primaryColor')||template.config.primaryColor,secondaryColor:val('secondaryColor')||template.config.secondaryColor,backgroundColor:val('backgroundColor')||template.config.backgroundColor,accentColor:val('accentColor')||template.config.accentColor,heroOverlayColor:val('heroOverlayColor')||template.config.heroOverlayColor,heroTextColor:val('heroTextColor')||template.config.heroTextColor,buttonBackground:val('buttonBackground')||template.config.buttonBackground,buttonTextColor:val('buttonTextColor')||template.config.buttonTextColor,cardBackground:val('cardBackground')||template.config.cardBackground,logoBadgeBackground:val('logoBadgeBackground')||template.config.logoBadgeBackground,themeId,heroBackgroundType:val('heroBackgroundType')==='solid' as const?'solid' as const:'soft-gradient' as const,heroLabel:val('heroLabel')||'QUESTIONNAIRE',heroTitle:val('heroTitle')||val('title'),heroSubtitle:val('heroSubtitle')||val('description'),logoMode:(val('logoMode')||'icon') as 'none'|'icon'|'upload',cardRadius:Number(val('cardRadius')||18),questionFontSize:normalizeQuestionFontSize(val('questionFontSize')),logoUrl:val('logoUrl')||null,iconUrl:val('iconUrl')||null}; for(const k of ['logoUrl','iconUrl'] as const){if(edited[k])try{new URL(edited[k]!)}catch{return {error:`${k}のURLが不正です。`};}} let extra={};try{extra=JSON.parse(String(form.get('designPatch')||'{}'));}catch{return {error:'デザイン設定を確認してください。'};} const config=mergeSurveyConfig(current.config as any,{...edited,...extra});const {error}=await s.from('survey_versions').update({config}).eq('id',versionId).eq('survey_id',surveyId).eq('status','draft'); if(error)throw error; revalidatePath(`/admin/surveys/${surveyId}`); return {success:'下書きを保存しました。公開版は変更されていません。'}; }catch(e){return {error:e instanceof Error?e.message:'保存に失敗しました。'};} }
 export async function saveQuestionsAction(surveyId:string,versionId:string,questions:SurveyQuestion[]){ const {s}=await staff();if(!await isActiveSurvey(s,surveyId))return {error:'アンケートを更新できませんでした。'}; for(const q of questions){const error=validateQuestion(q);if(error)return {error};} const {error:de}=await s.from('questions').delete().eq('survey_version_id',versionId); if(de)return {error:'質問の保存に失敗しました。'}; for(let i=0;i<questions.length;i++){const q=questions[i]; const {data:created,error}=await s.from('questions').insert({id:q.id,survey_version_id:versionId,type:q.type,title:q.title.trim(),description:q.description.trim(),required:q.required,sort_order:i,settings:q.settings}).select('id').single(); if(error)return {error:'質問の保存に失敗しました。'}; if(q.type==='single_choice'||q.type==='multiple_choice'){const opts=q.options.filter(o=>o.label.trim()).map((o,n)=>({question_id:created.id,label:o.label.trim(),value:o.value.trim()||`option-${n+1}`,sort_order:n})); const {error:oe}=await s.from('question_options').insert(opts); if(oe)return {error:'選択肢の保存に失敗しました。'};}} revalidatePath(`/admin/surveys/${surveyId}`); return {success:'質問を保存しました。公開版は変更されていません。'}; }
 export async function publishAction(id:string){
@@ -41,7 +47,7 @@ export async function publishAction(id:string){
     if(error||!publishedId){console.error('[survey-publish]',{stage:'publish_survey',code:error?.code});return {error:'公開に失敗しました。'};}
     revalidatePath('/admin');
     revalidatePath(`/admin/surveys/${id}`);
-    const {data:survey,error:readError}=await s.from('surveys').select('id,status,slug,current_published_version_id,current_draft_version_id,published_at').eq('id',id).single();
+    const {data:survey,error:readError}=await s.from('surveys').select('id,name,industry,status,slug,current_published_version_id,current_draft_version_id,published_at').eq('id',id).single();
     if(readError||!isVerifiedPublication(survey,id,publishedId)){
       console.error('[survey-publish]',{stage:'surveys.verify',code:readError?.code,surveyId:id});
       return {error:'公開状態を確認できませんでした。管理画面で状態を確認してください。'};
@@ -58,12 +64,13 @@ export async function publishAction(id:string){
     revalidatePath('/admin');
     revalidatePath(`/admin/surveys/${id}`);
     revalidatePath(`/s/${survey.slug}`);
+    await syncStore('survey_updated',survey);
     return {success:'公開しました。新しい下書きも作成済みです。'};
   }catch{console.error('[survey-publish]',{stage:'unexpected',surveyId:id});return {error:'公開状態を確認できませんでした。管理画面で状態を確認してください。'};}
 }
-export async function unpublishAction(id:string){ const {s,user}=await staff(); const {error}=await s.from('surveys').update({status:'unpublished',updated_by:user.id}).eq('id',id).neq('status','archived'); if(error)return {error:'非公開にできませんでした。'}; revalidatePath('/admin'); return {success:'非公開にしました。'}; }
-export async function archiveAction(id:string){ try{const {s,user,p}=await staff(); if(p.role!=='admin')return {error:'アンケートの削除は管理者のみ実行できます。'}; const {data,error}=await s.from('surveys').update({status:'archived',archived_at:new Date().toISOString(),updated_by:user.id}).eq('id',id).neq('status','archived').select('id').maybeSingle(); if(error||!data)return {error:'アンケートを削除できませんでした。'}; revalidatePath('/admin');revalidatePath(`/admin/surveys/${id}`);return {success:'アンケートを削除しました。'};}catch{return {error:'アンケートを削除できませんでした。'};} }
-export async function restoreSurveyAction(id:string){ try{const {s,user,p}=await staff();if(p.role!=='admin')return {error:'アンケートの復元は管理者のみ実行できます。'};const {data,error}=await s.from('surveys').update({status:'unpublished',archived_at:null,updated_by:user.id}).eq('id',id).eq('status','archived').select('id').maybeSingle();if(error||!data)return {error:'アンケートを復元できませんでした。'};revalidatePath('/admin');revalidatePath(`/admin/surveys/${id}`);return {success:'アンケートを非公開状態で復元しました。'};}catch{return {error:'アンケートを復元できませんでした。'};} }
+export async function unpublishAction(id:string){ const {s,user}=await staff(); const {data,error}=await s.from('surveys').update({status:'unpublished',updated_by:user.id}).eq('id',id).neq('status','archived').select('id,name,slug,industry,status').single(); if(error||!data)return {error:'非公開にできませんでした。'}; await syncStore('survey_updated',data); revalidatePath('/admin'); return {success:'非公開にしました。'}; }
+export async function archiveAction(id:string){ try{const {s,user,p}=await staff(); if(p.role!=='admin')return {error:'アンケートの削除は管理者のみ実行できます。'}; const {data,error}=await s.from('surveys').update({status:'archived',archived_at:new Date().toISOString(),updated_by:user.id}).eq('id',id).neq('status','archived').select('id,name,slug,industry,status').maybeSingle(); if(error||!data)return {error:'アンケートを削除できませんでした。'}; await syncStore('survey_archived',data); revalidatePath('/admin');revalidatePath(`/admin/surveys/${id}`);return {success:'アンケートを削除しました。店舗別シートは非表示にしました。'};}catch{return {error:'アンケートを削除できませんでした。'};} }
+export async function restoreSurveyAction(id:string){ try{const {s,user,p}=await staff();if(p.role!=='admin')return {error:'アンケートの復元は管理者のみ実行できます。'};const {data,error}=await s.from('surveys').update({status:'unpublished',archived_at:null,updated_by:user.id}).eq('id',id).eq('status','archived').select('id,name,slug,industry,status').maybeSingle();if(error||!data)return {error:'アンケートを復元できませんでした。'};await syncStore('survey_restored',data);revalidatePath('/admin');revalidatePath(`/admin/surveys/${id}`);return {success:'アンケートを非公開状態で復元しました。店舗別シートも再表示しました。'};}catch{return {error:'アンケートを復元できませんでした。'};} }
 export async function duplicateSurveyAction(id:string,_:unknown,form:FormData){
   try{
     const {s,user}=await staff();
@@ -71,7 +78,7 @@ export async function duplicateSurveyAction(id:string,_:unknown,form:FormData){
     if(!src)throw new Error('複製元が見つかりません。');
     const name=String(form.get('name')||`${src.name} のコピー`),slug=String(form.get('slug')||`${src.slug}-copy`);
     if(!validateSlug(slug))return {error:'slugが不正です。'};
-    const {data:n,error}=await s.from('surveys').insert({name,slug,industry:src.industry,owner_user_id:user.id,created_by:user.id,updated_by:user.id}).select('id').single();
+    const {data:n,error}=await s.from('surveys').insert({name,slug,industry:src.industry,owner_user_id:user.id,created_by:user.id,updated_by:user.id}).select('id,name,slug,industry,status').single();
     if(error)return {error:'複製先のslugが使用済みです。'};
     const source=(src as any).survey_versions;
     const ordered=(source.questions??[]).sort((a:any,b:any)=>a.sort_order-b.sort_order);
@@ -83,6 +90,7 @@ export async function duplicateSurveyAction(id:string,_:unknown,form:FormData){
       if(q.question_options?.length)await s.from('question_options').insert(q.question_options.map((o:any)=>({question_id:nq!.id,label:o.label,value:o.value,sort_order:o.sort_order})));
     }
     await s.from('surveys').update({current_draft_version_id:v!.id}).eq('id',n.id);
+    await syncStore('survey_created',n);
     redirect(`/admin/surveys/${n.id}`);
   }catch(e){return {error:e instanceof Error?e.message:'複製に失敗しました。'};}
 }
@@ -105,12 +113,13 @@ export async function completeBuilderAction(sessionId:string|null,context:Builde
   try { const {s,user}=await staff(); const missing=ruleBasedBuilderEngine.getMissingFields(context);if(missing.length)return {error:`未確定の項目があります: ${missing.join(', ')}`};
     const name=context.storeName!.trim(),base=slugify(name)||`survey-${Date.now()}`;let slug=base;
     for(let n=2;n<100;n++){const {data}=await s.from('surveys').select('id').eq('slug',slug).maybeSingle();if(!data)break;slug=`${base}-${n}`;}
-    const {data:survey,error}=await s.from('surveys').insert({name,slug,industry:context.businessType,owner_user_id:user.id,created_by:user.id,updated_by:user.id}).select('id').single();if(error)throw error;
+    const {data:survey,error}=await s.from('surveys').insert({name,slug,industry:context.businessType,owner_user_id:user.id,created_by:user.id,updated_by:user.id}).select('id,name,slug,industry,status').single();if(error)throw error;
     const themeId=context.themeId??themeIdForBusiness(context.businessType!);const theme=getThemeTemplate(themeId);const heroLabel=context.heroLabel?.trim()||'QUESTIONNAIRE';const rawHeroTitle=context.heroTitle??theme.config.heroTitle;const heroTitle=rawHeroTitle.trim()||theme.config.heroTitle;const heroSubtitle=context.heroSubtitle?.trim()||theme.config.heroSubtitle;const config={...defaultConfig,...theme.config,themeId,title:heroTitle,heroLabel,heroTitle,heroSubtitle,introText:context.introText!,anonymous:context.anonymous,anonymousText:context.anonymous?'こちらのアンケートは匿名です。':'回答内容は運営者が確認します。',completionText:context.completionText!,questionFontSize:normalizeQuestionFontSize(context.questionFontSize),primaryColor:context.mainColor!,logoMode:context.logoMode,logoUrl:context.logoUrl??null,googleReviewUrl:context.googleReviewEnabled?context.googleReviewUrl??null:null};
     const {data:version,error:versionError}=await s.from('survey_versions').insert({survey_id:survey.id,version:1,status:'draft',config,created_by:user.id}).select('id').single();if(versionError)throw versionError;
     for(const [index,q] of context.questions!.entries()){const {data:created,error:qError}=await s.from('questions').insert({survey_version_id:version.id,type:q.type,title:q.title,description:q.description,required:q.required,sort_order:index,settings:q.settings}).select('id').single();if(qError)throw qError;if(q.options.length){const {error:oError}=await s.from('question_options').insert(q.options.map((o,n)=>({question_id:created.id,label:o.label,value:o.value,sort_order:n})));if(oError)throw oError;}}
     const {error:surveyUpdateError}=await s.from('surveys').update({current_draft_version_id:version.id}).eq('id',survey.id);if(surveyUpdateError)throw surveyUpdateError;
     if(sessionId){const {error:sessionUpdateError}=await s.from('builder_sessions').update({status:'completed',survey_id:survey.id,context,current_step:'completed',updated_at:new Date().toISOString()}).eq('id',sessionId);if(sessionUpdateError)throw sessionUpdateError;}
+    await syncStore('survey_created',survey);
     return {success:'作成内容が確定しました。',surveyId:survey.id as string};
   }catch{return {error:'アンケートを作成できませんでした。画面を再読み込んで、もう一度お試しください。'};}
 }
