@@ -5,6 +5,7 @@ test('必須回答を検証する',()=>{assert.deepEqual(validateAnswers(questio
 test('評価の合計と平均を算出する',()=>assert.deepEqual(calculateScores(questions,{a:8,b:9}),{totalScore:17,averageScore:8.5}));
 test('選択肢不足を拒否する',()=>assert.match(validateQuestion({...questions[0],type:'single_choice',options:[{label:'1',value:'1',sortOrder:0}]})||'',/2件以上/));
 test('CSVをExcel互換にエスケープする',()=>assert.equal(csvEscape('a,"b"'),'"a,""b"""'));
+test('CSV数式として解釈される回答を文字列化する',()=>{for(const value of ['=1+1','+SUM(A1:A2)','-1+2','@SUM(A1:A2)','\t=1','\r=1'])assert.equal(csvEscape(value),`"'${value}"`)});
 test('旧rating_10は10段階として扱う',()=>assert.equal(scoreMax(questions[0]),10));
 test('maxScoreに応じて5段階と10段階を扱う',()=>{assert.equal(scoreMax({...questions[0],settings:{maxScore:5}}),5);assert.equal(scoreMax({...questions[0],settings:{maxScore:10}}),10)});
 test('single_choiceのradioとselect表現を解決する',()=>{const q={...questions[0],type:'single_choice' as const};assert.equal(choicePresentation({...q,settings:{presentation:'radio'}}),'radio');assert.equal(choicePresentation({...q,settings:{presentation:'select'}}),'select')});

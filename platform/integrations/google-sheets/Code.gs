@@ -35,7 +35,7 @@ function doPost(e) {
     if (!expectedSecret || !spreadsheetId) {
       return jsonResponse({ ok: false, error: 'Script Properties are not configured.' });
     }
-    if (!body.secret || body.secret !== expectedSecret) {
+    if (!body.secret || !constantTimeEqual(String(body.secret), expectedSecret)) {
       return jsonResponse({ ok: false, error: 'Unauthorized.' });
     }
     const ss = SpreadsheetApp.openById(spreadsheetId);
@@ -290,9 +290,16 @@ function findExactInColumn(sheet, column, value) {
 
 function normalizeCellValue(value) {
   if (value == null) return '';
-  if (Array.isArray(value)) return value.join(' / ');
-  if (typeof value === 'object') return JSON.stringify(value);
-  return value;
+  const normalized = Array.isArray(value) ? value.join(' / ') : (typeof value === 'object' ? JSON.stringify(value) : value);
+  return typeof normalized === 'string' && /^[=+\-@\t\r]/.test(normalized) ? "'" + normalized : normalized;
+}
+
+function constantTimeEqual(provided, expected) {
+  const providedHash = Utilities.computeDigest(Utilities.DigestAlgorithm.SHA_256, provided, Utilities.Charset.UTF_8);
+  const expectedHash = Utilities.computeDigest(Utilities.DigestAlgorithm.SHA_256, expected, Utilities.Charset.UTF_8);
+  let difference = 0;
+  for (let index = 0; index < providedHash.length; index++) difference |= providedHash[index] ^ expectedHash[index];
+  return difference === 0;
 }
 
 function jsonResponse(payload) {

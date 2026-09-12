@@ -29,3 +29,10 @@ test('すべてのアンケート作成経路で店舗タブ作成イベント�
   assert.ok((actions.match(/syncStore\('survey_created'/g)??[]).length>=3);
   assert.match(route,/buildGoogleSheetsStorePayload\('survey_created'/);
 });
+
+test('回答を数式として実行せずWebhook secretを一定時間で比較する',()=>{
+  const script=read('../integrations/google-sheets/Code.gs');
+  assert.match(script,/\^\[=\+\\-@\\t\\r\]/);
+  assert.match(script,/constantTimeEqual\(String\(body\.secret\), expectedSecret\)/);
+  assert.match(script,/Utilities\.computeDigest\(Utilities\.DigestAlgorithm\.SHA_256/);
+});

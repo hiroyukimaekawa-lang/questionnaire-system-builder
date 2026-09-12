@@ -19,6 +19,16 @@
       "service": "questionnaire"
     }
   ],
+  "ratelimits": [
+    {
+      "name": "SURVEY_RESPONSE_RATE_LIMITER",
+      "namespace_id": "2026091301",
+      "simple": {
+        "limit": 20,
+        "period": 60
+      }
+    }
+  ],
   "observability": {
     "enabled": true,
     "head_sampling_rate": 1
