@@ -17,7 +17,7 @@ export function ConfigForm({surveyId,versionId,config,onChange}:{surveyId:string
   const initialHeroLabel=config.heroLabel===undefined?'QUESTIONNAIRE':config.heroLabel??'';
   const initialHeroSubtitle=config.heroSubtitle===undefined?(config.description??''):config.heroSubtitle??'';
   const [copyPatch,setCopyPatch]=useState<Pick<SurveyConfig,'heroLabel'|'heroSubtitle'>>({heroLabel:initialHeroLabel,heroSubtitle:initialHeroSubtitle});
-  const updateCopy=(key:'heroLabel'|'heroSubtitle',value:string)=>{setCopyPatch(current=>({...current,[key]:value}));onChange?.({[key]:value});};
+  const updateCopy=(key:'heroLabel'|'heroSubtitle',value:string)=>{setCopyPatch(current=>({...current,[key]:value}));const patch:Partial<SurveyConfig>=key==='heroLabel'?{heroLabel:value}:{heroSubtitle:value};onChange?.(patch);};
   const copyHelp='空欄にするとプレビュー・公開画面から非表示になります。改行したい位置でEnterを押してください。改行を入れない場合は画面幅に合わせて自動で折り返します。';
   return <form action={action} className="card stack admin-form-card design-settings-form"><div><p className="form-kicker">公開画面</p><h2>文章・ロゴ設定</h2><p className="muted">右側のプレビュー内の文章をクリックすると、対応する編集欄へ移動できます。不要な文章は空欄にしてください。</p></div>
     <label className="field">画面タイトル<input name="title" defaultValue={config.title} required/></label>
