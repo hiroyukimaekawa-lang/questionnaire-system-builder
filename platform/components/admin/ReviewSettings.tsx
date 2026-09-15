@@ -1,10 +1,11 @@
 'use client';
-import {useEffect,useState} from 'react';
+import {useEffect,useMemo,useState} from 'react';
 import type {GoogleReviewRule,SurveyConfig,SurveyQuestion} from '@/types/database';
 import {scoreMax} from '@/lib/survey';
 import {evaluateGoogleReviewEligibility,safeGoogleReviewUrl} from '@/lib/google-review';
 import {reviewRuleDescription} from '@/lib/builder/settings';
 
+const EMPTY_REVIEW_RULE:GoogleReviewRule={logic:'and',conditions:[]};
 function defaultThreshold(question:SurveyQuestion){return Math.min(9,scoreMax(question));}
 function allRatingsRule(scores:SurveyQuestion[],threshold:number):GoogleReviewRule{return {logic:'and',conditions:scores.map(q=>({questionId:q.id,operator:'gte',value:Math.min(threshold,scoreMax(q))}))};}
 function perQuestionRule(scores:SurveyQuestion[],current:GoogleReviewRule):GoogleReviewRule{return {logic:'and',conditions:scores.map(q=>{const existing=current.conditions.find(c=>c.questionId===q.id&&c.operator==='gte');return {questionId:q.id,operator:'gte',value:existing?Math.min(Math.max(existing.value,1),scoreMax(q)):defaultThreshold(q)};})};}
@@ -23,9 +24,9 @@ function ruleNeedsNormalization(rule:GoogleReviewRule,scores:SurveyQuestion[]){
 }
 
 export function ReviewSettings({config,questions,onChange}:{config:SurveyConfig;questions:SurveyQuestion[];onChange:(patch:Partial<SurveyConfig>)=>void}) {
-  const scores=questions.filter(q=>q.type==='rating_10');
+  const scores=useMemo(()=>questions.filter(q=>q.type==='rating_10'),[questions]);
   const mode=config.googleReviewMode??(config.googleReviewUrl?'all':'disabled');
-  const rule=config.googleReviewRule??{logic:'and' as const,conditions:[]};
+  const rule=config.googleReviewRule??EMPTY_REVIEW_RULE;
   const needsNormalization=mode==='score'&&scores.length>0&&ruleNeedsNormalization(rule,scores);
   const effectiveRule=needsNormalization?perQuestionRule(scores,rule):rule;
   const detectedCommon=commonThreshold(effectiveRule,scores);
@@ -34,15 +35,13 @@ export function ReviewSettings({config,questions,onChange}:{config:SurveyConfig;
   const link=safeGoogleReviewUrl(config.googleReviewUrl);
   const maxScale=scores.length?Math.max(...scores.map(scoreMax)):10;
   const displayedCommonThreshold=detectedCommon??Math.min(9,maxScale);
-  const scoreSignature=scores.map(q=>`${q.id}:${scoreMax(q)}`).join('|');
-  const ruleSignature=JSON.stringify(rule);
 
   useEffect(()=>{
     if(!needsNormalization)return;
     const normalized=perQuestionRule(scores,rule);
     setConditionStyle(commonThreshold(normalized,scores)!==null?'all':'per-question');
     onChange({googleReviewRule:normalized});
-  },[needsNormalization,onChange,ruleSignature,scoreSignature]);
+  },[needsNormalization,onChange,rule,scores]);
 
   const changeMode=(value:'disabled'|'all'|'score')=>{
     if(value==='score'&&scores.length){
