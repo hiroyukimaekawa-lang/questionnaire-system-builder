@@ -22,7 +22,33 @@ export function reviewComment(config:SurveyConfig,questions:SurveyQuestion[],ans
 }
 export function builderConfig(context:BuilderContext):SurveyConfig {
   const theme=getThemeTemplate(context.themeId??themeIdForBusiness(context.businessType??'other'));
-  return {...defaultConfig,...theme.config,themeId:theme.id,title:context.heroTitle??theme.config.heroTitle,heroTitle:context.heroTitle??theme.config.heroTitle,heroSubtitle:context.heroSubtitle??theme.config.heroSubtitle,heroLabel:context.heroLabel??'QUESTIONNAIRE',introText:context.introText??theme.config.introText,anonymous:context.anonymous??true,completionText:context.completionText??theme.config.completionText,questionFontSize:context.questionFontSize??17,primaryColor:context.mainColor??theme.config.primaryColor,buttonBackground:context.mainColor??theme.config.buttonBackground,logoMode:context.logoMode??'none',logoUrl:context.logoUrl??null,googleReviewMode:context.googleReviewMode??(context.googleReviewEnabled?'all':'disabled'),googleReviewUrl:context.googleReviewUrl??null,googleReviewRule:context.googleReviewRule??null,...context.config,businessCategory:context.businessCategory??context.config?.businessCategory??'',prefecture:context.prefecture??context.config?.prefecture??''};
+  const config:SurveyConfig={
+    ...defaultConfig,
+    ...theme.config,
+    themeId:theme.id,
+    title:context.heroTitle??theme.config.heroTitle,
+    heroTitle:context.heroTitle??theme.config.heroTitle,
+    heroSubtitle:context.heroSubtitle??theme.config.heroSubtitle,
+    heroLabel:context.heroLabel??'QUESTIONNAIRE',
+    description:'',
+    introText:context.introText??'',
+    anonymousText:context.anonymous===false?'':defaultConfig.anonymousText,
+    anonymous:context.anonymous??true,
+    completionText:context.completionText??theme.config.completionText,
+    questionFontSize:context.questionFontSize??17,
+    primaryColor:context.mainColor??theme.config.primaryColor,
+    buttonBackground:context.mainColor??theme.config.buttonBackground,
+    logoMode:context.logoMode??'none',
+    logoUrl:context.logoUrl??null,
+    googleReviewMode:context.googleReviewMode??(context.googleReviewEnabled?'all':'disabled'),
+    googleReviewUrl:context.googleReviewUrl??null,
+    googleReviewRule:context.googleReviewRule??null,
+    ...context.config,
+    businessCategory:context.businessCategory??context.config?.businessCategory??'',
+    prefecture:context.prefecture??context.config?.prefecture??'',
+  };
+  if(config.description?.trim()&&config.heroSubtitle?.trim()===config.description.trim())config.description='';
+  return config;
 }
 export function validateReviewSettings(config:SurveyConfig,questions:SurveyQuestion[]):string|null {
   if(config.googleReviewMode!=='disabled'&&!safeGoogleReviewUrl(config.googleReviewUrl))return 'Google口コミURLを入力してください。';
