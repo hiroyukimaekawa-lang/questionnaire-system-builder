@@ -65,3 +65,16 @@ test('新規作成Builderでもカラー入力を質問しない',()=>{
   assert.doesNotMatch(progress,/steps:\[[^\]]*'mainColor'/);
   assert.match(progress,/label:'文章・ロゴ'/);
 });
+
+test('新規作成STEP1で表示文章を編集・非表示にでき、説明文を重複させない',()=>{
+  const source=readFileSync(new URL('../components/builder/SurveyWizard.tsx',import.meta.url),'utf8');
+  assert.match(source,/メイン説明文/);
+  assert.match(source,/回答欄の前の補足文/);
+  assert.match(source,/匿名案内文/);
+  assert.match(source,/使用中（非表示にする）/);
+  assert.match(source,/初期状態では表示しません/);
+  assert.match(source,/heroSubtitle:e\.target\.value,description:''/);
+  assert.match(source,/introText:introEnabled\?'':defaultConfig\.introText,description:''/);
+  assert.match(source,/anonymousText:anonymousTextEnabled\?'':defaultConfig\.anonymousText/);
+  assert.doesNotMatch(source,/introText:config\.introText\|\|config\.description/);
+});
