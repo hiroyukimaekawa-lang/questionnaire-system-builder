@@ -1,6 +1,6 @@
-import type { BuilderContext, BuilderStep } from '@/types/database';
+import type { BuilderBusinessType, BuilderContext, BuilderStep } from '@/types/database';
 import { cloneTemplate, templateForBusiness } from './templates';
-import { getThemeTemplate } from '@/lib/theme/templates';
+import { getThemeTemplate, themeIdForBusiness } from '@/lib/theme/templates';
 
 export interface BuilderEngine {
   getNextStep(context: BuilderContext): BuilderStep | null;
@@ -13,8 +13,6 @@ const purposeOptions = [
   ['satisfaction', '顧客満足度を確認したい'], ['improvement', '店舗改善の意見を集めたい'],
   ['patient', '医院・クリニックの患者アンケート'], ['google_review', 'Google口コミ導線として使用したい'], ['other', 'その他'],
 ] as const;
-
-const standardTheme=()=>getThemeTemplate('clinic-clean');
 
 export class RuleBasedBuilderEngine implements BuilderEngine {
   getNextStep(c: BuilderContext): BuilderStep | null {
@@ -57,9 +55,9 @@ export class RuleBasedBuilderEngine implements BuilderEngine {
 
   applyAnswer(context: BuilderContext, stepId: string, value: unknown): BuilderContext {
     const next = { ...context, [stepId]: value } as BuilderContext;
-    if (stepId === 'businessType' && context.businessType !== value) { delete next.template; delete next.questions; delete next.questionsConfirmed; const theme=standardTheme();next.themeId='clinic-clean';next.mainColor=theme.config.primaryColor;next.introText=theme.config.introText;next.completionText=theme.config.completionText; }
+    if (stepId === 'businessType' && context.businessType !== value) { delete next.template; delete next.questions; delete next.questionsConfirmed; const themeId=themeIdForBusiness(value as BuilderBusinessType);const theme=getThemeTemplate(themeId);next.themeId=themeId;next.mainColor=theme.config.primaryColor;next.introText=theme.config.introText;next.completionText=theme.config.completionText; }
     if (stepId === 'template') {
-      if (value !== 'custom') { next.questions = cloneTemplate(value as Exclude<BuilderContext['template'], 'custom' | undefined>); const theme=standardTheme();next.themeId='clinic-clean';next.mainColor=theme.config.primaryColor;next.introText=theme.config.introText;next.completionText=theme.config.completionText; }
+      if (value !== 'custom') { next.questions = cloneTemplate(value as Exclude<BuilderContext['template'], 'custom' | undefined>); const themeId=themeIdForBusiness(next.businessType??'other');const theme=getThemeTemplate(themeId);next.themeId=themeId;next.mainColor=theme.config.primaryColor;next.introText=theme.config.introText;next.completionText=theme.config.completionText; }
       delete next.questionsConfirmed;
     }
     if (stepId === 'questions') {
