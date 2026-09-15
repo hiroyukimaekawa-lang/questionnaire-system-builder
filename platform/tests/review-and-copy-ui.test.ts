@@ -25,7 +25,7 @@ test('匿名ONの任意文・改行と匿名OFFの領域省略を共通Renderer�
   assert.match(render(true),/survey-anonymous-note jp-copy jp-preserve-lines/);
   assert.equal(render(true).split('一行目\n二行目 &lt;b&gt;そのまま&lt;\/b&gt;').length-1,3);
   assert.doesNotMatch(render(false),/survey-intro|survey-anonymous-note/);
-  assert.match(render(true,''),/※こちらのアンケートは匿名です。/);
+  assert.doesNotMatch(render(true,''),/survey-anonymous-note/);
 });
 test('公開済みでも既存publishActionへ再公開フォームを接続する',()=>{
   const html=renderToStaticMarkup(React.createElement(PublishSection,{status:'published',hasPublishedBefore:true,publicUrl:'https://example.com/test',slug:'test',publishAction:async()=>({}),unpublishAction:async()=>({})}));
