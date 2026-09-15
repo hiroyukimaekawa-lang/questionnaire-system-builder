@@ -24,6 +24,7 @@ export interface SurveyConfig {
   prefecture?: string;
   subtitle?: string;
   reviewTextQuestionId?: string | null;
+  googleReviewPromptText?: string;
   fontSizes?: Partial<Record<'business' | 'title' | 'description' | 'choice' | 'button', number>>;
   anonymous?: boolean;
   title: string; description: string; introText: string; anonymousText: string;
