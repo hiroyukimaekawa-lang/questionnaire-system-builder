@@ -1,0 +1,32 @@
+/* Keep mobile surveys visually spacious without wasting horizontal room. */
+.survey-brand-header {
+  padding-inline: 12px;
+}
+
+.survey-hero-inner {
+  padding-inline: 12px;
+}
+
+.survey-hero-subtitle {
+  max-width: none;
+}
+
+.survey-content {
+  padding-inline: 10px;
+}
+
+.survey-description,
+.intro-editable {
+  width: 100%;
+}
+
+@media (max-width: 390px) {
+  .survey-brand-header,
+  .survey-hero-inner {
+    padding-inline: 10px;
+  }
+
+  .survey-content {
+    padding-inline: 8px;
+  }
+}
