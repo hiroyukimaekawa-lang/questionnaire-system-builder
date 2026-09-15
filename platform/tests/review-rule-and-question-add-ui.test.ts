@@ -37,3 +37,12 @@ test('既存編集画面ではカラーやテーマを営業担当者へ表示�
   assert.match(source,/type="hidden" name="primaryColor"/);
   assert.match(source,/type="hidden" name="themeId"/);
 });
+
+test('新規作成Builderでもカラー入力を質問しない',()=>{
+  const engine=readFileSync(new URL('../lib/builder/engine.ts',import.meta.url),'utf8');
+  const progress=readFileSync(new URL('../lib/builder/progress.ts',import.meta.url),'utf8');
+  assert.doesNotMatch(engine,/店舗のメインカラーはありますか/);
+  assert.doesNotMatch(engine,/missing\.push\('mainColor'\)/);
+  assert.doesNotMatch(progress,/steps:\[[^\]]*'mainColor'/);
+  assert.match(progress,/label:'文章・ロゴ'/);
+});
