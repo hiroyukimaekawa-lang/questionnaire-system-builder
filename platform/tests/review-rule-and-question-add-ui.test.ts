@@ -20,24 +20,28 @@ test('口コミ案内モードはチェックしづらいradioではなく選択
   assert.doesNotMatch(source,/type="radio" name="googleReviewMode"/);
 });
 
-test('口コミ条件UIは全評価共通か質問別の点数以上に絞り、壊れた旧条件を自動補正する',()=>{
+test('口コミ条件UIは質問ごとの基準点とAND/ORだけで設定できる',()=>{
   const source=readFileSync(new URL('../components/admin/ReviewSettings.tsx',import.meta.url),'utf8');
-  assert.match(source,/すべての評価項目が基準点以上/);
-  assert.match(source,/質問ごとに基準点を設定/);
-  assert.match(source,/aria-label="口コミ条件の設定方法"/);
-  assert.match(source,/aria-pressed=\{conditionStyle==='all'\}/);
-  assert.match(source,/aria-pressed=\{conditionStyle==='per-question'\}/);
-  assert.match(source,/allRatingsRule/);
-  assert.match(source,/perQuestionRule/);
-  assert.match(source,/ruleNeedsNormalization/);
-  assert.match(source,/new Set\(conditionIds\)\.size!==conditionIds\.length/);
+  assert.match(source,/各質問ごとの?「何点以上」|各評価質問ごとに「何点以上」/);
+  assert.match(source,/どれか1つ満たしたら表示/);
+  assert.match(source,/すべて満たしたら表示/);
+  assert.match(source,/aria-label="口コミ条件の判定方法"/);
+  assert.match(source,/changeLogic\('or'\)/);
+  assert.match(source,/changeLogic\('and'\)/);
+  assert.match(source,/すべて同じ基準点にする/);
+  assert.match(source,/applyCommonThreshold/);
   assert.match(source,/operator:'gte'/);
-  assert.match(source,/logic:'and'/);
-  assert.match(source,/すべての評価質問を個別に確認し、全条件を満たした場合だけ口コミをご案内します/);
-  assert.match(source,/重複・OR・不足質問が見つかったため/);
-  assert.doesNotMatch(source,/いずれかを満たす（OR）/);
+  assert.match(source,/logic:effectiveRule\.logic/);
   assert.doesNotMatch(source,/<option value="lte">/);
   assert.doesNotMatch(source,/<option value="eq">/);
+});
+
+test('口コミ条件テストは現在の設定で表示可否をリアルタイム確認できる',()=>{
+  const source=readFileSync(new URL('../components/admin/ReviewSettings.tsx',import.meta.url),'utf8');
+  assert.match(source,/設定した条件をテスト/);
+  assert.match(source,/evaluateGoogleReviewEligibility\(previewConfig,questions,answers\)/);
+  assert.match(source,/この回答ではGoogle口コミを表示します/);
+  assert.match(source,/この回答ではGoogle口コミを表示しません/);
 });
 
 test('既存編集画面ではカラーやテーマを営業担当者へ表示しない',()=>{
