@@ -59,5 +59,11 @@ export function validateRulesForQuestions(rules: z.infer<typeof completionRulesS
 }
 
 export function validateGoogleReviewRuleForQuestions(rule: GoogleReviewRule, questions: SurveyQuestion[]) {
+  const ratings=questions.filter(q=>q.type==='rating_10');
+  if(rule.logic!=='and')return 'Google口コミの評価条件は、すべての条件を満たす方式で設定してください。';
+  if(rule.conditions.some(condition=>condition.operator!=='gte'))return 'Google口コミの評価条件は「○点以上」で設定してください。';
+  const ids=rule.conditions.map(condition=>condition.questionId);
+  if(new Set(ids).size!==ids.length)return '同じ評価質問をGoogle口コミ条件へ重複して設定することはできません。';
+  if(rule.conditions.length!==ratings.length||ratings.some(question=>!ids.includes(question.id)))return 'Google口コミ条件には、現在のすべての評価質問を1回ずつ設定してください。';
   return validateConditionsForQuestions(rule.conditions, questions);
 }

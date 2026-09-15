@@ -5,6 +5,7 @@ import { useState } from 'react';
 import type { CSSProperties } from 'react';
 import type { GoogleReviewMode } from '@/types/database';
 
+const DEFAULT_REVIEW_PROMPT='よろしければ、Googleでもご感想をお聞かせください。';
 type StoredCompletion = {
   responseId?: string;
   message?: string;
@@ -22,14 +23,18 @@ export function ThanksPanel({
   reviewUrl,
   reviewMode,
   primaryColor,
+  reviewPromptText,
   previewCompletion,
+  onEditTarget,
 }: {
   slug: string;
   text: string;
   reviewUrl: string | null;
   reviewMode: GoogleReviewMode;
   primaryColor: string;
+  reviewPromptText?: string;
   previewCompletion?: StoredCompletion;
+  onEditTarget?: (target:string)=>void;
 }) {
   const [saved] = useState<StoredCompletion>(() => {
     if (typeof window === 'undefined') return {};
@@ -44,6 +49,8 @@ export function ThanksPanel({
   const comment = stored.comment ?? '';
   const href = safeGoogleReviewUrl(reviewUrl);
   const [copyFailed, setCopyFailed] = useState(false);
+  const reviewPrompt=reviewPromptText===undefined?DEFAULT_REVIEW_PROMPT:reviewPromptText.trim();
+  const completionCopy=stored.message || text;
   const showReview = Boolean(href) && (
     reviewMode === 'all' || (reviewMode === 'score' && stored.reviewEligible === true)
   );
@@ -74,7 +81,7 @@ export function ThanksPanel({
         <span className="thanks-title-phrase">ありがとうございました。</span>
       </h1>
 
-      <p className="thanks-lead">{stored.message || text}</p>
+      {previewCompletion&&onEditTarget?<button type="button" className="preview-editable thanks-lead" onClick={()=>onEditTarget('completionText')}>{completionCopy}</button>:<p className="thanks-lead">{completionCopy}</p>}
 
       {comment && (
         <div className="thanks-comment-box">
@@ -85,11 +92,8 @@ export function ThanksPanel({
 
       {showReview && (
         <div className="thanks-review-block">
-          <p className="thanks-review-copy jp-copy">
-            <span className="jp-keep">よろしければ、</span>
-            Googleでもご感想をお聞かせください。
-          </p>
-          {comment ? <button type="button" className="btn thanks-review-button jp-ui-label" onClick={()=>void review(true)}>感想をコピーしてGoogle口コミへ</button> : <a className="btn thanks-review-button jp-ui-label" href={href!} target="_blank" rel="noopener noreferrer" onClick={e=>{if(previewCompletion)e.preventDefault()}}>Google口コミを書く</a>}
+          {reviewPrompt&&(previewCompletion&&onEditTarget?<button type="button" className="preview-editable thanks-review-copy jp-copy" onClick={()=>onEditTarget('googleReviewPromptText')}>{reviewPrompt}</button>:<p className="thanks-review-copy jp-copy">{reviewPrompt}</p>)}
+          {comment ? <button type="button" className="btn thanks-review-button jp-ui-label" onClick={previewCompletion&&onEditTarget?()=>onEditTarget('googleReviewUrl'):()=>void review(true)}>感想をコピーしてGoogle口コミへ</button> : <a className="btn thanks-review-button jp-ui-label" href={href!} target="_blank" rel="noopener noreferrer" onClick={e=>{if(previewCompletion){e.preventDefault();onEditTarget?.('googleReviewUrl');}}}>Google口コミを書く</a>}
           {copyFailed&&<div className="stack"><button type="button" className="btn secondary" onClick={()=>void review()}>文章をコピーする</button><a className="btn secondary" href={href!} target="_blank" rel="noopener noreferrer" onClick={e=>{if(previewCompletion)e.preventDefault()}}>Google口コミへ進む</a></div>}
           <p className="muted thanks-review-note">Google口コミは一般公開されます。公開したくない情報が含まれている場合は、貼り付け後に編集してから投稿してください。</p>
           {copyFailed && <p className="notice thanks-copy-notice" role="status">自動コピーできませんでした。上に表示された文章を長押ししてコピーしてからお進みください。</p>}
