@@ -20,6 +20,15 @@ test('文章編集はユーザー体験順で、不要項目は入力欄ごと�
   assert.match(form,/name="designPatch" value=\{JSON\.stringify\(copyPatch\)\}/);
 });
 
+test('サンクス文章と口コミ遷移前文章もプレビューから編集欄へ移動できる',()=>{
+  const preview=read('components/admin/LiveSurveyPreview.tsx');
+  const thanks=read('components/survey/ThanksPanel.tsx');
+  assert.match(preview,/onEditTarget=\{edit\}/);
+  assert.match(thanks,/onEditTarget\('completionText'\)/);
+  assert.match(thanks,/onEditTarget\('googleReviewPromptText'\)/);
+  assert.match(thanks,/onEditTarget\?\.\('googleReviewUrl'\)/);
+});
+
 test('口コミ遷移前の文章はconfigとして編集できる',()=>{
   const types=read('types/database.ts');
   const form=read('components/admin/SurveyForms.tsx');
@@ -28,7 +37,7 @@ test('口コミ遷移前の文章はconfigとして編集できる',()=>{
   assert.match(types,/googleReviewPromptText\?: string/);
   assert.match(form,/googleReviewPromptText/);
   assert.match(thanks,/reviewPromptText===undefined\?DEFAULT_REVIEW_PROMPT/);
-  assert.match(thanks,/reviewPrompt&&<p className="thanks-review-copy jp-copy">/);
+  assert.match(thanks,/reviewPrompt&&\(previewCompletion&&onEditTarget/);
   assert.match(page,/reviewPromptText=\{config\.googleReviewPromptText\}/);
 });
 
