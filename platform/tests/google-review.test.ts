@@ -25,6 +25,15 @@ test('score ANDは各質問が個別に成立した場合だけ表示する',()=
   assert.equal(evaluateGoogleReviewEligibility(config,questions,{[q1.id]:10,[q2.id]:8}),false);
 });
 
+test('クリニック5点満点はQ3・Q4が両方5点のときだけ口コミ表示する',()=>{
+  const diagnosis={...q1,title:'診療内容は満足できましたか？',settings:{maxScore:5 as const}};
+  const staff={...q2,title:'スタッフの対応は満足できましたか？',settings:{maxScore:5 as const}};
+  const config={...defaultConfig,googleReviewMode:'score' as const,googleReviewUrl:url,googleReviewRule:{logic:'and' as const,conditions:[{questionId:diagnosis.id,operator:'gte' as const,value:5},{questionId:staff.id,operator:'gte' as const,value:5}]}};
+  assert.equal(evaluateGoogleReviewEligibility(config,[diagnosis,staff],{[diagnosis.id]:5,[staff.id]:5}),true);
+  assert.equal(evaluateGoogleReviewEligibility(config,[diagnosis,staff],{[diagnosis.id]:5,[staff.id]:4}),false);
+  assert.equal(evaluateGoogleReviewEligibility(config,[diagnosis,staff],{[diagnosis.id]:4,[staff.id]:5}),false);
+});
+
 test('score ORはいずれかの条件が成立すれば表示する',()=>{
   const config={...defaultConfig,googleReviewMode:'score' as const,googleReviewUrl:url,googleReviewRule:{logic:'or' as const,conditions:[{questionId:q1.id,operator:'gte' as const,value:9},{questionId:q2.id,operator:'gte' as const,value:9}]}};
   assert.equal(evaluateGoogleReviewEligibility(config,questions,{[q1.id]:8,[q2.id]:9}),true);
