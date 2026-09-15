@@ -1,36 +1,57 @@
 'use client';
 import {useState} from 'react';
-import type {SurveyConfig,SurveyQuestion,RuleCondition} from '@/types/database';
+import type {GoogleReviewRule,SurveyConfig,SurveyQuestion} from '@/types/database';
 import {scoreMax} from '@/lib/survey';
 import {evaluateGoogleReviewEligibility,safeGoogleReviewUrl} from '@/lib/google-review';
-import {recommendedReviewRule,reviewRuleDescription} from '@/lib/builder/settings';
+import {reviewRuleDescription} from '@/lib/builder/settings';
 
-function defaultCondition(question:SurveyQuestion):RuleCondition{return {questionId:question.id,operator:'gte',value:Math.min(9,scoreMax(question))};}
+function defaultThreshold(question:SurveyQuestion){return Math.min(9,scoreMax(question));}
+function allRatingsRule(scores:SurveyQuestion[],threshold:number):GoogleReviewRule{return {logic:'and',conditions:scores.map(q=>({questionId:q.id,operator:'gte',value:Math.min(threshold,scoreMax(q))}))};}
+function perQuestionRule(scores:SurveyQuestion[],current:GoogleReviewRule):GoogleReviewRule{return {logic:'and',conditions:scores.map(q=>{const existing=current.conditions.find(c=>c.questionId===q.id&&c.operator==='gte');return {questionId:q.id,operator:'gte',value:existing?Math.min(Math.max(existing.value,1),scoreMax(q)):defaultThreshold(q)};})};}
+function commonThreshold(rule:GoogleReviewRule,scores:SurveyQuestion[]):number|null{
+  if(rule.logic!=='and'||!scores.length||rule.conditions.length!==scores.length)return null;
+  for(let threshold=1;threshold<=10;threshold++){
+    const matches=scores.every(q=>{const condition=rule.conditions.find(c=>c.questionId===q.id);return condition?.operator==='gte'&&condition.value===Math.min(threshold,scoreMax(q));});
+    if(matches)return threshold;
+  }
+  return null;
+}
 
 export function ReviewSettings({config,questions,onChange}:{config:SurveyConfig;questions:SurveyQuestion[];onChange:(patch:Partial<SurveyConfig>)=>void}) {
   const scores=questions.filter(q=>q.type==='rating_10');
   const mode=config.googleReviewMode??(config.googleReviewUrl?'all':'disabled');
   const rule=config.googleReviewRule??{logic:'and' as const,conditions:[]};
+  const detectedCommon=commonThreshold(rule,scores);
+  const [conditionStyle,setConditionStyle]=useState<'all'|'per-question'>(detectedCommon!==null||!rule.conditions.length?'all':'per-question');
   const [answers,setAnswers]=useState<Record<string,number>>({});
-  const patchCondition=(index:number,patch:Partial<RuleCondition>)=>onChange({googleReviewRule:{...rule,conditions:rule.conditions.map((c,i)=>i===index?{...c,...patch}:c)}});
   const link=safeGoogleReviewUrl(config.googleReviewUrl);
+  const maxScale=scores.length?Math.max(...scores.map(scoreMax)):10;
+  const displayedCommonThreshold=detectedCommon??Math.min(9,maxScale);
+  const legacyAdvanced=rule.logic!=='and'||rule.conditions.some(c=>c.operator!=='gte');
+
   const changeMode=(value:'disabled'|'all'|'score')=>{
-    if(value==='score'&&!rule.conditions.length&&scores[0]){onChange({googleReviewMode:value,googleReviewRule:{logic:'and',conditions:[defaultCondition(scores[0])]}});return;}
+    if(value==='score'&&scores.length&&!rule.conditions.length){setConditionStyle('all');onChange({googleReviewMode:value,googleReviewRule:allRatingsRule(scores,Math.min(9,maxScale))});return;}
     onChange({googleReviewMode:value});
   };
-  const addCondition=()=>{
-    if(!scores.length||rule.conditions.length>=10)return;
-    const next=scores.find(q=>!rule.conditions.some(c=>c.questionId===q.id))??scores[0];
-    onChange({googleReviewRule:{...rule,conditions:[...rule.conditions,defaultCondition(next)]}});
+  const changeConditionStyle=(value:'all'|'per-question')=>{
+    setConditionStyle(value);
+    if(value==='all')onChange({googleReviewRule:allRatingsRule(scores,displayedCommonThreshold)});
+    else onChange({googleReviewRule:perQuestionRule(scores,rule)});
   };
-  return <div className="stack review-settings"><fieldset><legend>Google口コミへの案内</legend>{([['disabled','使用しない'],['all','全回答者へ表示'],['score','条件を満たした人だけ表示']] as const).map(([value,label])=><label className="choice" key={value}><input type="radio" name="googleReviewMode" checked={mode===value} value={value} disabled={value==='score'&&!scores.length} onChange={()=>changeMode(value)}/>{label}</label>)}</fieldset>
-    {!scores.length&&<small className="muted">「条件を満たした人だけ表示」を使うには、先にスコアリング質問を1つ以上追加してください。</small>}
+  const changePerQuestionThreshold=(questionId:string,value:number)=>{
+    const normalized=perQuestionRule(scores,rule);
+    onChange({googleReviewRule:{logic:'and',conditions:normalized.conditions.map(c=>c.questionId===questionId?{...c,value}:c)}});
+  };
+
+  return <div className="stack review-settings"><fieldset><legend>Google口コミへの案内</legend>{([['disabled','使用しない'],['all','全回答者へ表示'],['score','評価条件を満たした人だけ表示']] as const).map(([value,label])=><label className="choice" key={value}><input type="radio" name="googleReviewMode" checked={mode===value} value={value} disabled={value==='score'&&!scores.length} onChange={()=>changeMode(value)}/>{label}</label>)}</fieldset>
+    {!scores.length&&<small className="muted">評価条件を使うには、先にスコアリング質問を1つ以上追加してください。</small>}
     {mode!=='disabled'&&<><label className="field">Google口コミURL<input name="googleReviewUrl" type="url" value={config.googleReviewUrl??''} onChange={e=>onChange({googleReviewUrl:e.target.value})} placeholder="https://g.page/r/…/review"/></label>{link&&<a className="btn secondary" href={link} target="_blank" rel="noopener noreferrer">口コミページを確認</a>}</>}
-    {mode==='score'&&<section className="completion-rule stack"><div><h3>口コミを表示する条件</h3><p className="muted">評価質問ごとに条件を設定します。複数条件では「すべて満たす（AND）」または「いずれかを満たす（OR）」を選べます。</p></div>{scores.length>=2&&<><button type="button" className="btn secondary" onClick={()=>onChange({googleReviewRule:recommendedReviewRule(questions)})}>おすすめ設定を使う</button><small className="muted">最初の2つのスコア質問を両方9点以上に設定します。5段階の質問は5点以上になります。</small></>}
-      {rule.conditions.map((c,i)=>{const q=scores.find(q=>q.id===c.questionId);return <div className="condition-row" key={`${c.questionId}-${i}`}><strong>条件 {i+1}</strong><label className="field">対象質問<select value={c.questionId} onChange={e=>{const selected=scores.find(q=>q.id===e.target.value);if(selected)patchCondition(i,{questionId:selected.id,value:Math.min(9,scoreMax(selected))});}}><option value="" disabled>質問を選択してください</option>{!q&&c.questionId&&<option value={c.questionId}>質問を選び直してください</option>}{scores.map(q=><option key={q.id} value={q.id}>Q{questions.indexOf(q)+1} {q.title}</option>)}</select></label><label className="field">判定方法<select aria-label={`条件${i+1}の比較方法`} value={c.operator} onChange={e=>patchCondition(i,{operator:e.target.value as RuleCondition['operator']})}><option value="gte">以上</option><option value="lte">以下</option><option value="eq">と等しい</option></select></label><label className="field">基準点<select value={c.value} onChange={e=>patchCondition(i,{value:Number(e.target.value)})}>{Array.from({length:q?scoreMax(q):10},(_,n)=>n+1).map(n=><option key={n} value={n}>{n}点</option>)}</select></label><button type="button" className="btn danger" onClick={()=>onChange({googleReviewRule:{...rule,conditions:rule.conditions.filter((_,n)=>i!==n)}})}>条件を削除</button></div>})}
-      <button type="button" className="btn secondary" disabled={!scores.length||rule.conditions.length>=10} onClick={addCondition}>＋ 条件を追加</button>
-      {rule.conditions.length>1&&<label className="field">条件のつなぎ方<select value={rule.logic} onChange={e=>onChange({googleReviewRule:{...rule,logic:e.target.value as 'and'|'or'}})}><option value="and">すべて満たす（AND）</option><option value="or">いずれかを満たす（OR）</option></select></label>}
-      {rule.conditions.length===0&&<p className="error" role="alert">口コミを条件付きで表示する場合は、条件を1つ以上設定してください。</p>}
+    {mode==='score'&&<section className="completion-rule stack"><div><h3>口コミを表示する評価条件</h3><p className="muted">通常は「すべての評価項目が同じ基準点以上」か、「質問ごとに基準点を設定」のどちらかを選びます。合計点や平均点ではなく、各質問を個別に判定します。</p></div>
+      <fieldset className="answer-setting"><legend>条件の設定方法</legend><label><input type="radio" checked={conditionStyle==='all'} onChange={()=>changeConditionStyle('all')}/> すべての評価項目が基準点以上</label><label><input type="radio" checked={conditionStyle==='per-question'} onChange={()=>changeConditionStyle('per-question')}/> 質問ごとに基準点を設定</label></fieldset>
+      {conditionStyle==='all'&&<label className="field">共通の基準点<select value={displayedCommonThreshold} onChange={e=>onChange({googleReviewRule:allRatingsRule(scores,Number(e.target.value))})}>{Array.from({length:maxScale},(_,n)=>n+1).map(n=><option key={n} value={n}>{n}点以上</option>)}</select><small className="muted">すべての評価質問がこの基準以上の場合だけ、Google口コミをご案内します。</small></label>}
+      {conditionStyle==='per-question'&&<div className="stack">{scores.map(q=>{const existing=rule.conditions.find(c=>c.questionId===q.id&&c.operator==='gte');const threshold=existing?.value??defaultThreshold(q);return <label className="field" key={q.id}>Q{questions.indexOf(q)+1} {q.title}<select value={Math.min(threshold,scoreMax(q))} onChange={e=>changePerQuestionThreshold(q.id,Number(e.target.value))}>{Array.from({length:scoreMax(q)},(_,n)=>n+1).map(n=><option key={n} value={n}>{n}点以上</option>)}</select></label>})}<small className="muted">設定したすべての質問が、それぞれの基準点以上の場合に口コミをご案内します。</small></div>}
+      {legacyAdvanced&&<p className="notice">以前の詳細条件が保存されています。この画面で条件を変更すると「○点以上・すべて満たす」の方式に統一されます。</p>}
+      {rule.conditions.length===0&&<p className="error" role="alert">口コミを条件付きで表示する場合は、評価条件を設定してください。</p>}
       <p className="notice" aria-live="polite">{reviewRuleDescription(rule,questions)}</p>
     </section>}
     {mode!=='disabled'&&<label className="field">口コミ用文章として使用する質問<select name="reviewTextQuestionId" value={config.reviewTextQuestionId===undefined?'__legacy':config.reviewTextQuestionId??''} onChange={e=>onChange({reviewTextQuestionId:e.target.value||null})}>{config.reviewTextQuestionId===undefined&&<option value="__legacy">既存設定：最初の入力済み長文</option>}<option value="">使用しない</option>{questions.filter(q=>q.type==='textarea').map(q=><option key={q.id} value={q.id}>Q{questions.indexOf(q)+1} {q.title}</option>)}</select></label>}

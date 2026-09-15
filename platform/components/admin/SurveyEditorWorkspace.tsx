@@ -47,7 +47,7 @@ export function SurveyEditorWorkspace({survey,draft,publicUrl,publishAction,unpu
 
   const version={...draft,config,questions};
   return <div className="preview-first-layout"><div className="editor-panel" onInput={syncForm} onChange={syncForm}>
-    <nav className="editor-section-nav" aria-label="編集セクション"><a href="#basic-information">基本情報</a><a href="#design-copy">デザイン・文章</a><a href="#questions">質問</a><a href="#completion-settings">口コミ・完了条件</a><a href="#publish-settings">公開設定</a></nav>
+    <nav className="editor-section-nav" aria-label="編集セクション"><a href="#basic-information">基本情報</a><a href="#design-copy">文章・ロゴ</a><a href="#questions">質問</a><a href="#completion-settings">口コミ・完了条件</a><a href="#publish-settings">公開設定</a></nav>
     <section id="basic-information" className="editor-section"><BasicForm survey={survey}/></section>
     <section id="design-copy" className="editor-section"><ConfigForm surveyId={survey.id} versionId={draft.id} config={draft.config} onChange={patch=>setConfig(c=>({...c,...patch}))}/></section>
     <section id="questions" className="editor-section editor-questions"><QuestionBuilder surveyId={survey.id} versionId={draft.id} initial={draft.questions} onChange={questionsChanged}/></section>

@@ -11,13 +11,38 @@ test('質問カード直下から次の質問を追加できる',()=>{
   assert.match(source,/addQuestionAfter\(-1\)/);
 });
 
-test('条件付き口コミを選んだとき条件が空なら初期条件を自動作成する',()=>{
+test('口コミ条件UIは全評価共通か質問別の点数以上に絞る',()=>{
   const source=readFileSync(new URL('../components/admin/ReviewSettings.tsx',import.meta.url),'utf8');
-  assert.match(source,/value==='score'&&!rule\.conditions\.length&&scores\[0\]/);
-  assert.match(source,/googleReviewRule:\{logic:'and',conditions:\[defaultCondition\(scores\[0\]\)\]\}/);
-  assert.match(source,/対象質問/);
-  assert.match(source,/判定方法/);
-  assert.match(source,/基準点/);
-  assert.match(source,/すべて満たす（AND）/);
-  assert.match(source,/いずれかを満たす（OR）/);
+  assert.match(source,/すべての評価項目が基準点以上/);
+  assert.match(source,/質問ごとに基準点を設定/);
+  assert.match(source,/allRatingsRule/);
+  assert.match(source,/operator:'gte'/);
+  assert.match(source,/logic:'and'/);
+  assert.match(source,/合計点や平均点ではなく、各質問を個別に判定します/);
+  assert.doesNotMatch(source,/いずれかを満たす（OR）/);
+  assert.doesNotMatch(source,/<option value="lte">/);
+  assert.doesNotMatch(source,/<option value="eq">/);
+});
+
+test('既存編集画面ではカラーやテーマを営業担当者へ表示しない',()=>{
+  const source=readFileSync(new URL('../components/admin/SurveyForms.tsx',import.meta.url),'utf8');
+  assert.match(source,/デザインは共通仕様で統一されています/);
+  assert.match(source,/文章・ロゴ設定/);
+  assert.doesNotMatch(source,/デザインテンプレート/);
+  assert.doesNotMatch(source,/type="color"/);
+  assert.doesNotMatch(source,/メインカラー/);
+  assert.doesNotMatch(source,/サブカラー/);
+  assert.doesNotMatch(source,/アクセントカラー/);
+  assert.doesNotMatch(source,/カードの丸み/);
+  assert.match(source,/type="hidden" name="primaryColor"/);
+  assert.match(source,/type="hidden" name="themeId"/);
+});
+
+test('新規作成Builderでもカラー入力を質問しない',()=>{
+  const engine=readFileSync(new URL('../lib/builder/engine.ts',import.meta.url),'utf8');
+  const progress=readFileSync(new URL('../lib/builder/progress.ts',import.meta.url),'utf8');
+  assert.doesNotMatch(engine,/店舗のメインカラーはありますか/);
+  assert.doesNotMatch(engine,/missing\.push\('mainColor'\)/);
+  assert.doesNotMatch(progress,/steps:\[[^\]]*'mainColor'/);
+  assert.match(progress,/label:'文章・ロゴ'/);
 });
