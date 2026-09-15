@@ -5,12 +5,13 @@ import { revalidatePath } from 'next/cache';
 import { createClient } from '@/lib/supabase/server';
 import { completionSettingsConfig } from '@/lib/config';
 import {
+  normalizeGoogleReviewRuleForQuestions,
   parseCompletionRulesJson,
   parseGoogleReviewRuleJson,
   validateGoogleReviewRuleForQuestions,
   validateRulesForQuestions,
 } from '@/lib/completion-validation';
-import type { GoogleReviewMode, SurveyQuestion } from '@/types/database';
+import type { GoogleReviewMode, GoogleReviewRule, SurveyQuestion } from '@/types/database';
 
 async function staff() {
   const s = await createClient();
@@ -24,6 +25,12 @@ async function staff() {
 function reviewMode(value: FormDataEntryValue | null): GoogleReviewMode {
   if (value === 'all' || value === 'score') return value;
   return 'disabled';
+}
+
+function parseOptionalReviewRule(raw: FormDataEntryValue | null): GoogleReviewRule | null {
+  const value = String(raw || '').trim();
+  if (!value || value === 'null') return null;
+  return parseGoogleReviewRuleJson(value);
 }
 
 export async function saveCompletionSettingsAction(
@@ -70,10 +77,17 @@ export async function saveCompletionSettingsAction(
     const completionValidation = validateRulesForQuestions(completionRules, questions);
     if (completionValidation) return { error: completionValidation };
 
-    const googleReviewRule = mode === 'score'
-      ? parseGoogleReviewRuleJson(String(form.get('googleReviewRule') || ''))
-      : null;
-    if (googleReviewRule) {
+    let googleReviewRule: GoogleReviewRule | null = null;
+    if (mode === 'score') {
+      const ratingQuestions = questions.filter(question => question.type === 'rating_10');
+      if (!ratingQuestions.length) return { error: '評価条件を使うには、評価質問を1つ以上追加してください。' };
+
+      const incomingRule = parseOptionalReviewRule(form.get('googleReviewRule'));
+      // Existing surveys can still contain IDs from an older question set. Always sync the
+      // submitted rule to the current draft before validating/saving so normal operation
+      // never requires users to manually rebuild the Google review condition.
+      googleReviewRule = normalizeGoogleReviewRuleForQuestions(incomingRule, questions);
+
       const reviewValidation = validateGoogleReviewRuleForQuestions(googleReviewRule, questions);
       if (reviewValidation) return { error: reviewValidation };
     }
@@ -90,8 +104,8 @@ export async function saveCompletionSettingsAction(
     if (error) throw error;
 
     revalidatePath(`/admin/surveys/${surveyId}`);
-    return { success: '回答後設定を下書き保存しました。公開画面へ反映するには「変更内容を公開する」を押してください。' };
+    return { success: '口コミ設定を下書き保存しました。公開画面へ反映するには「変更内容を公開する」を押してください。' };
   } catch (error) {
-    return { error: error instanceof Error ? error.message : '回答後設定を保存できませんでした。' };
+    return { error: error instanceof Error ? error.message : '口コミ設定を保存できませんでした。' };
   }
 }
