@@ -38,16 +38,17 @@ test('コピー失敗時に手動コピーと口コミ遷移を分けて案内�
   assert.doesNotMatch(source,/window\.open/);
   const css=readFileSync(new URL('../app/survey.css',import.meta.url),'utf8');assert.match(css,/\.jp-preserve-lines,[\s\S]*?\.thanks-lead,[\s\S]*?\.completion-copy span\s*\{ white-space: pre-line/);
 });
-test('口コミUIは点数以上・ANDに簡略化し、完了条件編集は維持する',()=>{
+test('口コミUIは質問別の点数以上とAND/ORに絞り、完了条件編集は維持する',()=>{
   const source=readFileSync(new URL('../components/admin/CompletionSettingsForm.tsx',import.meta.url),'utf8');
   const settings=readFileSync(new URL('../components/admin/ReviewSettings.tsx',import.meta.url),'utf8');
-  assert.match(settings,/すべての評価項目が基準点以上/);
-  assert.match(settings,/質問ごとに基準点を設定/);
+  assert.match(settings,/どれか1つ満たしたら表示/);
+  assert.match(settings,/すべて満たしたら表示/);
+  assert.match(settings,/各質問の基準点/);
   assert.match(settings,/operator:'gte'/);
-  assert.match(settings,/logic:'and'/);
+  assert.match(settings,/changeLogic\('or'\)/);
+  assert.match(settings,/changeLogic\('and'\)/);
   assert.doesNotMatch(settings,/<option value="lte">/);
   assert.doesNotMatch(settings,/<option value="eq">/);
-  assert.doesNotMatch(settings,/いずれかを満たす（OR）/);
   assert.match(source,/rules.map\(\(rule,ri\)/);
   assert.match(source,/name="completionRules" value=\{JSON.stringify\(rules\)\}/);
 });

@@ -9,13 +9,13 @@ const questions:SurveyQuestion[]=[
   {id:'33333333-3333-4333-8333-333333333333',type:'textarea',title:'ご感想',description:'',required:false,sortOrder:2,settings:{},options:[]},
 ];
 
-test('おすすめ口コミ条件は最初の2つのスコア質問をAND・9点以上にする',()=>{
+test('おすすめ口コミ条件は全スコア質問をOR・9点以上にする',()=>{
   const rule=recommendedReviewRule(questions);
-  assert.equal(rule.logic,'and');
+  assert.equal(rule.logic,'or');
   assert.deepEqual(rule.conditions.map(c=>[c.questionId,c.operator,c.value]),[
     [questions[0].id,'gte',9],[questions[1].id,'gte',9],
   ]);
-  assert.match(reviewRuleDescription(rule,questions),/待ち時間.*9点以上.*スタッフ対応.*9点以上.*すべて/);
+  assert.match(reviewRuleDescription(rule,questions),/待ち時間.*9点以上.*スタッフ対応.*9点以上.*いずれか1つ/);
 });
 
 test('指定した長文質問だけを口コミ文章として使用し、使用しない設定も扱う',()=>{
