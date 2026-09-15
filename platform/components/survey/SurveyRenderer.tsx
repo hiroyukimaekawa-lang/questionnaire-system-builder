@@ -74,9 +74,14 @@ export function SurveyRenderer({
     }
   }
 
-  const heroLabel = config.heroLabel?.trim() || 'QUESTIONNAIRE';
+  const heroLabel = version.config.heroLabel === undefined ? 'QUESTIONNAIRE' : (version.config.heroLabel ?? '').trim();
   const heroTitle = publicSurveyTitle(name, config);
-  const heroSubtitle = version.config.heroSubtitle?.trim() || version.config.description?.trim() || 'サービス向上のため、ご意見をお聞かせください。';
+  const heroSubtitle = version.config.heroSubtitle === undefined
+    ? (version.config.description?.trim() || 'サービス向上のため、ご意見をお聞かせください。')
+    : (version.config.heroSubtitle ?? '').trim();
+  const anonymousText = version.config.anonymousText === undefined
+    ? '※こちらのアンケートは匿名です。'
+    : (version.config.anonymousText ?? '').trim();
   const heroBackground = config.heroBackgroundType === 'solid'
     ? config.heroOverlayColor
     : `linear-gradient(145deg, ${config.heroOverlayColor}, ${config.primaryColor} 62%, ${config.accentColor})`;
@@ -117,13 +122,13 @@ export function SurveyRenderer({
 
       <section className="survey-hero" style={{ background: heroBackground }}>
         <div className="survey-hero-inner">
-          {preview ? (
+          {heroLabel && (preview ? (
             <button type="button" className="preview-editable hero-label-editable" onClick={() => onEditTarget?.('heroLabel')}>
               <p className="survey-hero-label">{heroLabel}</p>
             </button>
           ) : (
             <p className="survey-hero-label">{heroLabel}</p>
-          )}
+          ))}
           {preview ? (
             <button type="button" className="preview-editable hero-editable" onClick={() => onEditTarget?.('heroTitle')}>
               <h1 className="jp-heading">{heroTitle}</h1>
@@ -132,13 +137,13 @@ export function SurveyRenderer({
             <h1 className="jp-heading">{heroTitle}</h1>
           )}
           <span className="survey-hero-rule" aria-hidden="true" />
-          {preview ? (
+          {heroSubtitle && (preview ? (
             <button type="button" className="preview-editable hero-editable" onClick={() => onEditTarget?.('heroSubtitle')}>
               <p className="survey-hero-subtitle jp-copy jp-preserve-lines">{heroSubtitle}</p>
             </button>
           ) : (
             <p className="survey-hero-subtitle jp-copy jp-preserve-lines">{heroSubtitle}</p>
-          )}
+          ))}
         </div>
       </section>
 
@@ -147,14 +152,14 @@ export function SurveyRenderer({
           preview ? <button key={field} type="button" className="preview-editable intro-editable" onClick={() => onEditTarget?.(field)}><p className="survey-description jp-copy jp-preserve-lines">{config[field]}</p></button>
             : <p key={field} className="survey-description jp-copy jp-preserve-lines">{config[field]}</p>
         ))}
-        {isAnonymousSurvey(config) && (
+        {isAnonymousSurvey(config) && anonymousText && (
           <div className="survey-intro">
             {preview ? (
               <button type="button" className="preview-editable intro-editable" onClick={() => onEditTarget?.('anonymousText')}>
-                <p className="survey-anonymous-note jp-copy jp-preserve-lines">{config.anonymousText?.trim() ? config.anonymousText : '※こちらのアンケートは匿名です。'}</p>
+                <p className="survey-anonymous-note jp-copy jp-preserve-lines">{anonymousText}</p>
               </button>
             ) : (
-              <p className="survey-anonymous-note jp-copy jp-preserve-lines">{config.anonymousText?.trim() ? config.anonymousText : '※こちらのアンケートは匿名です。'}</p>
+              <p className="survey-anonymous-note jp-copy jp-preserve-lines">{anonymousText}</p>
             )}
           </div>
         )}
