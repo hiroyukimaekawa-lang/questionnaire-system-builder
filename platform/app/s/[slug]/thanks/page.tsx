@@ -20,6 +20,7 @@ export default async function Thanks({ params }: { params: Promise<{ slug: strin
         reviewUrl={reviewMode === 'disabled' ? null : config.googleReviewUrl}
         reviewMode={reviewMode}
         primaryColor={config.primaryColor}
+        reviewPromptText={config.googleReviewPromptText}
       />
     </main>
   );
