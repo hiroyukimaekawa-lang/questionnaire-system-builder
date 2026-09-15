@@ -13,10 +13,13 @@ test('SurveyConfigとdefaultConfigがheroLabelを持つ',()=>{
   assert.equal(defaultConfig.heroLabel,'QUESTIONNAIRE');
 });
 
-test('旧configと空のheroLabelはRendererでQUESTIONNAIREへfallbackする',()=>{
+test('旧configだけ既定文へfallbackし、明示的な空欄は非表示にできる',()=>{
   const renderer=read('components/survey/SurveyRenderer.tsx');
-  assert.match(renderer,/config\.heroLabel\?\.trim\(\)\s*\|\|\s*'QUESTIONNAIRE'/);
-  assert.doesNotMatch(renderer,/<p className="survey-hero-label">QUESTIONNAIRE<\/p>/);
+  assert.match(renderer,/version\.config\.heroLabel === undefined \? 'QUESTIONNAIRE'/);
+  assert.match(renderer,/version\.config\.heroSubtitle === undefined/);
+  assert.match(renderer,/heroLabel && \(preview \?/);
+  assert.match(renderer,/heroSubtitle && \(preview \?/);
+  assert.match(renderer,/isAnonymousSurvey\(config\) && anonymousText &&/);
 });
 
 test('hero 3項目は専用preview targetへ解決しmainColorへ誤接続しない',()=>{
@@ -52,6 +55,7 @@ test('作成保存と既存編集にhero 3項目が接続される',()=>{
   assert.match(actions,/heroLabel=context\.heroLabel\?\.trim\(\)\s*\|\|\s*'QUESTIONNAIRE'/);
   assert.match(actions,/heroSubtitle=context\.heroSubtitle\?\.trim\(\)\|\|theme\.config\.heroSubtitle/);
   assert.match(form,/name="heroLabel"/);
+  assert.match(form,/name="designPatch" value=\{JSON\.stringify\(copyPatch\)\}/);
   assert.match(actions,/heroLabel:val\('heroLabel'\)\|\|'QUESTIONNAIRE'/);
   assert.match(editor,/'heroLabel'/);
 });
