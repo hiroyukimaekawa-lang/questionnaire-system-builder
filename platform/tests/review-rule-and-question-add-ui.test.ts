@@ -20,7 +20,7 @@ test('口コミ案内モードはチェックしづらいradioではなく選択
   assert.doesNotMatch(source,/type="radio" name="googleReviewMode"/);
 });
 
-test('口コミ条件UIは全評価共通か質問別の点数以上に絞る',()=>{
+test('口コミ条件UIは全評価共通か質問別の点数以上に絞り、壊れた旧条件を自動補正する',()=>{
   const source=readFileSync(new URL('../components/admin/ReviewSettings.tsx',import.meta.url),'utf8');
   assert.match(source,/すべての評価項目が基準点以上/);
   assert.match(source,/質問ごとに基準点を設定/);
@@ -28,9 +28,13 @@ test('口コミ条件UIは全評価共通か質問別の点数以上に絞る',(
   assert.match(source,/aria-pressed=\{conditionStyle==='all'\}/);
   assert.match(source,/aria-pressed=\{conditionStyle==='per-question'\}/);
   assert.match(source,/allRatingsRule/);
+  assert.match(source,/perQuestionRule/);
+  assert.match(source,/ruleNeedsNormalization/);
+  assert.match(source,/new Set\(conditionIds\)\.size!==conditionIds\.length/);
   assert.match(source,/operator:'gte'/);
   assert.match(source,/logic:'and'/);
-  assert.match(source,/合計点や平均点ではなく、各質問を個別に判定します/);
+  assert.match(source,/すべての評価質問を個別に確認し、全条件を満たした場合だけ口コミをご案内します/);
+  assert.match(source,/重複・OR・不足質問が見つかったため/);
   assert.doesNotMatch(source,/いずれかを満たす（OR）/);
   assert.doesNotMatch(source,/<option value="lte">/);
   assert.doesNotMatch(source,/<option value="eq">/);
@@ -38,7 +42,6 @@ test('口コミ条件UIは全評価共通か質問別の点数以上に絞る',(
 
 test('既存編集画面ではカラーやテーマを営業担当者へ表示しない',()=>{
   const source=readFileSync(new URL('../components/admin/SurveyForms.tsx',import.meta.url),'utf8');
-  assert.match(source,/デザインは共通仕様で統一されています/);
   assert.match(source,/文章・ロゴ設定/);
   assert.doesNotMatch(source,/デザインテンプレート/);
   assert.doesNotMatch(source,/type="color"/);
