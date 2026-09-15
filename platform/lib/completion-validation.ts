@@ -40,6 +40,35 @@ export function parseGoogleReviewRuleJson(raw: string, maxBytes = 20_000): Googl
   return result.data;
 }
 
+function defaultReviewThreshold(question: SurveyQuestion) {
+  return Math.min(9, scoreMax(question));
+}
+
+/**
+ * Existing surveys can have review rules that reference an older question set.
+ * Preserve the selected AND/OR mode and thresholds for still-existing rating questions,
+ * remove stale/duplicate references, and automatically add newly-created rating questions.
+ */
+export function normalizeGoogleReviewRuleForQuestions(
+  rule: GoogleReviewRule | null | undefined,
+  questions: SurveyQuestion[],
+): GoogleReviewRule {
+  const ratings = questions.filter(q => q.type === 'rating_10');
+  const logic: GoogleReviewRule['logic'] = rule?.logic === 'and' ? 'and' : 'or';
+  return {
+    logic,
+    conditions: ratings.map(question => {
+      const max = scoreMax(question);
+      const existing = rule?.conditions.find(condition => condition.questionId === question.id && condition.operator === 'gte');
+      return {
+        questionId: question.id,
+        operator: 'gte' as const,
+        value: existing ? Math.min(Math.max(existing.value, 1), max) : defaultReviewThreshold(question),
+      };
+    }),
+  };
+}
+
 function validateConditionsForQuestions(conditions: Array<{ questionId: string; value: number }>, questions: SurveyQuestion[]) {
   const ratings = new Map(questions.filter(q => q.type === 'rating_10').map(q => [q.id, scoreMax(q)]));
   for (const condition of conditions) {
