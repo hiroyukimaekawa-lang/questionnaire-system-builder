@@ -64,12 +64,5 @@ export function validateGoogleReviewRuleForQuestions(rule: GoogleReviewRule, que
   const ids=rule.conditions.map(condition=>condition.questionId);
   if(new Set(ids).size!==ids.length)return '同じ評価質問をGoogle口コミ条件へ重複して設定することはできません。';
   if(rule.conditions.length!==ratings.length||ratings.some(question=>!ids.includes(question.id)))return 'Google口コミ条件には、現在のすべての評価質問を1回ずつ設定してください。';
-  const ownershipError=validateConditionsForQuestions(rule.conditions, questions);
-  if(ownershipError)return ownershipError;
-  if(rule.logic==='and'){
-    const conditionByQuestion=new Map(rule.conditions.map(condition=>[condition.questionId,condition.value]));
-    const hasCommonThreshold=Array.from({length:10},(_,index)=>index+1).some(threshold=>ratings.every(question=>conditionByQuestion.get(question.id)===Math.min(threshold,scoreMax(question))));
-    if(!hasCommonThreshold)return '「すべての評価項目が基準点以上」は、すべての評価質問に同じ基準点を設定してください。';
-  }
-  return null;
+  return validateConditionsForQuestions(rule.conditions, questions);
 }
