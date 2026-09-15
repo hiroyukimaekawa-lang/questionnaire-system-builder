@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import {recommendedReviewRule,reviewComment,remapConfigQuestions,reviewRuleDescription} from '../lib/builder/settings';
+import {builderConfig,recommendedReviewRule,reviewComment,remapConfigQuestions,reviewRuleDescription} from '../lib/builder/settings';
 import type {SurveyConfig,SurveyQuestion} from '../types/database';
 
 const questions:SurveyQuestion[]=[
@@ -30,4 +30,24 @@ test('複製・公開後の新しい質問IDへ口コミ条件と文章質問を
   assert.equal(mapped.googleReviewRule?.conditions[0].questionId,'new-1');
   assert.equal(mapped.completionRules?.[0].conditions[0].questionId,'new-2');
   assert.equal(mapped.reviewTextQuestionId,'new-3');
+});
+
+test('新規Builderは説明文をヒーローだけに表示し本文補足は初期OFF',()=>{
+  const config=builderConfig({businessType:'restaurant'});
+  assert.ok(config.heroSubtitle?.trim());
+  assert.equal(config.description,'');
+  assert.equal(config.introText,'');
+});
+
+test('旧Builderで説明文とヒーロー説明が重複していても本文側を自動で消す',()=>{
+  const config=builderConfig({businessType:'restaurant',config:{heroSubtitle:'同じ説明',description:'同じ説明',introText:''} as SurveyConfig});
+  assert.equal(config.heroSubtitle,'同じ説明');
+  assert.equal(config.description,'');
+  assert.equal(config.introText,'');
+});
+
+test('旧Builderの本文専用説明は補足文へ移して編集可能にする',()=>{
+  const config=builderConfig({businessType:'restaurant',config:{heroSubtitle:'上部説明',description:'本文だけの説明',introText:''} as SurveyConfig});
+  assert.equal(config.description,'');
+  assert.equal(config.introText,'本文だけの説明');
 });
