@@ -38,9 +38,10 @@ test('コピー失敗時に手動コピーと口コミ遷移を分けて案内�
   assert.doesNotMatch(source,/window\.open/);
   const css=readFileSync(new URL('../app/survey.css',import.meta.url),'utf8');assert.match(css,/\.jp-preserve-lines,[\s\S]*?\.thanks-lead,[\s\S]*?\.completion-copy span\s*\{ white-space: pre-line/);
 });
-test('口コミUIは質問別の点数以上とAND/ORに絞り、完了条件編集は維持する',()=>{
+test('口コミ設定は質問別基準点とAND/ORだけを通常画面に表示する',()=>{
   const source=readFileSync(new URL('../components/admin/CompletionSettingsForm.tsx',import.meta.url),'utf8');
   const settings=readFileSync(new URL('../components/admin/ReviewSettings.tsx',import.meta.url),'utf8');
+  assert.match(settings,/口コミを表示する条件/);
   assert.match(settings,/どれか1つ満たしたら表示/);
   assert.match(settings,/すべて満たしたら表示/);
   assert.match(settings,/各質問の基準点/);
@@ -49,6 +50,9 @@ test('口コミUIは質問別の点数以上とAND/ORに絞り、完了条件編
   assert.match(settings,/changeLogic\('and'\)/);
   assert.doesNotMatch(settings,/<option value="lte">/);
   assert.doesNotMatch(settings,/<option value="eq">/);
-  assert.match(source,/rules.map\(\(rule,ri\)/);
-  assert.match(source,/name="completionRules" value=\{JSON.stringify\(rules\)\}/);
+  assert.doesNotMatch(source,/条件別の回答後処理/);
+  assert.doesNotMatch(source,/＋ 条件を追加/);
+  assert.doesNotMatch(source,/＋ 完了条件ルールを追加/);
+  assert.match(source,/name="completionRules" value=\{JSON.stringify\(config\.completionRules\?\?\[\]\)\}/);
+  assert.match(source,/口コミ設定を保存/);
 });
