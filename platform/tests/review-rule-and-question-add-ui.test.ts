@@ -11,10 +11,22 @@ test('質問カード直下から次の質問を追加できる',()=>{
   assert.match(source,/addQuestionAfter\(-1\)/);
 });
 
+test('口コミ案内モードはチェックしづらいradioではなく選択ボタンで切り替える',()=>{
+  const source=readFileSync(new URL('../components/admin/ReviewSettings.tsx',import.meta.url),'utf8');
+  assert.match(source,/type="hidden" name="googleReviewMode" value=\{mode\}/);
+  assert.match(source,/aria-label="Google口コミへの案内方法"/);
+  assert.match(source,/aria-pressed=\{mode===value\}/);
+  assert.match(source,/onClick=\{\(\)=>changeMode\(value\)\}/);
+  assert.doesNotMatch(source,/type="radio" name="googleReviewMode"/);
+});
+
 test('口コミ条件UIは全評価共通か質問別の点数以上に絞る',()=>{
   const source=readFileSync(new URL('../components/admin/ReviewSettings.tsx',import.meta.url),'utf8');
   assert.match(source,/すべての評価項目が基準点以上/);
   assert.match(source,/質問ごとに基準点を設定/);
+  assert.match(source,/aria-label="口コミ条件の設定方法"/);
+  assert.match(source,/aria-pressed=\{conditionStyle==='all'\}/);
+  assert.match(source,/aria-pressed=\{conditionStyle==='per-question'\}/);
   assert.match(source,/allRatingsRule/);
   assert.match(source,/operator:'gte'/);
   assert.match(source,/logic:'and'/);
