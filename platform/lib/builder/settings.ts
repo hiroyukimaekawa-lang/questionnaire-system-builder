@@ -47,7 +47,11 @@ export function builderConfig(context:BuilderContext):SurveyConfig {
     businessCategory:context.businessCategory??context.config?.businessCategory??'',
     prefecture:context.prefecture??context.config?.prefecture??'',
   };
-  if(config.description?.trim()&&config.heroSubtitle?.trim()===config.description.trim())config.description='';
+  const legacyDescription=config.description?.trim()??'';
+  if(legacyDescription){
+    if(!config.introText?.trim()&&config.heroSubtitle?.trim()!==legacyDescription)config.introText=config.description;
+    config.description='';
+  }
   return config;
 }
 export function validateReviewSettings(config:SurveyConfig,questions:SurveyQuestion[]):string|null {
