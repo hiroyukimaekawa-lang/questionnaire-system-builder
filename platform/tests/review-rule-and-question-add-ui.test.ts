@@ -22,7 +22,7 @@ test('口コミ案内モードはチェックしづらいradioではなく選択
 
 test('口コミ条件UIは質問ごとの基準点とAND/ORだけで設定できる',()=>{
   const source=readFileSync(new URL('../components/admin/ReviewSettings.tsx',import.meta.url),'utf8');
-  assert.match(source,/各質問ごとの?「何点以上」|各評価質問ごとに「何点以上」/);
+  assert.match(source,/各質問の基準点/);
   assert.match(source,/どれか1つ満たしたら表示/);
   assert.match(source,/すべて満たしたら表示/);
   assert.match(source,/aria-label="口コミ条件の判定方法"/);
@@ -38,7 +38,7 @@ test('口コミ条件UIは質問ごとの基準点とAND/ORだけで設定でき
 
 test('口コミ条件テストは現在の設定で表示可否をリアルタイム確認できる',()=>{
   const source=readFileSync(new URL('../components/admin/ReviewSettings.tsx',import.meta.url),'utf8');
-  assert.match(source,/設定した条件をテスト/);
+  assert.match(source,/動作確認/);
   assert.match(source,/evaluateGoogleReviewEligibility\(previewConfig,questions,answers\)/);
   assert.match(source,/この回答ではGoogle口コミを表示します/);
   assert.match(source,/この回答ではGoogle口コミを表示しません/);
