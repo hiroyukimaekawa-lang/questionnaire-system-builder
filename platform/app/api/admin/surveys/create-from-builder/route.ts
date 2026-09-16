@@ -5,7 +5,7 @@ import {normalizeQuestionFontSize,slugify,validateQuestion} from '@/lib/survey';
 import {createClient} from '@/lib/supabase/server';
 import {getThemeTemplate,themeIdForBusiness} from '@/lib/theme/templates';
 import type {BuilderContext,SurveyQuestion} from '@/types/database';
-import {builderConfig,validateReviewSettings} from '@/lib/builder/settings';
+import {builderConfig,remapConfigQuestions,validateReviewSettings} from '@/lib/builder/settings';
 import {buildGoogleSheetsStorePayload,sendGoogleSheetsPayload} from '@/lib/google-sheets-sync';
 
 const genericError='アンケートを作成できませんでした。もう一度お試しください。';
@@ -44,6 +44,13 @@ export async function POST(request:Request){
   const reviewValidation=validateReviewSettings(finalConfig,context.questions);
   if(reviewValidation)return jsonError(reviewValidation,400);
 
+  // Builder templates historically used readable string IDs such as "clinic-care".
+  // Database question IDs are UUIDs, so always assign fresh UUIDs at the persistence boundary
+  // and remap every config reference to those persisted question IDs.
+  const questionIdMap=Object.fromEntries(context.questions.map(question=>[question.id,crypto.randomUUID()]));
+  const persistedQuestions=context.questions.map(question=>({...question,id:questionIdMap[question.id]}));
+  const persistedConfig=remapConfigQuestions(finalConfig,questionIdMap);
+
   let surveyId:string|null=null;
   try{
     const name=context.storeName!.trim(),base=slugify(name)||`survey-${Date.now()}`;let slug=base;
@@ -62,11 +69,11 @@ export async function POST(request:Request){
     const heroTitle=context.heroTitle?.trim()||theme.config.heroTitle;
     const heroSubtitle=context.heroSubtitle?.trim()||theme.config.heroSubtitle;
     const reviewUrl=context.googleReviewEnabled===true&&context.googleReviewUrl?.trim()?context.googleReviewUrl.trim():null;
-    const config={...finalConfig,themeId,title:heroTitle,heroLabel,heroTitle,heroSubtitle,introText:context.introText!,anonymous:context.anonymous,anonymousText:context.anonymous?'こちらのアンケートは匿名です。':'回答内容は運営者が確認します。',completionText:context.completionText!,questionFontSize:normalizeQuestionFontSize(context.questionFontSize),primaryColor:context.mainColor!,logoMode:context.logoMode,logoUrl:context.logoUrl??null,googleReviewUrl:reviewUrl};
+    const config={...persistedConfig,themeId,title:heroTitle,heroLabel,heroTitle,heroSubtitle,introText:context.introText!,anonymous:context.anonymous,anonymousText:context.anonymous?'こちらのアンケートは匿名です。':'回答内容は運営者が確認します。',completionText:context.completionText!,questionFontSize:normalizeQuestionFontSize(context.questionFontSize),primaryColor:context.mainColor!,logoMode:context.logoMode,logoUrl:context.logoUrl??null,googleReviewUrl:reviewUrl};
     const {data:version,error:versionError}=await s.from('survey_versions').insert({survey_id:surveyId,version:1,status:'draft',config,created_by:user.id}).select('id').single();
     if(versionError||!version){logFailure('survey_versions.insert',versionError,surveyId,sessionId);return jsonError(genericError,500)}
 
-    for(const [index,q] of context.questions.entries()){
+    for(const [index,q] of persistedQuestions.entries()){
       const {data:created,error:questionError}=await s.from('questions').insert({id:q.id,survey_version_id:version.id,type:q.type,title:q.title.trim(),description:q.description.trim(),required:q.required,sort_order:index,settings:q.settings}).select('id').single();
       if(questionError||!created){logFailure('questions.insert',questionError,surveyId,sessionId);return jsonError(genericError,500)}
       if(q.options.length){
@@ -78,7 +85,8 @@ export async function POST(request:Request){
     const {error:draftError}=await s.from('surveys').update({current_draft_version_id:version.id}).eq('id',surveyId);
     if(draftError){logFailure('surveys.current_draft_version_id.update',draftError,surveyId,sessionId);return jsonError(genericError,500)}
     if(sessionId){
-      const {data:completedSession,error:sessionError}=await s.from('builder_sessions').update({status:'completed',survey_id:surveyId,context,current_step:'completed',updated_at:new Date().toISOString()}).eq('id',sessionId).eq('user_id',user.id).eq('status','in_progress').select('id').maybeSingle();
+      const persistedContext={...context,questions:persistedQuestions,config,googleReviewRule:config.googleReviewRule,reviewTextQuestionId:config.reviewTextQuestionId};
+      const {data:completedSession,error:sessionError}=await s.from('builder_sessions').update({status:'completed',survey_id:surveyId,context:persistedContext,current_step:'completed',updated_at:new Date().toISOString()}).eq('id',sessionId).eq('user_id',user.id).eq('status','in_progress').select('id').maybeSingle();
       if(sessionError||!completedSession){logFailure('builder_sessions.completed.update',sessionError,surveyId,sessionId);return jsonError(genericError,500)}
     }
     const {data:verified,error:verifyError}=await s.from('surveys').select('id,name,slug,industry,status,owner_user_id,current_draft_version_id,created_at,updated_at').eq('id',surveyId).single();
