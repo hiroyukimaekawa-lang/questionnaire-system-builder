@@ -32,7 +32,6 @@ export class RuleBasedBuilderEngine implements BuilderEngine {
     if (c.anonymous === undefined) return { id: 'anonymous', question: 'このアンケートは匿名にしますか？', reason: '冒頭説明と個人情報の扱いを確定するためです。', required: true, inputType: 'choice', options: [{value:'true',label:'匿名にする'},{value:'false',label:'匿名にしない'}] };
     if (!c.heroTitle?.trim()) return { id: 'heroTitle', question: 'アンケートのタイトルを設定してください。', reason: '公開画面上部に大きく表示されるタイトルです。', required: true, inputType: 'text' };
     if (c.questionFontSize === undefined) return { id: 'questionFontSize', question: '質問文の文字サイズを設定してください。', reason: '公開画面の質問文の大きさです。標準は17pxです。', required: true, inputType: 'number' };
-    if (!c.introText) return { id: 'introText', question: 'アンケート冒頭の文章はこちらでいかがですか？', reason: '回答者へ目的と匿名性をわかりやすく伝えるためです。', required: true, inputType: 'text' };
     if (!c.logoMode) return { id: 'logoMode', question: 'ロゴを使用しますか？', reason: 'ヘッダーの表示方法を確定するためです。', required: true, inputType: 'choice', options: [{value:'none',label:'ロゴなし'},{value:'icon',label:'アイコンのみ'},{value:'upload',label:'ロゴをアップロード'}] };
     if (c.logoMode === 'upload' && !c.logoUrl) return { id: 'logoUrl', question: '使用するロゴ画像を選択してください。', reason: '公開画面に表示するロゴを確定するためです。', required: true, inputType: 'url' };
     if (c.googleReviewEnabled === undefined) return { id: 'googleReviewEnabled', question: 'Google口コミページへの導線を設置しますか？', reason: '完了画面の口コミ導線を設定するためです。', required: true, inputType: 'choice', options: [{value:'true',label:'設置する'},{value:'false',label:'今は設定しない'}] };
@@ -45,7 +44,7 @@ export class RuleBasedBuilderEngine implements BuilderEngine {
     const missing: string[] = [];
     if (!c.purpose) missing.push('purpose'); if (!c.storeName) missing.push('storeName'); if (!c.businessType) missing.push('businessType');
     if (!c.startingPoint) missing.push('startingPoint'); if (!c.questions?.length) missing.push('questions'); if (!c.questionsConfirmed) missing.push('questionsConfirmed');
-    if (c.anonymous === undefined) missing.push('anonymous'); if (!c.heroTitle?.trim()) missing.push('heroTitle'); if (c.questionFontSize === undefined) missing.push('questionFontSize'); if (!c.introText) missing.push('introText'); if (!c.logoMode) missing.push('logoMode');
+    if (c.anonymous === undefined) missing.push('anonymous'); if (!c.heroTitle?.trim()) missing.push('heroTitle'); if (c.questionFontSize === undefined) missing.push('questionFontSize'); if (!c.logoMode) missing.push('logoMode');
     if (c.logoMode === 'upload' && !c.logoUrl) missing.push('logoUrl'); if (c.googleReviewEnabled === undefined) missing.push('googleReviewEnabled');
     if (c.googleReviewEnabled && !c.googleReviewUrl) missing.push('googleReviewUrl'); if (!c.completionText) missing.push('completionText');
     return missing;
