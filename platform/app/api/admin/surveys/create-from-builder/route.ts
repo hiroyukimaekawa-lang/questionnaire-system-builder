@@ -5,10 +5,11 @@ import {normalizeQuestionFontSize,slugify,validateQuestion} from '@/lib/survey';
 import {createClient} from '@/lib/supabase/server';
 import {getThemeTemplate,themeIdForBusiness} from '@/lib/theme/templates';
 import type {BuilderContext,SurveyQuestion} from '@/types/database';
-import {builderConfig,validateReviewSettings} from '@/lib/builder/settings';
+import {builderConfig,remapConfigQuestions,validateReviewSettings} from '@/lib/builder/settings';
 import {buildGoogleSheetsStorePayload,sendGoogleSheetsPayload} from '@/lib/google-sheets-sync';
 
 const genericError='アンケートを作成できませんでした。もう一度お試しください。';
+const missingFieldLabels:Record<string,string>={purpose:'利用目的',storeName:'店舗・医院名',businessType:'業種',startingPoint:'作成方法',questions:'質問',questionsConfirmed:'質問の確認',anonymous:'匿名／記名',heroTitle:'アンケートタイトル',questionFontSize:'質問文字サイズ',logoMode:'ロゴ設定',logoUrl:'ロゴ画像',googleReviewEnabled:'Google口コミ設定',googleReviewUrl:'Google口コミURL',completionText:'回答後の文章'};
 
 function jsonError(error:string,status:number){return NextResponse.json({error},{status})}
 function errorCode(error:unknown){return typeof error==='object'&&error!==null&&'code' in error&&typeof error.code==='string'?error.code:undefined}
@@ -38,11 +39,16 @@ export async function POST(request:Request){
   const context=body.context as BuilderContext;
   let missing:string[];
   try{missing=ruleBasedBuilderEngine.getMissingFields(context);}catch{return jsonError('入力内容を確認してください。',400)}
-  if(missing.length||!Array.isArray(context.questions)||context.questions.length===0)return jsonError('未確定の項目があります。',400);
+  if(missing.length){const labels=missing.map(field=>missingFieldLabels[field]??field);return jsonError(`未確定の項目があります：${labels.join('、')}`,400)}
+  if(!Array.isArray(context.questions)||context.questions.length===0)return jsonError('質問を1問以上追加してください。',400);
   try{for(const question of context.questions){if(!isQuestion(question))return jsonError('質問内容を確認してください。',400);const validation=validateQuestion(question);if(validation)return jsonError('質問内容を確認してください。',400)}}catch{return jsonError('質問内容を確認してください。',400)}
   const finalConfig=builderConfig(context);
   const reviewValidation=validateReviewSettings(finalConfig,context.questions);
   if(reviewValidation)return jsonError(reviewValidation,400);
+
+  const questionIdMap=Object.fromEntries(context.questions.map(question=>[question.id,crypto.randomUUID()]));
+  const persistedQuestions=context.questions.map(question=>({...question,id:questionIdMap[question.id]}));
+  const persistedConfig=remapConfigQuestions(finalConfig,questionIdMap);
 
   let surveyId:string|null=null;
   try{
@@ -62,11 +68,11 @@ export async function POST(request:Request){
     const heroTitle=context.heroTitle?.trim()||theme.config.heroTitle;
     const heroSubtitle=context.heroSubtitle?.trim()||theme.config.heroSubtitle;
     const reviewUrl=context.googleReviewEnabled===true&&context.googleReviewUrl?.trim()?context.googleReviewUrl.trim():null;
-    const config={...finalConfig,themeId,title:heroTitle,heroLabel,heroTitle,heroSubtitle,introText:context.introText!,anonymous:context.anonymous,anonymousText:context.anonymous?'こちらのアンケートは匿名です。':'回答内容は運営者が確認します。',completionText:context.completionText!,questionFontSize:normalizeQuestionFontSize(context.questionFontSize),primaryColor:context.mainColor!,logoMode:context.logoMode,logoUrl:context.logoUrl??null,googleReviewUrl:reviewUrl};
+    const config={...persistedConfig,themeId,title:heroTitle,heroLabel,heroTitle,heroSubtitle,introText:context.introText??'',anonymous:context.anonymous,anonymousText:context.anonymous?'こちらのアンケートは匿名です。':'回答内容は運営者が確認します。',completionText:context.completionText!,questionFontSize:normalizeQuestionFontSize(context.questionFontSize),primaryColor:context.mainColor!,logoMode:context.logoMode,logoUrl:context.logoUrl??null,googleReviewUrl:reviewUrl};
     const {data:version,error:versionError}=await s.from('survey_versions').insert({survey_id:surveyId,version:1,status:'draft',config,created_by:user.id}).select('id').single();
     if(versionError||!version){logFailure('survey_versions.insert',versionError,surveyId,sessionId);return jsonError(genericError,500)}
 
-    for(const [index,q] of context.questions.entries()){
+    for(const [index,q] of persistedQuestions.entries()){
       const {data:created,error:questionError}=await s.from('questions').insert({id:q.id,survey_version_id:version.id,type:q.type,title:q.title.trim(),description:q.description.trim(),required:q.required,sort_order:index,settings:q.settings}).select('id').single();
       if(questionError||!created){logFailure('questions.insert',questionError,surveyId,sessionId);return jsonError(genericError,500)}
       if(q.options.length){
@@ -78,7 +84,8 @@ export async function POST(request:Request){
     const {error:draftError}=await s.from('surveys').update({current_draft_version_id:version.id}).eq('id',surveyId);
     if(draftError){logFailure('surveys.current_draft_version_id.update',draftError,surveyId,sessionId);return jsonError(genericError,500)}
     if(sessionId){
-      const {data:completedSession,error:sessionError}=await s.from('builder_sessions').update({status:'completed',survey_id:surveyId,context,current_step:'completed',updated_at:new Date().toISOString()}).eq('id',sessionId).eq('user_id',user.id).eq('status','in_progress').select('id').maybeSingle();
+      const persistedContext={...context,questions:persistedQuestions,config,googleReviewRule:config.googleReviewRule,reviewTextQuestionId:config.reviewTextQuestionId};
+      const {data:completedSession,error:sessionError}=await s.from('builder_sessions').update({status:'completed',survey_id:surveyId,context:persistedContext,current_step:'completed',updated_at:new Date().toISOString()}).eq('id',sessionId).eq('user_id',user.id).eq('status','in_progress').select('id').maybeSingle();
       if(sessionError||!completedSession){logFailure('builder_sessions.completed.update',sessionError,surveyId,sessionId);return jsonError(genericError,500)}
     }
     const {data:verified,error:verifyError}=await s.from('surveys').select('id,name,slug,industry,status,owner_user_id,current_draft_version_id,created_at,updated_at').eq('id',surveyId).single();
