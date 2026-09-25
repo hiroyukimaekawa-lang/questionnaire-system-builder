@@ -48,7 +48,7 @@ test('production and staging deploy commands keep separate guards and configs',a
   assert.match(pkg.scripts['deploy:staging'],/wrangler\.staging\.jsonc/);
 });
 
-test('production guard requires the production project and server-only service role key',()=>{
+test('production guard requires the production project but does not require the service role key at build time',()=>{
   const validEnv={
     ...process.env,
     WORKERS_CI_WORKER_NAME:'questionnaire',
@@ -62,8 +62,7 @@ test('production guard requires the production project and server-only service r
 
   const missingSecretEnv={...validEnv,SUPABASE_SERVICE_ROLE_KEY:''};
   const missingSecret=spawnSync(process.execPath,['scripts/check-production.mjs'],{cwd:platformDir,encoding:'utf8',env:missingSecretEnv});
-  assert.notEqual(missingSecret.status,0);
-  assert.match(missingSecret.stderr,/Runtime Secret/);
+  assert.equal(missingSecret.status,0,missingSecret.stderr);
 
   const wrongProject=spawnSync(process.execPath,['scripts/check-production.mjs'],{
     cwd:platformDir,
