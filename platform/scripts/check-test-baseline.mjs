@@ -7,9 +7,21 @@ const knownBaseline=new Set([
   '共通公開テンプレートは匿名OFFで親要素を省略し装飾を出力しない'
 ]);
 
-const result=spawnSync('npm',['test'],{encoding:'utf8',stdio:'pipe',shell:false});
+const result=spawnSync('npm',['test'],{
+  encoding:'utf8',
+  stdio:'pipe',
+  shell:false,
+  // Assertion failures include source excerpts. Linux CI can exceed Node's
+  // default 1 MiB buffer before the final TAP summary is emitted.
+  maxBuffer:32*1024*1024,
+});
 process.stdout.write(result.stdout??'');
 process.stderr.write(result.stderr??'');
+
+if(result.error){
+  console.error(`Application test process failed: ${result.error.message}`);
+  process.exit(1);
+}
 
 if(result.status===0)process.exit(0);
 
