@@ -121,7 +121,7 @@ Cloudflare DashboardのGit連携ビルドでは、以下3つを **Runtime Variab
 
 Build Variablesはビルド時（`npx opennextjs-cloudflare build`）専用で、Next.jsのビルド出力に埋め込まれます。Runtime Variablesはデプロイ後にWorkerが実行時に参照する値です。
 
-Cloudflareの仕様上、Dashboard側で管理したRuntime Variablesは `wrangler deploy` 実行時に上書き・削除される可能性があるため、`wrangler.jsonc` に `keep_vars: true` を設定し、Git自動デプロイのたびにRuntime VariablesやRuntime Secretが消えないようにしています。公開URLとプロジェクトIDはデプロイ検証に固定し、キーは環境変数で渡します。Production guardはpublic URL・public keyに加えて `SUPABASE_SERVICE_ROLE_KEY` も必須確認します。
+Cloudflareの仕様上、Dashboard側で管理したRuntime Variablesは `wrangler deploy` 実行時に上書き・削除される可能性があるため、`wrangler.jsonc` に `keep_vars: true` を設定し、Git自動デプロイのたびにRuntime VariablesやRuntime Secretが消えないようにしています。公開URLとプロジェクトIDはデプロイ検証に固定し、キーは環境変数で渡します。`SUPABASE_SERVICE_ROLE_KEY` はRuntime Secretのみで、Build Variableには置かないため、Build-time guard（`check-production.mjs`）では値を要求しません。Production guardはpublic URL・public keyのみ必須確認します。
 
 ```bash
 cd platform
