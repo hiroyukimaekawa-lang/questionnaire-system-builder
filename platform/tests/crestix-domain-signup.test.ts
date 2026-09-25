@@ -6,7 +6,7 @@ import {isCrestixEmail} from '../lib/auth/domain';
 
 const root=join(import.meta.dirname,'..');
 const source=(path:string)=>readFileSync(join(root,path),'utf8');
-const migration=source('supabase/migrations/202609050001_crestix_domain_auto_approval.sql');
+const migration=source('supabase/migrations/20260905092803_crestix_domain_auto_approval.sql');
 
 test('@crestix-inc.com は許可され、外部ドメインは拒否される',()=>{
   assert.equal(isCrestixEmail('futa.uoi@crestix-inc.com'),true);
@@ -76,13 +76,15 @@ test('signup直後にセッションがあれば/adminへ遷移し、なけれ�
   assert.match(signup,/登録が完了しました。そのままログインしてアンケートシステムを利用できます。/);
 });
 
-test('/adminのlayoutとpageはsurveys\\/builder_sessionsをそれぞれ重複取得せず、cache済みのgetAdminSurveys等を共有する',()=>{
+test('/adminのlayoutとホームは直接clientを作らずデータ層を共有する',()=>{
   const layout=source('app/admin/layout.tsx'),page=source('app/admin/page.tsx');
   assert.doesNotMatch(layout,/createClient/);
   assert.doesNotMatch(page,/createClient/);
   assert.match(layout,/getAdminSurveys\(\),getAdminBuilderSessions\(\)/);
-  assert.match(page,/getAdminSurveys\(\),getAdminBuilderSessions\(\)/);
+  assert.match(page,/getHomeSummary\(\)/);
   const dataLib=source('lib/data.ts');
+  const management=source('lib/management.ts');
   assert.match(dataLib,/export const getAdminSurveys = cache\(/);
   assert.match(dataLib,/export const getAdminBuilderSessions = cache\(/);
+  assert.match(management,/export async function getHomeSummary/);
 });

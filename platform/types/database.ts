@@ -1,4 +1,4 @@
-export type Role = 'admin' | 'sales';
+export type Role = 'admin' | 'sales' | 'viewer';
 export type SurveyStatus = 'draft' | 'published' | 'unpublished' | 'archived';
 export type QuestionType = 'single_choice' | 'multiple_choice' | 'rating_10' | 'textarea' | 'text';
 export type SurveyThemeId = 'clinic-clean' | 'restaurant-clean' | 'salon-clean';

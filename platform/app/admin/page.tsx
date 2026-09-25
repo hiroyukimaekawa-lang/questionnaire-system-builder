@@ -1,28 +1,8 @@
 import Link from 'next/link';
-import {getAdminBuilderSessions,getAdminSurveys,getUser} from '@/lib/data';
-import {SurveyListTable} from '@/components/admin/SurveyListTable';
-import {ArchivedSurveyTable} from '@/components/admin/ArchivedSurveyTable';
-import {appUrl} from '@/lib/env';
+import {redirect} from 'next/navigation';
+import {getHomeSummary} from '@/lib/management';
+import {getUser} from '@/lib/data';
 
 export const dynamic='force-dynamic';
 
-const statusTabs=[
-  {status:'all',label:'すべて',href:'/admin'},
-  {status:'in_progress',label:'作成途中',href:'/admin?status=in_progress'},
-  {status:'draft',label:'下書き',href:'/admin?status=draft'},
-  {status:'published',label:'公開中',href:'/admin?status=published'},
-  {status:'responses',label:'回答あり',href:'/admin?status=responses'},
-  {status:'archived',label:'削除済み',href:'/admin?status=archived'},
-] as const;
-
-export default async function AdminPage({searchParams}:{searchParams:Promise<{q?:string;status?:string;industry?:string}>}){
-  const query=await searchParams,user=await getUser(),filter=query.status??'all';
-  const [allSurveysRaw,allSessions]=await Promise.all([getAdminSurveys(),getAdminBuilderSessions()]);
-  const sourceSurveys=filter==='archived'?allSurveysRaw.filter(item=>item.status==='archived'):allSurveysRaw.filter(item=>item.status!=='archived');
-  const allSurveys=allSurveysRaw.filter(item=>item.status!=='archived'),keyword=(query.q??'').trim().toLowerCase();
-  const surveys=sourceSurveys.filter(item=>(!keyword||item.name.toLowerCase().includes(keyword)||item.slug.toLowerCase().includes(keyword))&&(!query.industry||item.industry===query.industry)&&(filter==='all'||filter==='archived'||filter==='responses'?(filter==='all'||filter==='archived'||(item.responses?.[0]?.count??0)>0):filter==='draft'?(item.status==='draft'||item.status==='unpublished'):item.status===filter));
-  const sessions=(filter==='in_progress'?allSessions:[]).filter(item=>!keyword||String(item.context?.storeName??'').toLowerCase().includes(keyword));
-  const counts={all:allSurveys.length,in_progress:allSessions.length,draft:allSurveys.filter(item=>item.status==='draft'||item.status==='unpublished').length,published:allSurveys.filter(item=>item.status==='published').length,responses:allSurveys.filter(item=>(item.responses?.[0]?.count??0)>0).length,archived:allSurveysRaw.filter(item=>item.status==='archived').length};
-  const industries=[...new Set(sourceSurveys.map(item=>item.industry).filter(Boolean))];
-  return <div className="crm-dashboard compact-admin-list"><header className="dashboard-heading"><div><p>アンケート管理</p><h1>{filter==='archived'?'削除済み':'アンケート管理'}</h1><span>{filter==='archived'?'削除したアンケートの確認と復元ができます。':'店舗ごとの作成状況と回答を、ここでまとめて確認できます。'}</span></div></header><nav className="survey-status-tabs" aria-label="ステータスで絞り込む">{statusTabs.map(tab=><Link key={tab.status} href={tab.href} className={`survey-status-tab${filter===tab.status?' active':''}`} aria-current={filter===tab.status?'page':undefined}><span>{tab.label}</span><strong>{counts[tab.status]}</strong></Link>)}</nav><section className="compact-list-toolbar"><div><h2>{filter==='archived'?'削除済みアンケート':'アンケート一覧'}</h2><p>{surveys.length+sessions.length}件を表示しています</p></div><form className="crm-filters compact-filters" method="get">{filter!=='all'?<input type="hidden" name="status" value={filter}/>:null}<label className="survey-search"><span className="sr-only">店舗名・医院名で検索</span><input name="q" defaultValue={query.q} placeholder="店舗名・医院名で検索"/></label><label><span className="sr-only">業種</span><select name="industry" defaultValue={query.industry??''}><option value="">すべての業種</option>{industries.map(industry=><option value={industry} key={industry}>{industry}</option>)}</select></label><button className="filter-submit" type="submit">検索</button>{(keyword||query.industry)&&<Link href={filter==='all'?'/admin':`/admin?status=${filter}`} className="filter-reset">解除</Link>}{filter!=='archived'?<Link className="btn dashboard-create compact-create" href="/admin/surveys/new">＋ 新しいアンケート</Link>:null}</form></section>{filter==='archived'?<ArchivedSurveyTable surveys={surveys} canRestore={user?.role==='admin'}/>:<SurveyListTable surveys={surveys} sessions={sessions} role={user?.role??'sales'} baseUrl={appUrl()}/>}</div>;
-}
+export default async function AdminHome(){const user=await getUser();if(user?.role==='viewer')redirect('/admin/manage');const summary=await getHomeSummary(),hour=Number(new Intl.DateTimeFormat('ja-JP',{hour:'2-digit',hour12:false,timeZone:'Asia/Tokyo'}).format(new Date())),greeting=hour<11?'おはようございます':hour<17?'こんにちは':'お疲れさまです';return <div className="crm-dashboard"><header className="dashboard-heading"><div><p>ホーム</p><h1>{greeting}、{user?.name||user?.email||'ゲスト'}さん</h1><span>担当している案件の状況を確認できます。</span></div><Link className="btn dashboard-create" href="/admin/surveys/new">＋ 新しい案件を作成</Link></header><section className="status-grid home-status-grid"><Link className="status-card" href="/admin/manage"><span>担当案件</span><strong>{summary.total}</strong><p>件</p></Link><Link className="status-card" href="/admin/manage?status=published"><span>公開中</span><strong>{summary.published}</strong><p>件</p></Link><Link className="status-card" href="/admin/manage?status=draft"><span>作成途中</span><strong>{summary.drafts}</strong><p>件</p></Link></section><section className="card recent-card"><div className="list-heading"><div><h2>最近更新した案件</h2><p>更新日時が新しい順に表示しています。</p></div><Link href="/admin/manage">すべて見る</Link></div><div className="recent-list">{summary.recent.map(item=><Link href={`/admin/manage/${item.id}`} key={item.id}><span className={`status-badge ${item.status}`}>{item.status==='published'?'公開中':item.status==='unpublished'?'停止中':'作成途中'}</span><strong>{item.name}</strong><time>{new Date(item.updated_at).toLocaleDateString('ja-JP',{timeZone:'Asia/Tokyo'})}</time></Link>)}{summary.recent.length===0?<p className="muted">表示できる案件はありません。</p>:null}</div></section></div>}

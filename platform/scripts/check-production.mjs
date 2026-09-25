@@ -7,3 +7,4 @@ if(config.name!==expected||config.account_id!=='739ef6b0d4cc5d4e1b5fb1a1ebae94af
 if(process.env.WORKERS_CI_WORKER_NAME&&process.env.WORKERS_CI_WORKER_NAME!==expected)throw new Error('Unexpected Cloudflare build target. Disconnect the old Worker Git integration.');
 if(process.env.NEXT_PUBLIC_APP_URL!=='https://questionnaire.survey-system.workers.dev')throw new Error('NEXT_PUBLIC_APP_URL must use the production questionnaire URL.');
 if(process.env.NEXT_PUBLIC_SUPABASE_URL!=='https://acfheksrpwdbxoahnwit.supabase.co'||!process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY)throw new Error('Configure the production Supabase public URL and key before deploying.');
+if(!process.env.SUPABASE_SERVICE_ROLE_KEY)throw new Error('Configure SUPABASE_SERVICE_ROLE_KEY as a production Runtime Secret before deploying.');

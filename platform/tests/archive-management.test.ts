@@ -6,9 +6,9 @@ import {join} from 'node:path';
 const root=join(import.meta.dirname,'..');
 const source=(path:string)=>readFileSync(join(root,path),'utf8');
 
-test('/adminはアンケート管理に統合されsidebarの重複項目とview=surveysを持たない',()=>{
-  const sidebar=source('components/admin/AdminSidebar.tsx'),page=source('app/admin/page.tsx');
-  assert.match(sidebar,/>アンケート管理</);assert.doesNotMatch(sidebar,/>ダッシュボード</);assert.doesNotMatch(sidebar,/>アンケート一覧</);assert.doesNotMatch(sidebar,/view=surveys/);assert.match(page,/<h1>\{filter==='archived'\?'削除済み':'アンケート管理'\}/);
+test('/adminはホーム、/admin/manageは案件管理として重複メニューを持たない',()=>{
+  const sidebar=source('components/admin/AdminSidebar.tsx'),home=source('app/admin/page.tsx'),manage=source('app/admin/manage/page.tsx');
+  assert.match(sidebar,/>ホーム</);assert.match(sidebar,/>管理</);assert.doesNotMatch(sidebar,/view=surveys/);assert.match(home,/<p>ホーム<\/p>/);assert.match(manage,/'案件管理'/);
 });
 
 test('published・draft・unpublishedをsoft deleteし関連回答をDELETEしない',()=>{
@@ -18,7 +18,7 @@ test('published・draft・unpublishedをsoft deleteし関連回答をDELETEし�
 });
 
 test('通常一覧はarchivedを除外し削除済みfilterだけに表示する',()=>{
-  const page=source('app/admin/page.tsx');assert.match(page,/filter==='archived'\?allSurveysRaw\.filter\(item=>item\.status==='archived'\):allSurveysRaw\.filter\(item=>item\.status!=='archived'\)/);
+  const management=source('lib/management.ts');assert.match(management,/\.neq\('status','archived'\)/);
 });
 
 test('archived status labelは削除済みで通常操作を持たない',()=>{assert.match(source('components/admin/SurveyListTable.tsx'),/archived:'削除済み'/);const archived=source('components/admin/ArchivedSurveyTable.tsx');assert.doesNotMatch(archived,/>編集</);assert.doesNotMatch(archived,/>公開</);assert.doesNotMatch(archived,/>複製</);assert.match(archived,/復元する/)});

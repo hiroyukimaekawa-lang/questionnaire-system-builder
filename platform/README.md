@@ -13,6 +13,25 @@ npm run dev
 
 `http://localhost:3000/login` を開きます。本番はCloudflare Worker `questionnaire` へ直接配備します。実際の `workers.dev` URLは初回deploy後に確定します。
 
+ローカルSupabaseは、リポジトリに固定したCLIとDocker互換runtimeを使います。Productionへの `supabase link` / `supabase db push` は、リリース承認前のローカル検証では実行しません。
+
+```bash
+cd platform
+npm install
+npm run supabase:start
+npm run supabase:reset
+npm run supabase:test
+npm run supabase:lint
+```
+
+`supabase/config.toml` はlocalhostだけを対象とし、Email OTP ExpirationをProductionと同じ `86400` 秒、redirect先をローカルの `/auth/confirm` と `/admin/account/update-password` に設定しています。初回起動はコンテナイメージ取得に時間とディスク容量を使います。
+
+ローカルDockerを利用できない環境でも、`.github/workflows/database-tests.yml` がPull RequestごとにGitHub Actions runner内だけでSupabaseを起動します。Production Project refやProduction secretはWorkflowへ渡さず、全migrationの再構築、`supabase/tests/database/` のpgTAP RLSテスト、DB lint、アプリのtest・lint・typecheck・buildを実行します。
+
+CIでは既存の店舗seedを投入せず、pgTAP test自身がtransaction内にADMIN・STAFF・VIEWER・inactive・Survey A/Bの人工データを作成して最後にrollbackします。
+
+アプリテストは既知のbaseline 4件だけを一時的に許容する `npm run test:ci` を使用します。未知の失敗が1件でも追加された場合はCIを失敗させ、既知の失敗が修正されて減ることは許容します。
+
 ## Supabase準備とmigration
 
 1. Supabaseプロジェクトを1つ作成します。
@@ -28,7 +47,7 @@ NEXT_PUBLIC_SUPABASE_ANON_KEY=
 NEXT_PUBLIC_APP_URL=http://localhost:3000
 ```
 
-Productionでは `NEXT_PUBLIC_APP_URL=https://questionnaire.survey-system.workers.dev` に固定します。Service Role Keyは通常処理では不要で、ブラウザへ絶対に公開しません。
+Productionでは `NEXT_PUBLIC_APP_URL=https://questionnaire.survey-system.workers.dev` に固定します。InvitationとGoogle Sheets同期結果更新ではService Role Keyをserver-onlyで使用します。ブラウザへ絶対に公開せず、`NEXT_PUBLIC_` prefixも付けません。
 
 Supabase DashboardではSite URLを正式Worker URL、Redirect URLsを `/auth/confirm` と `/admin/account/update-password` の正式Worker URLに設定します。Recovery templateは `token_hash`、`type=recovery`、内部 `next` を `/auth/confirm` へ渡すPKCE/OTP形式にします。詳細は [SECURITY_REVIEW.md](./SECURITY_REVIEW.md) を参照してください。
 
@@ -98,9 +117,11 @@ Cloudflare DashboardのGit連携ビルドでは、以下3つを **Runtime Variab
 - `NEXT_PUBLIC_SUPABASE_ANON_KEY`
 - `NEXT_PUBLIC_APP_URL`
 
+さらに `SUPABASE_SERVICE_ROLE_KEY` を **Runtime Secretだけ** に設定します。Build Variableや通常のRuntime Variableには保存せず、`NEXT_PUBLIC_` prefixも付けません。
+
 Build Variablesはビルド時（`npx opennextjs-cloudflare build`）専用で、Next.jsのビルド出力に埋め込まれます。Runtime Variablesはデプロイ後にWorkerが実行時に参照する値です。
 
-Cloudflareの仕様上、Dashboard側で管理したRuntime Variablesは `wrangler deploy` 実行時に上書き・削除される可能性があるため、`wrangler.jsonc` に `keep_vars: true` を設定し、Git自動デプロイのたびにRuntime Variablesが消えないようにしています。公開URLとプロジェクトIDはデプロイ検証に固定し、キーは環境変数で渡します。`SUPABASE_SERVICE_ROLE_KEY` はこのアプリでは不要なため設定しません（公開クライアントに渡してはいけないため）。
+Cloudflareの仕様上、Dashboard側で管理したRuntime Variablesは `wrangler deploy` 実行時に上書き・削除される可能性があるため、`wrangler.jsonc` に `keep_vars: true` を設定し、Git自動デプロイのたびにRuntime VariablesやRuntime Secretが消えないようにしています。公開URLとプロジェクトIDはデプロイ検証に固定し、キーは環境変数で渡します。Production guardはpublic URL・public keyに加えて `SUPABASE_SERVICE_ROLE_KEY` も必須確認します。
 
 ```bash
 cd platform
@@ -117,6 +138,53 @@ npx opennextjs-cloudflare build
 正式URL: `https://questionnaire.survey-system.workers.dev`、管理画面: `/admin`、公開アンケート: `/s/{slug}`。従来の `/{slug}` は既存リンク・旧308キャッシュの互換性のため同じRendererに委譲し、URL/QRは `/s/{slug}` のみ生成します。
 
 Supabaseは `acfheksrpwdbxoahnwit` を使用します。旧Workerも同じプロジェクトを参照していたためデータ移行は不要です。WorkerにはASSETSと自己参照のService bindingだけがあり、アンケート・回答の正本はSupabaseです。旧WorkerはGit連携解除後に公開アクセスを停止し、復旧用に保持できます。
+
+## Staging環境
+
+Staging環境は任意です。現在は `questionsystem-staging` ProjectをProvisionしておらず、追加費用も発生させません。当面はローカルSupabaseで全migration・RLS・現行main互換性を確認してから、Production DB migrationとアプリdeployを分離して段階反映します。
+
+将来Stagingを常設する場合に限り、ProductionのSupabase Branchではなく、別Project `questionsystem-staging` と別Worker `questionnaire-staging` を使います。以下の設定ファイルはその将来利用のために保持しています。
+
+```text
+Supabase: questionsystem-staging
+Worker: questionnaire-staging
+URL: https://questionnaire-staging.survey-system.workers.dev
+```
+
+新しいSupabase Projectを作成したら、`supabase/migrations/` をtimestamp順に最初から適用し、必要なテストユーザー・Survey・Responseだけを投入します。本番用 `seed.sql` はStagingの権限試験データとしては使用せず、実在する医院・患者回答も複製しません。
+
+ローカルのStagingデプロイ設定は、追跡対象外の `.env.staging.local` に保存します。
+
+```bash
+cd platform
+cp .env.staging.example .env.staging.local
+# Staging Project作成後、URL・public key・service role key・project refを設定
+npm run deploy:staging
+```
+
+`check-staging.mjs` は次をすべて検証し、不一致ならデプロイを停止します。
+
+- Worker名と自己参照bindingが `questionnaire-staging`
+- Cloudflare AccountがProductionと同じsurvey account
+- App URLが `https://questionnaire-staging.survey-system.workers.dev`
+- Supabase URLが `STAGING_SUPABASE_PROJECT_REF` と一致
+- Production Project ref `acfheksrpwdbxoahnwit` を使用していない
+- public keyとStaging専用service role keyが設定済み
+
+Production用 `npm run deploy` / `check-production.mjs` は変更せず、Production guardを緩めません。
+
+Supabase AuthはStaging側だけで次を設定します。
+
+- Email OTP Expiration: `86400`
+- Site URL: `https://questionnaire-staging.survey-system.workers.dev`
+- Redirect Allow List: `https://questionnaire-staging.survey-system.workers.dev/auth/confirm` と `/admin/account/update-password`
+- Invitation / Recovery template: `token_hash` をStagingの `/auth/confirm` へ渡す
+
+CloudflareのBuild VariablesとRuntime Variablesには、Staging Supabaseの `NEXT_PUBLIC_SUPABASE_URL`、`NEXT_PUBLIC_SUPABASE_ANON_KEY`、`SUPABASE_SERVICE_ROLE_KEY` とStaging URLを設定します。Service role keyはserver-onlyで、`NEXT_PUBLIC_` prefixを付けません。
+
+Google SheetsはProduction Sheetへ接続しません。`GOOGLE_SHEETS_WEBHOOK_URL` と `GOOGLE_SHEETS_WEBHOOK_SECRET` は専用Test SheetのApps Script値を設定し、回答保存から `google_sheets_sync_queue = synced` までを確認します。Test Sheetを用意するまでは両方を未設定にして同期を無効化します。
+
+Stagingでの確認順は、全migration適用、通常login、ADMIN/STAFF/VIEWERのRLS、外部メール招待、CSV 403、アクセス停止、公開回答、Test Sheet同期、Analytics RPC、Security Advisorです。すべて通るまでProduction migrationとProduction deployは行いません。
 
 一覧は `surveys_draft_fk` で下書きを取得します。存在しない外部キー名でPGRST200になった場合も0件にせず、ログと再試行可能なエラー画面を表示します。「すべて」は正式アンケート（archived以外）、「作成途中」はbuilder_sessionsのみです。公開RPC成功後はSurveyを再取得し、公開状態・公開版ID・公開日時を検証します。
 
