@@ -13,12 +13,14 @@ let stderr='';
 const child=spawn('npm',['test','--','--test-reporter=spec'],{
   stdio:['ignore','pipe','pipe'],
   shell:false,
+  env:{...process.env,NO_COLOR:'1',FORCE_COLOR:'0'},
 });
 const lines=createInterface({input:child.stdout});
 lines.on('line',line=>{
-  const failure=line.match(/^✖ (.+?) \(/)?.[1];
+  const clean=line.replace(/\x1B\[[0-?]*[ -\/]*[@-~]/g,'');
+  const failure=clean.match(/^✖ (.+?) \(/)?.[1];
   if(failure)failures.add(failure);
-  if(/^[✔✖]/u.test(line))console.log(line);
+  if(/^[✔✖]/u.test(clean))console.log(clean);
 });
 child.stderr.on('data',chunk=>{
   if(stderr.length<64*1024)stderr+=chunk.toString();
