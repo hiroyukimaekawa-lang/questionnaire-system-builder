@@ -1,7 +1,7 @@
 import test from 'node:test';import assert from 'node:assert/strict';import {readFile} from 'node:fs/promises';import {can} from '../lib/auth/permissions';
 const read=(path:string)=>readFile(new URL(path,import.meta.url),'utf8');
 
-test('viewerは回答・分析のみ利用でき編集や公開はできない',()=>{assert.equal(can('viewer','responses'),true);assert.equal(can('viewer','analytics'),true);assert.equal(can('viewer','edit'),false);assert.equal(can('viewer','publish'),false);assert.equal(can('viewer','manage_users'),false)});
+test('viewerは回答・分析のみ利用できCSV・編集・公開はできない',()=>{assert.equal(can('viewer','responses'),true);assert.equal(can('viewer','analytics'),true);assert.equal(can('viewer','csv'),false);assert.equal(can('viewer','edit'),false);assert.equal(can('viewer','publish'),false);assert.equal(can('viewer','manage_users'),false)});
 
 test('案件RLSはactiveなowner・editor・viewerを共通helperで分離する',async()=>{const sql=await read('../supabase/migrations/202609250001_management_permissions_analytics.sql');assert.match(sql,/private\.can_view_survey_for/);assert.match(sql,/where id = p_user_id and is_active = true/);assert.match(sql,/owner_user_id = p_user_id/);assert.match(sql,/permission = 'editor'/);assert.match(sql,/drop policy if exists surveys_staff_all/);assert.match(sql,/responses_member_read/);assert.match(sql,/answers_member_read/)});
 
