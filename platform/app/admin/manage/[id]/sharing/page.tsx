@@ -1,3 +1,14 @@
-import {notFound} from 'next/navigation';import {getSurvey,getUser} from '@/lib/data';import {getInvitations,getSurveyMembers} from '@/lib/management';import {InviteUserForm} from '@/components/admin/InviteUserForm';import {InvitationActions} from '@/components/admin/InvitationActions';
+import {notFound} from 'next/navigation';
+import {getSurvey,getSurveyAccess} from '@/lib/data';
+import {getInvitations,getSurveyMembers} from '@/lib/management';
+import {InviteUserForm} from '@/components/admin/InviteUserForm';
+import {InvitationActions} from '@/components/admin/InvitationActions';
+
 const statusLabel:Record<string,string>={pending:'招待中',accepted:'利用中',expired:'期限切れ',suspended:'停止'};
-export default async function Sharing({params}:{params:Promise<{id:string}>}){const {id}=await params;const [survey,user,invitations,members]=await Promise.all([getSurvey(id),getUser(),getInvitations(id),getSurveyMembers(id)]);if(!survey||user?.role==='viewer')notFound();return <section className="sharing-grid"><InviteUserForm surveyId={id}/><div className="card sharing-list"><h2>共有中のユーザー</h2>{members.map((member:any)=><div key={member.id}><span><strong>{member.user?.name||member.user?.email}</strong><small>{member.user?.email}</small></span><em>{member.permission==='viewer'?'分析閲覧のみ':'編集可能'}</em></div>)}{members.length===0?<p className="muted">共有中のユーザーはいません。</p>:null}</div><div className="card sharing-list full"><h2>招待履歴</h2>{invitations.map((invitation:any)=><div key={invitation.id}><span><strong>{invitation.email}</strong><small>{new Date(invitation.created_at).toLocaleString('ja-JP',{timeZone:'Asia/Tokyo'})}</small></span><em>{statusLabel[invitation.status]??invitation.status}</em><InvitationActions id={invitation.id} status={invitation.status}/></div>)}</div></section>}
+
+export default async function Sharing({params}:{params:Promise<{id:string}>}){
+  const {id}=await params;
+  const [survey,access,invitations,members]=await Promise.all([getSurvey(id),getSurveyAccess(id),getInvitations(id),getSurveyMembers(id)]);
+  if(!survey||!access.canManageMembers)notFound();
+  return <section className="sharing-grid"><InviteUserForm surveyId={id}/><div className="card sharing-list"><h2>共有中のユーザー</h2>{members.map((member:any)=><div key={member.id}><span><strong>{member.user?.name||member.user?.email}</strong><small>{member.user?.email}</small></span><em>{member.permission==='viewer'?'分析閲覧のみ':'編集可能'}</em></div>)}{members.length===0?<p className="muted">共有中のユーザーはいません。</p>:null}</div><div className="card sharing-list full"><h2>招待履歴</h2>{invitations.map((invitation:any)=><div key={invitation.id}><span><strong>{invitation.email}</strong><small>{new Date(invitation.created_at).toLocaleString('ja-JP',{timeZone:'Asia/Tokyo'})}</small></span><em>{statusLabel[invitation.status]??invitation.status}</em><InvitationActions id={invitation.id} status={invitation.status}/></div>)}</div></section>;
+}

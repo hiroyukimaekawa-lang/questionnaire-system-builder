@@ -18,6 +18,8 @@ export async function inviteViewerAction(surveyId:string,_:unknown,formData:Form
     if(!/^\S+@\S+\.\S+$/.test(email))return {error:'メールアドレスを確認してください。'};
     const {data:survey}=await supabase.from('surveys').select('id').eq('id',surveyId).maybeSingle();
     if(!survey)return {error:'この案件を共有する権限がありません。'};
+    const now=new Date().toISOString();
+    await supabase.from('survey_invitations').update({status:'expired'}).eq('survey_id',surveyId).eq('email',email).eq('status','pending').lte('expires_at',now);
     const {data:invitation,error}=await supabase.from('survey_invitations').insert({survey_id:surveyId,email,permission:'viewer',invited_by:user.id}).select('id').single();
     if(error||!invitation)return {error:error?.code==='23505'?'このメールアドレスは招待済みです。':'招待を登録できませんでした。'};
     const admin=createAdminClient();
@@ -29,7 +31,12 @@ export async function inviteViewerAction(surveyId:string,_:unknown,formData:Form
       return {success:'既存ユーザーへ閲覧権限を付与しました。'};
     }
     const {error:inviteError}=await admin.auth.admin.inviteUserByEmail(email,{redirectTo:`${appUrl()}/auth/confirm?next=/admin`});
-    if(inviteError){await supabase.from('survey_invitations').delete().eq('id',invitation.id);return {error:'招待メールを送信できませんでした。設定を確認してください。'};}
+    if(inviteError){
+      // The auth trigger no longer creates membership. Removing this invitation
+      // therefore leaves no survey access even if Auth created a user first.
+      await admin.from('survey_invitations').delete().eq('id',invitation.id);
+      return {error:'招待メールを送信できませんでした。設定を確認してください。'};
+    }
     revalidatePath(`/admin/surveys/${surveyId}/sharing`);revalidatePath('/admin/invitations');
     return {success:'招待メールを送信しました。'};
   }catch(error){return {error:error instanceof Error?error.message:'招待に失敗しました。'};}
@@ -37,6 +44,22 @@ export async function inviteViewerAction(surveyId:string,_:unknown,formData:Form
 
 export async function suspendInvitationAction(invitationId:string){
   try{const {supabase}=await actor();const {data,error}=await supabase.from('survey_invitations').update({status:'suspended'}).eq('id',invitationId).select('survey_id,invited_user_id').single();if(error||!data)return {error:'アクセスを停止できませんでした。'};if(data.invited_user_id)await supabase.from('survey_members').delete().eq('survey_id',data.survey_id).eq('user_id',data.invited_user_id);revalidatePath('/admin/invitations');revalidatePath(`/admin/surveys/${data.survey_id}/sharing`);return {success:'アクセスを停止しました。'};}catch{return {error:'アクセスを停止できませんでした。'};}
+}
+
+export async function resendInvitationAction(invitationId:string){
+  try{
+    const {supabase}=await actor();
+    const {data:invitation}=await supabase.from('survey_invitations').select('id,email,survey_id').eq('id',invitationId).single();
+    if(!invitation)return {error:'招待が見つかりません。'};
+    const admin=createAdminClient();
+    const {error:inviteError}=await admin.auth.admin.inviteUserByEmail(invitation.email,{redirectTo:`${appUrl()}/auth/confirm?next=/admin`});
+    if(inviteError)return {error:'招待メールを再送できませんでした。'};
+    const expiresAt=new Date(Date.now()+24*60*60*1000).toISOString();
+    const {error}=await supabase.from('survey_invitations').update({status:'pending',expires_at:expiresAt,accepted_at:null,invited_user_id:null}).eq('id',invitationId);
+    if(error)return {error:'招待状態を更新できませんでした。'};
+    revalidatePath('/admin/invitations');revalidatePath(`/admin/surveys/${invitation.survey_id}/sharing`);
+    return {success:'招待メールを再送しました。'};
+  }catch{return {error:'招待メールを再送できませんでした。'};}
 }
 
 export async function deleteInvitationAction(invitationId:string){

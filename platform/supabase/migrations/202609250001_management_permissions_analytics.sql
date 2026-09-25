@@ -56,7 +56,10 @@ $$;
 
 create or replace function private.can_view_survey_for(p_survey_id uuid, p_user_id uuid)
 returns boolean language sql stable security definer set search_path = '' as $$
-  select p_user_id is not null and (
+  select exists (
+    select 1 from public.profiles
+    where id = p_user_id and is_active = true
+  ) and (
     private.is_admin_user(p_user_id)
     or exists (
       select 1 from public.surveys
@@ -71,7 +74,10 @@ $$;
 
 create or replace function private.can_edit_survey_for(p_survey_id uuid, p_user_id uuid)
 returns boolean language sql stable security definer set search_path = '' as $$
-  select p_user_id is not null and (
+  select exists (
+    select 1 from public.profiles
+    where id = p_user_id and is_active = true
+  ) and (
     private.is_admin_user(p_user_id)
     or exists (
       select 1 from public.surveys
@@ -84,12 +90,28 @@ returns boolean language sql stable security definer set search_path = '' as $$
   )
 $$;
 
+create or replace function private.can_manage_survey_members_for(p_survey_id uuid, p_user_id uuid)
+returns boolean language sql stable security definer set search_path = '' as $$
+  select exists (
+    select 1 from public.profiles
+    where id = p_user_id and is_active = true
+  ) and (
+    private.is_admin_user(p_user_id)
+    or exists (
+      select 1 from public.surveys
+      where id = p_survey_id and owner_user_id = p_user_id
+    )
+  )
+$$;
+
 revoke all on function private.is_admin_user(uuid) from public, anon;
 revoke all on function private.can_view_survey_for(uuid, uuid) from public, anon;
 revoke all on function private.can_edit_survey_for(uuid, uuid) from public, anon;
+revoke all on function private.can_manage_survey_members_for(uuid, uuid) from public, anon;
 grant execute on function private.is_admin_user(uuid) to authenticated;
 grant execute on function private.can_view_survey_for(uuid, uuid) to authenticated;
 grant execute on function private.can_edit_survey_for(uuid, uuid) to authenticated;
+grant execute on function private.can_manage_survey_members_for(uuid, uuid) to authenticated;
 
 create or replace function public.can_view_survey(p_survey_id uuid)
 returns boolean language sql stable security invoker set search_path = '' as $$
@@ -104,6 +126,13 @@ revoke all on function public.can_edit_survey(uuid) from public, anon;
 grant execute on function public.can_view_survey(uuid) to authenticated;
 grant execute on function public.can_edit_survey(uuid) to authenticated;
 
+create or replace function public.can_manage_survey_members(p_survey_id uuid)
+returns boolean language sql stable security invoker set search_path = '' as $$
+  select private.can_manage_survey_members_for(p_survey_id, (select auth.uid()))
+$$;
+revoke all on function public.can_manage_survey_members(uuid) from public, anon;
+grant execute on function public.can_manage_survey_members(uuid) to authenticated;
+
 alter table public.survey_members enable row level security;
 alter table public.survey_invitations enable row level security;
 revoke all on table public.survey_members, public.survey_invitations from anon;
@@ -112,30 +141,30 @@ grant select, insert, update, delete on table public.survey_members, public.surv
 create policy survey_members_read on public.survey_members for select to authenticated
 using (private.can_view_survey_for(survey_id, (select auth.uid())));
 create policy survey_members_insert on public.survey_members for insert to authenticated
-with check (private.can_edit_survey_for(survey_id, (select auth.uid())));
+with check (private.can_manage_survey_members_for(survey_id, (select auth.uid())));
 create policy survey_members_update on public.survey_members for update to authenticated
-using (private.can_edit_survey_for(survey_id, (select auth.uid())))
-with check (private.can_edit_survey_for(survey_id, (select auth.uid())));
+using (private.can_manage_survey_members_for(survey_id, (select auth.uid())))
+with check (private.can_manage_survey_members_for(survey_id, (select auth.uid())));
 create policy survey_members_delete on public.survey_members for delete to authenticated
-using (private.can_edit_survey_for(survey_id, (select auth.uid())));
+using (private.can_manage_survey_members_for(survey_id, (select auth.uid())));
 
 create policy profiles_shared_member_read on public.profiles for select to authenticated using (
   exists (
     select 1 from public.survey_members sm
     where sm.user_id = profiles.id
-      and private.can_edit_survey_for(sm.survey_id, (select auth.uid()))
+      and private.can_manage_survey_members_for(sm.survey_id, (select auth.uid()))
   )
 );
 
 create policy survey_invitations_read on public.survey_invitations for select to authenticated
-using (private.is_admin_user((select auth.uid())) or private.can_edit_survey_for(survey_id, (select auth.uid())));
+using (private.can_manage_survey_members_for(survey_id, (select auth.uid())));
 create policy survey_invitations_insert on public.survey_invitations for insert to authenticated
-with check (private.can_edit_survey_for(survey_id, (select auth.uid())) and invited_by = (select auth.uid()));
+with check (private.can_manage_survey_members_for(survey_id, (select auth.uid())) and invited_by = (select auth.uid()));
 create policy survey_invitations_update on public.survey_invitations for update to authenticated
-using (private.is_admin_user((select auth.uid())) or private.can_edit_survey_for(survey_id, (select auth.uid())))
-with check (private.is_admin_user((select auth.uid())) or private.can_edit_survey_for(survey_id, (select auth.uid())));
+using (private.can_manage_survey_members_for(survey_id, (select auth.uid())))
+with check (private.can_manage_survey_members_for(survey_id, (select auth.uid())));
 create policy survey_invitations_delete on public.survey_invitations for delete to authenticated
-using (private.is_admin_user((select auth.uid())) or private.can_edit_survey_for(survey_id, (select auth.uid())));
+using (private.can_manage_survey_members_for(survey_id, (select auth.uid())));
 
 drop policy if exists surveys_staff_all on public.surveys;
 create policy surveys_read on public.surveys for select to authenticated
@@ -214,14 +243,8 @@ begin
   end if;
   insert into public.profiles(id,name,email,role,is_active)
   values(new.id, coalesce(new.raw_user_meta_data->>'name',''), coalesce(new.email,''), case when v_internal then 'sales'::public.user_role else 'viewer'::public.user_role end, true);
-  if not v_internal then
-    insert into public.survey_members(survey_id,user_id,permission,invited_by)
-    select survey_id,new.id,permission,invited_by from public.survey_invitations
-    where email = lower(trim(new.email)) and status = 'pending' and expires_at > now()
-    on conflict (survey_id,user_id) do update set permission = excluded.permission, updated_at = now();
-    update public.survey_invitations set status='accepted',invited_user_id=new.id,accepted_at=now()
-    where email=lower(trim(new.email)) and status='pending' and expires_at > now();
-  end if;
+  -- Membership and accepted state are created only after verifyOtp succeeds in
+  -- /auth/confirm. auth.users creation alone is not acceptance.
   return new;
 end
 $$;

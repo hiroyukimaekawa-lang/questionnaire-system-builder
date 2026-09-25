@@ -1,6 +1,6 @@
 import {NextResponse} from 'next/server';
 import {z} from 'zod';
-import {createClient} from '@/lib/supabase/server';
+import {createPublicClient} from '@/lib/supabase/public';
 import {getPublicSurvey} from '@/lib/data';
 import {validateAnswers} from '@/lib/survey';
 import {evaluateCompletionRules} from '@/lib/completion';
@@ -26,7 +26,7 @@ export async function POST(request:Request){
     const reviewEligible=evaluateGoogleReviewEligibility(config,publicSurvey.version.questions,input.answers);
     const syncToken=crypto.randomUUID();
     const submittedAt=new Date().toISOString();
-    const s=await createClient();
+    const s=createPublicClient();
     const {data,error}=await s.rpc('submit_survey_response',{
       p_slug:input.slug,
       p_version_id:input.versionId,
