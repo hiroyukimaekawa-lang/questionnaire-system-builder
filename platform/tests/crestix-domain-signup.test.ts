@@ -6,7 +6,7 @@ import {isCrestixEmail} from '../lib/auth/domain';
 
 const root=join(import.meta.dirname,'..');
 const source=(path:string)=>readFileSync(join(root,path),'utf8');
-const migration=source('supabase/migrations/202609050001_crestix_domain_auto_approval.sql');
+const migration=source('supabase/migrations/20260905092803_crestix_domain_auto_approval.sql');
 
 test('@crestix-inc.com は許可され、外部ドメインは拒否される',()=>{
   assert.equal(isCrestixEmail('futa.uoi@crestix-inc.com'),true);
