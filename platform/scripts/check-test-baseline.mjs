@@ -1,4 +1,5 @@
-import {spawnSync} from 'node:child_process';
+import {spawn} from 'node:child_process';
+import {createInterface} from 'node:readline';
 
 const knownBaseline=new Set([
   '作成保存と既存編集にhero 3項目が接続される',
@@ -7,30 +8,31 @@ const knownBaseline=new Set([
   '共通公開テンプレートは匿名OFFで親要素を省略し装飾を出力しない'
 ]);
 
-const result=spawnSync('npm',['test'],{
-  encoding:'utf8',
-  stdio:'pipe',
-  shell:false,
-  // Assertion failures include source excerpts. Linux CI can exceed Node's
-  // default 1 MiB buffer before the final TAP summary is emitted.
-  maxBuffer:32*1024*1024,
+const failures=new Set();
+let stderr='';
+const child=spawn('npm',['test'],{stdio:['ignore','pipe','pipe'],shell:false});
+const lines=createInterface({input:child.stdout});
+lines.on('line',line=>{
+  const failure=line.match(/^✖ (.+?) \(/)?.[1];
+  if(failure)failures.add(failure);
+  if(/^[✔✖]/u.test(line))console.log(line);
 });
-process.stdout.write(result.stdout??'');
-process.stderr.write(result.stderr??'');
+child.stderr.on('data',chunk=>{
+  if(stderr.length<64*1024)stderr+=chunk.toString();
+});
 
-if(result.error){
-  console.error(`Application test process failed: ${result.error.message}`);
+const {code,error}=await new Promise(resolve=>{
+  child.on('error',error=>resolve({code:null,error}));
+  child.on('close',code=>resolve({code,error:null}));
+});
+
+if(error){
+  console.error(`Application test process failed: ${error.message}`);
   process.exit(1);
 }
+if(stderr)process.stderr.write(stderr);
+if(code===0)process.exit(0);
 
-if(result.status===0)process.exit(0);
-
-const failures=new Set(
-  (result.stdout??'')
-    .split(/\r?\n/)
-    .map(line=>line.match(/^✖ (.+?) \(/)?.[1])
-    .filter(Boolean)
-);
 const regressions=[...failures].filter(name=>!knownBaseline.has(name));
 
 if(failures.size>0&&regressions.length===0){
@@ -39,4 +41,4 @@ if(failures.size>0&&regressions.length===0){
 }
 
 console.error(`New or unclassified test failures: ${regressions.join(', ')||'unable to classify test output'}`);
-process.exit(result.status??1);
+process.exit(code??1);
