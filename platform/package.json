@@ -12,6 +12,8 @@
     "preview": "opennextjs-cloudflare build && opennextjs-cloudflare preview",
     "deploy": "node scripts/check-production.mjs && opennextjs-cloudflare build && opennextjs-cloudflare deploy",
     "upload": "node scripts/check-production.mjs && opennextjs-cloudflare build && opennextjs-cloudflare upload",
+    "deploy:staging": "node scripts/check-staging.mjs && opennextjs-cloudflare build --config wrangler.staging.jsonc && opennextjs-cloudflare deploy --config wrangler.staging.jsonc",
+    "upload:staging": "node scripts/check-staging.mjs && opennextjs-cloudflare build --config wrangler.staging.jsonc && opennextjs-cloudflare upload --config wrangler.staging.jsonc",
     "deploy:crestix-worker": "npm run deploy",
     "cf-typegen": "wrangler types --env-interface CloudflareEnv cloudflare-env.d.ts"
   },

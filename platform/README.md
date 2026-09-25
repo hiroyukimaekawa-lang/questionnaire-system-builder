@@ -118,6 +118,51 @@ npx opennextjs-cloudflare build
 
 Supabaseは `acfheksrpwdbxoahnwit` を使用します。旧Workerも同じプロジェクトを参照していたためデータ移行は不要です。WorkerにはASSETSと自己参照のService bindingだけがあり、アンケート・回答の正本はSupabaseです。旧WorkerはGit連携解除後に公開アクセスを停止し、復旧用に保持できます。
 
+## Staging環境
+
+StagingはProductionのSupabase Branchではなく、別Project `questionsystem-staging` と別Worker `questionnaire-staging` で構築します。Productionデータはコピーせず、migrationと人工テストデータだけで再現します。
+
+```text
+Supabase: questionsystem-staging
+Worker: questionnaire-staging
+URL: https://questionnaire-staging.survey-system.workers.dev
+```
+
+新しいSupabase Projectを作成したら、`supabase/migrations/` をtimestamp順に最初から適用し、必要なテストユーザー・Survey・Responseだけを投入します。本番用 `seed.sql` はStagingの権限試験データとしては使用せず、実在する医院・患者回答も複製しません。
+
+ローカルのStagingデプロイ設定は、追跡対象外の `.env.staging.local` に保存します。
+
+```bash
+cd platform
+cp .env.staging.example .env.staging.local
+# Staging Project作成後、URL・public key・service role key・project refを設定
+npm run deploy:staging
+```
+
+`check-staging.mjs` は次をすべて検証し、不一致ならデプロイを停止します。
+
+- Worker名と自己参照bindingが `questionnaire-staging`
+- Cloudflare AccountがProductionと同じsurvey account
+- App URLが `https://questionnaire-staging.survey-system.workers.dev`
+- Supabase URLが `STAGING_SUPABASE_PROJECT_REF` と一致
+- Production Project ref `acfheksrpwdbxoahnwit` を使用していない
+- public keyとStaging専用service role keyが設定済み
+
+Production用 `npm run deploy` / `check-production.mjs` は変更せず、Production guardを緩めません。
+
+Supabase AuthはStaging側だけで次を設定します。
+
+- Email OTP Expiration: `86400`
+- Site URL: `https://questionnaire-staging.survey-system.workers.dev`
+- Redirect Allow List: `https://questionnaire-staging.survey-system.workers.dev/auth/confirm` と `/admin/account/update-password`
+- Invitation / Recovery template: `token_hash` をStagingの `/auth/confirm` へ渡す
+
+CloudflareのBuild VariablesとRuntime Variablesには、Staging Supabaseの `NEXT_PUBLIC_SUPABASE_URL`、`NEXT_PUBLIC_SUPABASE_ANON_KEY`、`SUPABASE_SERVICE_ROLE_KEY` とStaging URLを設定します。Service role keyはserver-onlyで、`NEXT_PUBLIC_` prefixを付けません。
+
+Google SheetsはProduction Sheetへ接続しません。`GOOGLE_SHEETS_WEBHOOK_URL` と `GOOGLE_SHEETS_WEBHOOK_SECRET` は専用Test SheetのApps Script値を設定し、回答保存から `google_sheets_sync_queue = synced` までを確認します。Test Sheetを用意するまでは両方を未設定にして同期を無効化します。
+
+Stagingでの確認順は、全migration適用、通常login、ADMIN/STAFF/VIEWERのRLS、外部メール招待、CSV 403、アクセス停止、公開回答、Test Sheet同期、Analytics RPC、Security Advisorです。すべて通るまでProduction migrationとProduction deployは行いません。
+
 一覧は `surveys_draft_fk` で下書きを取得します。存在しない外部キー名でPGRST200になった場合も0件にせず、ログと再試行可能なエラー画面を表示します。「すべて」は正式アンケート（archived以外）、「作成途中」はbuilder_sessionsのみです。公開RPC成功後はSurveyを再取得し、公開状態・公開版ID・公開日時を検証します。
 
 Supabaseの外部PostgreSQLへ直接接続せずHTTPS APIを使うため、Hyperdriveは不要です。店舗追加や質問変更はDBの下書きと公開操作で完結し、再デプロイは不要です。
