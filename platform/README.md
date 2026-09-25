@@ -28,7 +28,7 @@ NEXT_PUBLIC_SUPABASE_ANON_KEY=
 NEXT_PUBLIC_APP_URL=http://localhost:3000
 ```
 
-Productionでは `NEXT_PUBLIC_APP_URL=https://questionnaire.survey-system.workers.dev` に固定します。Service Role Keyは通常処理では不要で、ブラウザへ絶対に公開しません。
+Productionでは `NEXT_PUBLIC_APP_URL=https://questionnaire.survey-system.workers.dev` に固定します。InvitationとGoogle Sheets同期結果更新ではService Role Keyをserver-onlyで使用します。ブラウザへ絶対に公開せず、`NEXT_PUBLIC_` prefixも付けません。
 
 Supabase DashboardではSite URLを正式Worker URL、Redirect URLsを `/auth/confirm` と `/admin/account/update-password` の正式Worker URLに設定します。Recovery templateは `token_hash`、`type=recovery`、内部 `next` を `/auth/confirm` へ渡すPKCE/OTP形式にします。詳細は [SECURITY_REVIEW.md](./SECURITY_REVIEW.md) を参照してください。
 
@@ -98,9 +98,11 @@ Cloudflare DashboardのGit連携ビルドでは、以下3つを **Runtime Variab
 - `NEXT_PUBLIC_SUPABASE_ANON_KEY`
 - `NEXT_PUBLIC_APP_URL`
 
+さらに `SUPABASE_SERVICE_ROLE_KEY` を **Runtime Secretだけ** に設定します。Build Variableや通常のRuntime Variableには保存せず、`NEXT_PUBLIC_` prefixも付けません。
+
 Build Variablesはビルド時（`npx opennextjs-cloudflare build`）専用で、Next.jsのビルド出力に埋め込まれます。Runtime Variablesはデプロイ後にWorkerが実行時に参照する値です。
 
-Cloudflareの仕様上、Dashboard側で管理したRuntime Variablesは `wrangler deploy` 実行時に上書き・削除される可能性があるため、`wrangler.jsonc` に `keep_vars: true` を設定し、Git自動デプロイのたびにRuntime Variablesが消えないようにしています。公開URLとプロジェクトIDはデプロイ検証に固定し、キーは環境変数で渡します。`SUPABASE_SERVICE_ROLE_KEY` はこのアプリでは不要なため設定しません（公開クライアントに渡してはいけないため）。
+Cloudflareの仕様上、Dashboard側で管理したRuntime Variablesは `wrangler deploy` 実行時に上書き・削除される可能性があるため、`wrangler.jsonc` に `keep_vars: true` を設定し、Git自動デプロイのたびにRuntime VariablesやRuntime Secretが消えないようにしています。公開URLとプロジェクトIDはデプロイ検証に固定し、キーは環境変数で渡します。Production guardはpublic URL・public keyに加えて `SUPABASE_SERVICE_ROLE_KEY` も必須確認します。
 
 ```bash
 cd platform
@@ -120,7 +122,9 @@ Supabaseは `acfheksrpwdbxoahnwit` を使用します。旧Workerも同じプロ
 
 ## Staging環境
 
-StagingはProductionのSupabase Branchではなく、別Project `questionsystem-staging` と別Worker `questionnaire-staging` で構築します。Productionデータはコピーせず、migrationと人工テストデータだけで再現します。
+Staging環境は任意です。現在は `questionsystem-staging` ProjectをProvisionしておらず、追加費用も発生させません。当面はローカルSupabaseで全migration・RLS・現行main互換性を確認してから、Production DB migrationとアプリdeployを分離して段階反映します。
+
+将来Stagingを常設する場合に限り、ProductionのSupabase Branchではなく、別Project `questionsystem-staging` と別Worker `questionnaire-staging` を使います。以下の設定ファイルはその将来利用のために保持しています。
 
 ```text
 Supabase: questionsystem-staging
