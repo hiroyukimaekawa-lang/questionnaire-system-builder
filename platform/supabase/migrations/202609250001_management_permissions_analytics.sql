@@ -283,8 +283,8 @@ begin
     'responseCount',(select count(*) from filtered),
     'todayCount',(select count(*) from filtered where (submitted_at at time zone 'Asia/Tokyo')::date=(now() at time zone 'Asia/Tokyo')::date),
     'averageScore',(select round(avg(value_number),2) from rating_answers),
-    'daily',coalesce((select jsonb_agg(jsonb_build_object('date',day,'count',count) order by day) from (select (submitted_at at time zone 'Asia/Tokyo')::date day,count(*) count from filtered group by 1) d),'[]'::jsonb),
-    'scoreDistribution',coalesce((select jsonb_agg(jsonb_build_object('score',score,'count',count) order by score desc) from (select value_number score,count(*) count from rating_answers group by 1) s),'[]'::jsonb),
+    'daily',coalesce((select jsonb_agg(jsonb_build_object('date',daily.bucket_date,'count',daily.response_count) order by daily.bucket_date) from (select (submitted_at at time zone 'Asia/Tokyo')::date as bucket_date,count(*) as response_count from filtered group by 1) daily),'[]'::jsonb),
+    'scoreDistribution',coalesce((select jsonb_agg(jsonb_build_object('score',distribution.score_value,'count',distribution.response_count) order by distribution.score_value desc) from (select value_number as score_value,count(*) as response_count from rating_answers group by 1) distribution),'[]'::jsonb),
     'latest',coalesce((select jsonb_agg(row_data order by submitted_at desc) from (select submitted_at,jsonb_build_object('id',id,'submittedAt',submitted_at,'totalScore',total_score,'averageScore',average_score) row_data from filtered order by submitted_at desc limit 5) l),'[]'::jsonb)
   ) into result;
   return result;
