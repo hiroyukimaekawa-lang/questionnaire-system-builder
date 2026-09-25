@@ -11,6 +11,10 @@ test('公開アンケートはCookieを持たないanon clientを使う',async()
 
 test('メンバー管理はadminまたはownerに限定する',async()=>{const sql=await read('../supabase/migrations/202609250001_management_permissions_analytics.sql');assert.match(sql,/private\.can_manage_survey_members_for/);assert.match(sql,/survey_members_insert[\s\S]*can_manage_survey_members_for/);assert.match(sql,/survey_invitations_insert[\s\S]*can_manage_survey_members_for/)});
 
+test('Builder sessionもinactive userをRLSで拒否する',async()=>{const sql=await read('../supabase/migrations/202609250001_management_permissions_analytics.sql');assert.match(sql,/builder_sessions_read[\s\S]*private\.is_active_user/);assert.match(sql,/builder_sessions_write[\s\S]*private\.is_active_user/)});
+
+test('Google Sheets同期結果はserver service roleだけが更新する',async()=>{const [sql,route]=await Promise.all([read('../supabase/migrations/202609250001_management_permissions_analytics.sql'),read('../app/api/responses/route.ts')]);assert.match(sql,/revoke execute on function public\.mark_google_sheets_sync_result\(uuid,text,text,text\) from anon, authenticated/);assert.match(sql,/grant execute on function public\.mark_google_sheets_sync_result\(uuid,text,text,text\) to service_role/);assert.match(route,/createAdminClient\(\)\.rpc\('mark_google_sheets_sync_result'/)});
+
 test('分析はRPCでAsia Tokyo集計しブラウザへ全回答を送らない',async()=>{const [sql,page]=await Promise.all([read('../supabase/migrations/202609250001_management_permissions_analytics.sql'),read('../app/admin/manage/[id]/analytics/page.tsx')]);assert.match(sql,/get_survey_analytics/);assert.match(sql,/at time zone 'Asia\/Tokyo'/);assert.match(page,/\.rpc\('get_survey_analytics'/)});
 
 test('回答一覧は50件ページングで旧500件固定を使わない',async()=>{const source=await read('../lib/responses.ts');assert.match(source,/pageSize=50/);assert.match(source,/\.range\(from,from\+pageSize-1\)/);assert.doesNotMatch(source,/\.limit\(500\)/)});

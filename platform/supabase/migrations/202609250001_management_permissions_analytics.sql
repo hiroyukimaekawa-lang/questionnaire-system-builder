@@ -46,6 +46,14 @@ for each row execute function public.touch_updated_at();
 create schema if not exists private;
 grant usage on schema private to authenticated;
 
+create or replace function private.is_active_user(p_user_id uuid)
+returns boolean language sql stable security definer set search_path = '' as $$
+  select exists (
+    select 1 from public.profiles
+    where id = p_user_id and is_active = true
+  )
+$$;
+
 create or replace function private.is_admin_user(p_user_id uuid)
 returns boolean language sql stable security definer set search_path = '' as $$
   select exists (
@@ -56,10 +64,7 @@ $$;
 
 create or replace function private.can_view_survey_for(p_survey_id uuid, p_user_id uuid)
 returns boolean language sql stable security definer set search_path = '' as $$
-  select exists (
-    select 1 from public.profiles
-    where id = p_user_id and is_active = true
-  ) and (
+  select private.is_active_user(p_user_id) and (
     private.is_admin_user(p_user_id)
     or exists (
       select 1 from public.surveys
@@ -74,10 +79,7 @@ $$;
 
 create or replace function private.can_edit_survey_for(p_survey_id uuid, p_user_id uuid)
 returns boolean language sql stable security definer set search_path = '' as $$
-  select exists (
-    select 1 from public.profiles
-    where id = p_user_id and is_active = true
-  ) and (
+  select private.is_active_user(p_user_id) and (
     private.is_admin_user(p_user_id)
     or exists (
       select 1 from public.surveys
@@ -92,10 +94,7 @@ $$;
 
 create or replace function private.can_manage_survey_members_for(p_survey_id uuid, p_user_id uuid)
 returns boolean language sql stable security definer set search_path = '' as $$
-  select exists (
-    select 1 from public.profiles
-    where id = p_user_id and is_active = true
-  ) and (
+  select private.is_active_user(p_user_id) and (
     private.is_admin_user(p_user_id)
     or exists (
       select 1 from public.surveys
@@ -104,10 +103,12 @@ returns boolean language sql stable security definer set search_path = '' as $$
   )
 $$;
 
+revoke all on function private.is_active_user(uuid) from public, anon;
 revoke all on function private.is_admin_user(uuid) from public, anon;
 revoke all on function private.can_view_survey_for(uuid, uuid) from public, anon;
 revoke all on function private.can_edit_survey_for(uuid, uuid) from public, anon;
 revoke all on function private.can_manage_survey_members_for(uuid, uuid) from public, anon;
+grant execute on function private.is_active_user(uuid) to authenticated;
 grant execute on function private.is_admin_user(uuid) to authenticated;
 grant execute on function private.can_view_survey_for(uuid, uuid) to authenticated;
 grant execute on function private.can_edit_survey_for(uuid, uuid) to authenticated;
@@ -218,12 +219,18 @@ create policy answers_member_read on public.response_answers for select to authe
 
 drop policy if exists builder_sessions_own on public.builder_sessions;
 create policy builder_sessions_read on public.builder_sessions for select to authenticated using (
-  user_id = (select auth.uid()) or public.is_admin() or (survey_id is not null and private.can_edit_survey_for(survey_id, (select auth.uid())))
+  private.is_active_user((select auth.uid())) and (
+    user_id = (select auth.uid()) or public.is_admin() or (survey_id is not null and private.can_edit_survey_for(survey_id, (select auth.uid())))
+  )
 );
 create policy builder_sessions_write on public.builder_sessions for all to authenticated using (
-  user_id = (select auth.uid()) or public.is_admin() or (survey_id is not null and private.can_edit_survey_for(survey_id, (select auth.uid())))
+  private.is_active_user((select auth.uid())) and (
+    user_id = (select auth.uid()) or public.is_admin() or (survey_id is not null and private.can_edit_survey_for(survey_id, (select auth.uid())))
+  )
 ) with check (
-  user_id = (select auth.uid()) or public.is_admin() or (survey_id is not null and private.can_edit_survey_for(survey_id, (select auth.uid())))
+  private.is_active_user((select auth.uid())) and (
+    user_id = (select auth.uid()) or public.is_admin() or (survey_id is not null and private.can_edit_survey_for(survey_id, (select auth.uid())))
+  )
 );
 
 -- Invitation-aware profile creation: Crestix signups stay unchanged; external
@@ -286,4 +293,5 @@ $$;
 revoke all on function public.get_survey_analytics(uuid,timestamptz,timestamptz,uuid) from public, anon;
 grant execute on function public.get_survey_analytics(uuid,timestamptz,timestamptz,uuid) to authenticated;
 
-revoke execute on function public.mark_google_sheets_sync_result(uuid,text,text,text) from anon;
+revoke execute on function public.mark_google_sheets_sync_result(uuid,text,text,text) from anon, authenticated;
+grant execute on function public.mark_google_sheets_sync_result(uuid,text,text,text) to service_role;

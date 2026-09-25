@@ -1,6 +1,7 @@
 import {NextResponse} from 'next/server';
 import {z} from 'zod';
 import {createPublicClient} from '@/lib/supabase/public';
+import {createAdminClient} from '@/lib/supabase/admin';
 import {getPublicSurvey} from '@/lib/data';
 import {validateAnswers} from '@/lib/survey';
 import {evaluateCompletionRules} from '@/lib/completion';
@@ -53,7 +54,7 @@ export async function POST(request:Request){
     const syncResult=await sendGoogleSheetsPayload(payload);
 
     if(syncResult.attempted){
-      const {error:syncStateError}=await s.rpc('mark_google_sheets_sync_result',{
+      const {error:syncStateError}=await createAdminClient().rpc('mark_google_sheets_sync_result',{
         p_response_id:responseId,
         p_sync_token:syncToken,
         p_status:syncResult.ok?'synced':'failed',
