@@ -13,6 +13,17 @@ npm run dev
 
 `http://localhost:3000/login` を開きます。本番はCloudflare Worker `questionnaire` へ直接配備します。実際の `workers.dev` URLは初回deploy後に確定します。
 
+ローカルSupabaseは、リポジトリに固定したCLIとDocker互換runtimeを使います。Productionへの `supabase link` / `supabase db push` は、リリース承認前のローカル検証では実行しません。
+
+```bash
+cd platform
+npm install
+npm run supabase:start
+npm run supabase:reset
+```
+
+`supabase/config.toml` はlocalhostだけを対象とし、Email OTP ExpirationをProductionと同じ `86400` 秒、redirect先をローカルの `/auth/confirm` と `/admin/account/update-password` に設定しています。初回起動はコンテナイメージ取得に時間とディスク容量を使います。
+
 ## Supabase準備とmigration
 
 1. Supabaseプロジェクトを1つ作成します。
