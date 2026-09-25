@@ -10,7 +10,10 @@ const knownBaseline=new Set([
 
 const failures=new Set();
 let stderr='';
-const child=spawn('npm',['test'],{stdio:['ignore','pipe','pipe'],shell:false});
+const child=spawn('npm',['test','--','--test-reporter=spec'],{
+  stdio:['ignore','pipe','pipe'],
+  shell:false,
+});
 const lines=createInterface({input:child.stdout});
 lines.on('line',line=>{
   const failure=line.match(/^✖ (.+?) \(/)?.[1];
