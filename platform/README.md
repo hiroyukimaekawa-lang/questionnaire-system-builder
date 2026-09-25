@@ -20,9 +20,17 @@ cd platform
 npm install
 npm run supabase:start
 npm run supabase:reset
+npm run supabase:test
+npm run supabase:lint
 ```
 
 `supabase/config.toml` はlocalhostだけを対象とし、Email OTP ExpirationをProductionと同じ `86400` 秒、redirect先をローカルの `/auth/confirm` と `/admin/account/update-password` に設定しています。初回起動はコンテナイメージ取得に時間とディスク容量を使います。
+
+ローカルDockerを利用できない環境でも、`.github/workflows/database-tests.yml` がPull RequestごとにGitHub Actions runner内だけでSupabaseを起動します。Production Project refやProduction secretはWorkflowへ渡さず、全migrationの再構築、`supabase/tests/database/` のpgTAP RLSテスト、DB lint、アプリのtest・lint・typecheck・buildを実行します。
+
+CIでは既存の店舗seedを投入せず、pgTAP test自身がtransaction内にADMIN・STAFF・VIEWER・inactive・Survey A/Bの人工データを作成して最後にrollbackします。
+
+アプリテストは既知のbaseline 4件だけを一時的に許容する `npm run test:ci` を使用します。未知の失敗が1件でも追加された場合はCIを失敗させ、既知の失敗が修正されて減ることは許容します。
 
 ## Supabase準備とmigration
 

@@ -73,3 +73,18 @@ test('production guard requires the production project and server-only service r
   assert.notEqual(wrongProject.status,0);
   assert.match(wrongProject.stderr,/production Supabase public URL/);
 });
+
+test('database CI is local-only and never links or pushes to production',async()=>{
+  const [workflow,rlsTest]=await Promise.all([
+    readFile(new URL('../../.github/workflows/database-tests.yml',import.meta.url),'utf8'),
+    readFile(new URL('../supabase/tests/database/management_rls.test.sql',import.meta.url),'utf8')
+  ]);
+  assert.match(workflow,/supabase start/);
+  assert.match(workflow,/supabase test db/);
+  assert.match(workflow,/supabase db lint --local/);
+  assert.doesNotMatch(workflow,/supabase link|supabase db push|acfheksrpwdbxoahnwit/);
+  assert.match(rlsTest,/set local role authenticated/);
+  assert.match(rlsTest,/set local role anon/);
+  assert.match(rlsTest,/inactive user reads no surveys/);
+  assert.match(rlsTest,/VIEWER_A cannot edit Survey A/);
+});
