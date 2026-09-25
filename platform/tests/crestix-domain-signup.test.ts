@@ -76,13 +76,15 @@ test('signup直後にセッションがあれば/adminへ遷移し、なけれ�
   assert.match(signup,/登録が完了しました。そのままログインしてアンケートシステムを利用できます。/);
 });
 
-test('/adminのlayoutとpageはsurveys\\/builder_sessionsをそれぞれ重複取得せず、cache済みのgetAdminSurveys等を共有する',()=>{
+test('/adminのlayoutとホームは直接clientを作らずデータ層を共有する',()=>{
   const layout=source('app/admin/layout.tsx'),page=source('app/admin/page.tsx');
   assert.doesNotMatch(layout,/createClient/);
   assert.doesNotMatch(page,/createClient/);
   assert.match(layout,/getAdminSurveys\(\),getAdminBuilderSessions\(\)/);
-  assert.match(page,/getAdminSurveys\(\),getAdminBuilderSessions\(\)/);
+  assert.match(page,/getHomeSummary\(\)/);
   const dataLib=source('lib/data.ts');
+  const management=source('lib/management.ts');
   assert.match(dataLib,/export const getAdminSurveys = cache\(/);
   assert.match(dataLib,/export const getAdminBuilderSessions = cache\(/);
+  assert.match(management,/export async function getHomeSummary/);
 });
