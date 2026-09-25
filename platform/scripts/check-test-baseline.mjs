@@ -1,4 +1,5 @@
 import {spawn} from 'node:child_process';
+import {globSync} from 'node:fs';
 import {createInterface} from 'node:readline';
 
 const knownBaseline=new Set([
@@ -10,7 +11,13 @@ const knownBaseline=new Set([
 
 const failures=new Set();
 let stderr='';
-const child=spawn('npm',['test','--','--test-reporter=spec'],{
+const testFiles=globSync('tests/**/*.test.ts');
+const child=spawn(process.execPath,[
+  '--test-reporter=spec',
+  '--import','tsx',
+  '--test',
+  ...testFiles,
+],{
   stdio:['ignore','pipe','pipe'],
   shell:false,
   env:{...process.env,NO_COLOR:'1',FORCE_COLOR:'0'},
