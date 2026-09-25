@@ -35,6 +35,12 @@ export async function getSurveyMembers(surveyId:string){
   return requireQueryData(data,error,'survey_members.list');
 }
 
+export async function getViewerVisibleSurveyIds(limit=2){
+  const supabase=await createClient();
+  const {data,error}=await supabase.from('surveys').select('id').limit(limit);
+  return requireQueryData(data,error,'surveys.viewer');
+}
+
 export async function getInvitations(surveyId?:string){
   const supabase=await createClient();
   let query=supabase.from('survey_invitations').select('id,email,permission,status,expires_at,created_at,survey:surveys(id,name),inviter:profiles!survey_invitations_invited_by_fkey(name,email)').order('created_at',{ascending:false});
