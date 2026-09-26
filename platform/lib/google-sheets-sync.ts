@@ -123,7 +123,7 @@ export function buildGoogleSheetsPayload({
     },
     answers: answerRows,
     events: [{
-      id: crypto.randomUUID(),
+      id: `${responseId}:response_submitted`,
       createdAt: submittedAt,
       type: 'response_submitted',
       metadata: {
@@ -138,15 +138,26 @@ export type GoogleSheetsSyncAttempt = {
   attempted: boolean;
   ok: boolean;
   error?: string;
+  httpStatus?: number;
 };
 
-export async function sendGoogleSheetsPayload(payload: GoogleSheetsPayload | GoogleSheetsStorePayload): Promise<GoogleSheetsSyncAttempt> {
-  const url = process.env.GOOGLE_SHEETS_WEBHOOK_URL?.trim();
-  const secret = process.env.GOOGLE_SHEETS_WEBHOOK_SECRET?.trim();
+export type GoogleSheetsWebhookOptions = {
+  url?: string;
+  secret?: string;
+  timeoutMs?: number;
+};
+
+export async function sendGoogleSheetsPayload(
+  payload: GoogleSheetsPayload | GoogleSheetsStorePayload,
+  options: GoogleSheetsWebhookOptions = {},
+): Promise<GoogleSheetsSyncAttempt> {
+  const runtimeEnv = typeof process === 'undefined' ? undefined : process.env;
+  const url = (options.url ?? runtimeEnv?.GOOGLE_SHEETS_WEBHOOK_URL)?.trim();
+  const secret = (options.secret ?? runtimeEnv?.GOOGLE_SHEETS_WEBHOOK_SECRET)?.trim();
   if (!url || !secret) return { attempted: false, ok: false, error: 'Google Sheets webhook is not configured.' };
 
   const controller = new AbortController();
-  const timeout = setTimeout(() => controller.abort(), 4_000);
+  const timeout = setTimeout(() => controller.abort(), options.timeoutMs ?? 4_000);
   try {
     const response = await fetch(url, {
       method: 'POST',
@@ -156,16 +167,16 @@ export async function sendGoogleSheetsPayload(payload: GoogleSheetsPayload | Goo
       signal: controller.signal,
     });
     const raw = await response.text();
-    if (!response.ok) return { attempted: true, ok: false, error: `Webhook HTTP ${response.status}: ${raw.slice(0, 300)}` };
+    if (!response.ok) return { attempted: true, ok: false, httpStatus: response.status, error: `Webhook HTTP ${response.status}: ${raw.slice(0, 300)}` };
 
     let result: { ok?: boolean; error?: string } = {};
     try {
       result = JSON.parse(raw) as { ok?: boolean; error?: string };
     } catch {
-      return { attempted: true, ok: false, error: `Webhook returned non-JSON: ${raw.slice(0, 300)}` };
+      return { attempted: true, ok: false, httpStatus: response.status, error: `Webhook returned non-JSON: ${raw.slice(0, 300)}` };
     }
-    if (result.ok !== true) return { attempted: true, ok: false, error: result.error || 'Google Sheets webhook rejected the payload.' };
-    return { attempted: true, ok: true };
+    if (result.ok !== true) return { attempted: true, ok: false, httpStatus: response.status, error: result.error || 'Google Sheets webhook rejected the payload.' };
+    return { attempted: true, ok: true, httpStatus: response.status };
   } catch (error) {
     const message = error instanceof Error ? error.message : 'Unknown Google Sheets sync error.';
     return { attempted: true, ok: false, error: message };
