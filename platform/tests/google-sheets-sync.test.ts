@@ -21,6 +21,7 @@ test('回答をGoogle Sheets用の一覧・詳細・イベントpayloadへ変換
   assert.equal(payload.answers.length,3);
   assert.deepEqual(payload.answers.slice(0,2).map(row=>row.score),[10,8]);
   assert.equal(payload.events[0].type,'response_submitted');
+  assert.equal(payload.events[0].id,'cccccccc-cccc-4ccc-8ccc-cccccccccccc:response_submitted');
 });
 
 test('評価質問がなければ平均・合計スコアはnullにする',()=>{

@@ -36,16 +36,17 @@ Survey lifecycle synchronization follows the admin state:
 - Queue writes remain server/database-only; staff can read status.
 - `Code.gs` provides an idempotent Apps Script webhook receiver.
 
-## Phase 2 — live response sync implemented
+## Phase 2 — durable asynchronous response sync
 
 The public response API now follows this order:
 
 1. Validate the answer.
 2. Save it to Supabase first.
-3. Build the Google Sheets payload from the exact published survey/version and submitted answers.
-4. POST it to the Apps Script Web App.
-5. Mark the queue row `synced` or `failed` with a server-generated one-time sync token.
-6. Return success to the respondent even when Google Sheets is temporarily unavailable.
+3. Let the database trigger create a `pending` queue row.
+4. Return HTTP 201 immediately. The response request never calls Apps Script.
+5. A separate `questionnaire-google-sheets-sync` Scheduled Worker atomically claims at most one job every minute.
+6. Rebuild the payload from the saved response, response answers, exact survey version, questions, options, config, and metadata.
+7. POST it to Apps Script with a 20-second timeout, then mark it `synced` or schedule a retry.
 
 This keeps Supabase authoritative and prevents a Sheets outage from losing questionnaire answers.
 
@@ -53,7 +54,7 @@ This keeps Supabase authoritative and prevents a Sheets outage from losing quest
 
 `GOOGLE_SHEETS_WEBHOOK_SECRET` is server-only and must never use a `NEXT_PUBLIC_` prefix.
 
-The queue status RPC requires both `response_id` and a random `googleSheetsSyncToken` stored in response metadata. The token is created on the server and is never included in the browser response, so anonymous clients cannot arbitrarily mark queue rows as synced.
+Queue mutation RPCs are revoked from `PUBLIC`, `anon`, and `authenticated`, and granted only to `service_role`. A five-minute lease and random `lock_token` prevent an expired Worker invocation from overwriting a newer attempt. Admin retry actions verify the normal session and `profile.role === admin` before creating a server-only service-role client.
 
 ### Google Apps Script one-time setup
 
@@ -70,12 +71,28 @@ Use the spreadsheet `アンケート回答データ管理`.
 
 ### Cloudflare runtime configuration
 
-Set both values on the `questionnaire` Worker as runtime secrets/variables:
+The response-serving `questionnaire` Worker no longer needs to call the webhook. Configure the separate Scheduled Worker with:
 
-- `GOOGLE_SHEETS_WEBHOOK_URL` = Apps Script `/exec` URL.
-- `GOOGLE_SHEETS_WEBHOOK_SECRET` = the secret printed by `setup()`.
+- non-secret `SUPABASE_URL` in `wrangler.google-sheets-sync.jsonc`
+- secret `SUPABASE_SERVICE_ROLE_KEY`
+- secret `GOOGLE_SHEETS_WEBHOOK_URL` (Apps Script `/exec` URL)
+- secret `GOOGLE_SHEETS_WEBHOOK_SECRET`
 
-Then redeploy `main`. The sender has a 4-second timeout. If the webhook is unavailable or misconfigured, the questionnaire response still succeeds in Supabase and the queue records the failed/pending state for recovery.
+The Worker runs once per minute with concurrency 1 and claims at most one job. Retry delays are 1, 2, 4, 8, 16, 32, 64, 128, 256, 360, and 360 minutes. Attempt 12 becomes `failed`. An administrator can retry one failed job or all failed jobs at `/admin/system/google-sheets`.
+
+### Production rollout (run separately after approval)
+
+1. Back up Production and apply `20260926120842_google_sheets_async_queue.sql`.
+2. Deploy the updated Apps Script and verify its deployment URL without resending queue data.
+3. Create the three Worker secrets with `wrangler secret put --config wrangler.google-sheets-sync.jsonc`.
+4. Deploy `questionnaire-google-sheets-sync` and confirm the cron trigger.
+5. Deploy the main application so new submissions return immediately and the Admin Queue UI becomes available.
+6. Observe one new test response through `pending → processing → synced`.
+7. Only after that smoke test, use the Admin Queue UI to retry the existing failed rows. Existing pending rows are consumed automatically.
+
+### Rollback
+
+Disable or delete only the Scheduled Worker's cron trigger first. Roll back the main application to the previous version if synchronous delivery must temporarily be restored. The additive columns/functions may remain safely in place; do not drop the queue or delete responses. Roll back Apps Script only after the Worker is stopped. Any `pending`/`failed` rows remain recoverable because Supabase is authoritative.
 
 ### Expected payload
 
@@ -111,7 +128,7 @@ Then redeploy `main`. The sender has a 4-second timeout. If the webhook is unava
   ],
   "events": [
     {
-      "id": "uuid",
+      "id": "<response-id>:response_submitted",
       "createdAt": "2026-09-07T00:00:00Z",
       "type": "response_submitted",
       "metadata": {}

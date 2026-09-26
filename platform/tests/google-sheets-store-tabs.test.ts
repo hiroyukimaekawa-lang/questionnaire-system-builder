@@ -9,7 +9,16 @@ test('Apps ScriptはSurvey IDで店舗タブを管理し回答を追記する',(
   assert.match(script,/TAB_STORE_SHEETS = '店舗タブ管理'/);
   assert.match(script,/findExactInColumn\(registry, 1, store\.id\)/);
   assert.match(script,/appendStoreResponse\(ss, store, response, answers\)/);
-  assert.match(script,/sheet\.getRange\(sheet\.getLastRow\(\) \+ 1, 1, 1, row\.length\)\.setValues/);
+  assert.match(script,/upsertRowByKey\(sheet, \[response\.id\], \[1\], row\)/);
+});
+
+test('部分書き込み後の再送は各出力先を個別に補完する',()=>{
+  const script=read('../integrations/google-sheets/Code.gs');
+  assert.doesNotMatch(script,/if \(findExactInColumn\(responseSheet, 1, response\.id\)\)[\s\S]*duplicate/);
+  assert.match(script,/upsertRowByKey\(responseSheet, \[response\.id\], \[1\]/);
+  assert.match(script,/upsertRowByKey\(answerSheet, \[response\.id, answer\.questionId/);
+  assert.match(script,/upsertRowByKey\(eventSheet, \[response\.id, event\.type/);
+  assert.match(script,/appendStoreResponse\(ss, store, response, answers\)/);
 });
 
 test('削除時は店舗タブを非表示、復元時は再表示する',()=>{
