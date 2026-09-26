@@ -1,0 +1,18 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "questionnaire-google-sheets-sync",
+  "main": "workers/google-sheets-sync/index.ts",
+  "compatibility_date": "2026-09-01",
+  "workers_dev": false,
+  "triggers": {
+    "crons": ["* * * * *"]
+  },
+  "vars": {
+    "SUPABASE_URL": "https://acfheksrpwdbxoahnwit.supabase.co"
+  },
+  "observability": {
+    "enabled": true,
+    "head_sampling_rate": 1
+  },
+  "account_id": "739ef6b0d4cc5d4e1b5fb1a1ebae94af"
+}

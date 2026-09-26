@@ -58,12 +58,9 @@ function doPost(e) {
       return jsonResponse({ ok: false, error: 'Required spreadsheet tabs are missing.' });
     }
 
-    // Idempotency: the response UUID is the write key. Retries never duplicate rows.
-    if (findExactInColumn(responseSheet, 1, response.id)) {
-      return jsonResponse({ ok: true, duplicate: true, responseId: response.id });
-    }
-
-    responseSheet.appendRow([
+    // Each destination is repaired independently. A retry after a partial write
+    // fills missing rows instead of treating the first response row as complete.
+    upsertRowByKey(responseSheet, [response.id], [1], [
       response.id,
       response.submittedAt || '',
       store.name || '',
@@ -79,7 +76,7 @@ function doPost(e) {
     ]);
 
     answers.forEach(function(answer) {
-      answerSheet.appendRow([
+      upsertRowByKey(answerSheet, [response.id, answer.questionId || ''], [1, 4], [
         response.id,
         response.submittedAt || '',
         store.name || '',
@@ -96,8 +93,8 @@ function doPost(e) {
     upsertStore(storeSheet, store, response);
 
     events.forEach(function(event) {
-      eventSheet.appendRow([
-        event.id || Utilities.getUuid(),
+      upsertRowByKey(eventSheet, [response.id, event.type || ''], [3, 6], [
+        event.id || (response.id + ':' + (event.type || 'event')),
         event.createdAt || new Date(),
         response.id,
         store.name || '',
@@ -139,8 +136,6 @@ function appendStoreResponse(ss, store, response, answers) {
   if (sheet.isSheetHidden()) sheet.showSheet();
   renameStoreSheet(ss, sheet, store, false);
   updateStoreSheetRegistry(ss, store, sheet, 'active');
-  if (findExactInColumn(sheet, 1, response.id)) return;
-
   const fixedHeaders = ['回答ID', '回答日時', 'アンケート名', 'バージョン', '平均スコア', '合計スコア', '要フォロー', 'Google口コミ対象'];
   const answerHeaders = answers.map(function(answer) {
     return (answer.questionTitle || '質問') + ' [' + String(answer.questionId || '').slice(0, 8) + ']';
@@ -164,7 +159,7 @@ function appendStoreResponse(ss, store, response, answers) {
   const row = headers.map(function(header, index) {
     return index < fixedValues.length ? fixedValues[index] : (answerByHeader[header] == null ? '' : answerByHeader[header]);
   });
-  sheet.getRange(sheet.getLastRow() + 1, 1, 1, row.length).setValues([row]);
+  upsertRowByKey(sheet, [response.id], [1], row);
 }
 
 function ensureStoreSheet(ss, store) {
@@ -286,6 +281,25 @@ function findExactInColumn(sheet, column, value) {
   const range = sheet.getRange(2, column, sheet.getLastRow() - 1, 1);
   const match = range.createTextFinder(String(value)).matchEntireCell(true).findNext();
   return match ? match.getRow() : null;
+}
+
+function findRowByCompositeKey(sheet, values, columns) {
+  if (!sheet || sheet.getLastRow() < 2 || !values.length || values.length !== columns.length) return null;
+  const rowCount = sheet.getLastRow() - 1;
+  const rows = sheet.getRange(2, 1, rowCount, sheet.getLastColumn()).getDisplayValues();
+  for (let index = 0; index < rows.length; index++) {
+    const matches = columns.every(function(column, keyIndex) {
+      return String(rows[index][column - 1]) === String(values[keyIndex]);
+    });
+    if (matches) return index + 2;
+  }
+  return null;
+}
+
+function upsertRowByKey(sheet, keyValues, keyColumns, values) {
+  const row = findRowByCompositeKey(sheet, keyValues, keyColumns) || sheet.getLastRow() + 1;
+  sheet.getRange(row, 1, 1, values.length).setValues([values]);
+  return row;
 }
 
 function normalizeCellValue(value) {

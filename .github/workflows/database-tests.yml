@@ -62,6 +62,9 @@ jobs:
       - name: Type-check application
         run: npm run typecheck
 
+      - name: Bundle Google Sheets Scheduled Worker
+        run: npm run check:google-sheets-worker
+
       - name: Build application
         run: npm run build
 
