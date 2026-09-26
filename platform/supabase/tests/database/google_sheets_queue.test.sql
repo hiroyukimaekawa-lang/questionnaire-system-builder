@@ -13,7 +13,7 @@ select isnt(has_function_privilege('authenticated','public.retry_failed_google_s
 select ok(has_function_privilege('service_role','public.claim_google_sheets_sync_jobs(integer)','execute'),'service role can claim jobs');
 
 insert into auth.users(id,email,raw_user_meta_data) values
-  ('90000000-0000-4000-8000-000000000001','queue-admin@example.com','{}'::jsonb);
+  ('90000000-0000-4000-8000-000000000001','queue-admin@crestix-inc.com','{}'::jsonb);
 update public.profiles set role='admin',is_active=true where id='90000000-0000-4000-8000-000000000001';
 insert into public.surveys(id,name,slug,status,owner_user_id,created_by,updated_by) values
   ('91000000-0000-4000-8000-000000000001','Queue Survey','queue-survey','published','90000000-0000-4000-8000-000000000001','90000000-0000-4000-8000-000000000001','90000000-0000-4000-8000-000000000001');
