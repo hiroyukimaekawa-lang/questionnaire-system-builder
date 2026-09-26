@@ -17,6 +17,8 @@ test('Google Sheets同期結果はserver service roleだけが更新する',asyn
 
 test('分析はRPCでAsia Tokyo集計しブラウザへ全回答を送らない',async()=>{const [sql,page]=await Promise.all([read('../supabase/migrations/202609250001_management_permissions_analytics.sql'),read('../app/admin/manage/[id]/analytics/page.tsx')]);assert.match(sql,/get_survey_analytics/);assert.match(sql,/at time zone 'Asia\/Tokyo'/);assert.match(page,/\.rpc\('get_survey_analytics'/)});
 
+test('分析画面は専用の淡いブルーダッシュボード背景を持つ',async()=>{const [page,css]=await Promise.all([read('../app/admin/manage/[id]/analytics/page.tsx'),read('../app/admin.css')]);assert.match(page,/className="stack analytics-dashboard"/);assert.match(css,/\.analytics-dashboard\s*\{[\s\S]*linear-gradient\(145deg, #eef7fd/);assert.match(css,/\.analytics-dashboard \.card\s*\{[\s\S]*rgba\(255, 255, 255, 0\.92\)/)});
+
 test('回答一覧は50件ページングで旧500件固定を使わない',async()=>{const source=await read('../lib/responses.ts');assert.match(source,/pageSize=50/);assert.match(source,/\.range\(from,from\+pageSize-1\)/);assert.doesNotMatch(source,/\.limit\(500\)/)});
 
 test('service roleはserver-only clientに閉じ込める',async()=>{const [admin,form]=await Promise.all([read('../lib/supabase/admin.ts'),read('../components/admin/InviteUserForm.tsx')]);assert.match(admin,/import 'server-only'/);assert.match(admin,/SUPABASE_SERVICE_ROLE_KEY/);assert.doesNotMatch(form,/SERVICE_ROLE|createAdminClient/)});
