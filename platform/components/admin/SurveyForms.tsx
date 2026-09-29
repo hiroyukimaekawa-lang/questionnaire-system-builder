@@ -1,5 +1,5 @@
 'use client';
-import {resolveIdentityMode} from '@/lib/public-survey';
+import {resolveIdentityMode,resolveIdentityModeFormValue} from '@/lib/public-survey';
 import {useActionState,useState} from 'react';
 import {createSurveyAction,saveConfigAction,saveSurveyAction} from '@/app/actions';
 import {slugify,normalizeQuestionFontSize} from '@/lib/survey';
@@ -9,6 +9,11 @@ import {AssetUrlField} from '@/components/admin/AssetUrlField';
 
 const DEFAULT_REVIEW_PROMPT='よろしければ、Googleでもご感想をお聞かせください。';
 type OptionalCopyKey='heroLabel'|'heroSubtitle'|'description'|'introText'|'anonymousText'|'googleReviewPromptText';
+// A config without an explicit identityMode is legacy: the edit form must not invent
+// one just by opening the survey. Saving unrelated fields (title, logo, font size...)
+// must not add identityMode to the draft - only an explicit selection away from
+// 'legacy' may do that.
+type IdentityModeFormValue=IdentityMode|'legacy';
 
 function Result({state}:{state:any}){return <>{state?.error&&<p className="error" role="alert">{state.error}</p>}{state?.success&&<p className="notice" role="status">{state.success}</p>}</>}
 export function CreateSurveyForm(){const [state,action,pending]=useActionState(createSurveyAction,null);const [slug,setSlug]=useState('');return <form action={action} className="card stack" style={{padding:24,maxWidth:680}}><label className="field">店舗・医院名<input name="name" required onChange={e=>{if(!slug)setSlug(slugify(e.target.value))}}/></label><label className="field">公開URLの名前<input name="slug" value={slug} onChange={e=>setSlug(e.target.value)} pattern="[a-z0-9]+(-[a-z0-9]+)*" required/><small className="muted">公開URL: /{slug||'slug'}</small></label><label className="field">業種<input name="industry" placeholder="例: クリニック、飲食店、美容室"/></label><Result state={state}/><button className="btn" disabled={pending}>{pending?'作成中…':'作成して編集へ'}</button></form>}
@@ -17,8 +22,10 @@ export function ConfigForm({surveyId,versionId,config,onChange}:{surveyId:string
   const [state,action,pending]=useActionState(saveConfigAction.bind(null,surveyId,versionId),null);
   const themeId=config.themeId??'clinic-clean';
   const defaults=getThemeTemplate(themeId).config;
-  const resolvedIdentityMode=resolveIdentityMode(config);
-  const [identityMode,setIdentityMode]=useState<IdentityMode>(resolvedIdentityMode==='legacy'?'respondent_choice':resolvedIdentityMode);
+  const initialIdentityMode=resolveIdentityModeFormValue(config);
+  const isLegacySource=initialIdentityMode==='legacy';
+  const legacyIsAnonymous=resolveIdentityMode(config)==='anonymous_only';
+  const [identityMode,setIdentityMode]=useState<IdentityModeFormValue>(initialIdentityMode);
   const initialCopy:Record<OptionalCopyKey,string>={
     heroLabel:config.heroLabel===undefined?'QUESTIONNAIRE':config.heroLabel??'',
     heroSubtitle:config.heroSubtitle===undefined?(config.description??''):config.heroSubtitle??'',
@@ -45,8 +52,8 @@ export function ConfigForm({surveyId,versionId,config,onChange}:{surveyId:string
       {optionalField('heroSubtitle','ヒーローの説明',3)}
       {optionalField('description','説明文',3)}
       {optionalField('introText','冒頭文章',4)}
-      <label className="field">回答方法<select name="identityMode" value={identityMode} onChange={e=>{const value=e.target.value as IdentityMode;setIdentityMode(value);onChange?.({identityMode:value});}}><option value="respondent_choice">回答者が匿名・記名を選択</option><option value="anonymous_only">匿名のみ</option><option value="identified_only">記名のみ</option></select><small className="editor-field-help">回答者が匿名・記名を選択する場合、回答画面の冒頭で選んでいただきます。既存アンケートでも変更できます（変更は下書きのみで、公開中の画面はそのままです）。</small></label>
-      {identityMode==='anonymous_only'&&optionalField('anonymousText','匿名案内文',2)}
+      <label className="field">回答方法<select name="identityMode" value={identityMode} onChange={e=>{const value=e.target.value as IdentityModeFormValue;setIdentityMode(value);onChange?.({identityMode:value==='legacy'?undefined:value});}}>{isLegacySource&&<option value="legacy">{legacyIsAnonymous?'現在の設定を維持（従来形式：匿名）':'現在の設定を維持（従来形式）'}</option>}<option value="respondent_choice">回答者が匿名・記名を選択</option><option value="anonymous_only">匿名のみ</option><option value="identified_only">記名のみ</option></select><small className="editor-field-help">回答者が匿名・記名を選択する場合、回答画面の冒頭で選んでいただきます。既存アンケートでも変更できます（変更は下書きのみで、公開中の画面はそのままです）。「現在の設定を維持」のままなら回答方法は変更されません。</small></label>
+      {(identityMode==='anonymous_only'||(identityMode==='legacy'&&legacyIsAnonymous))&&optionalField('anonymousText','匿名案内文',2)}
       <label className="field">送信ボタンの文言<input name="submitLabel" defaultValue={config.buttonLabel??config.submitLabel} required/></label>
       <label className="field editor-field-label question-font-size-field">質問文の文字サイズ<span className="question-font-size-control"><input name="questionFontSize" type="number" min="14" max="22" step="1" defaultValue={normalizeQuestionFontSize(config.questionFontSize)} onChange={e=>onChange?.({questionFontSize:Number(e.target.value)})}/><span className="question-font-size-unit">px</span></span><small className="editor-field-help">公開アンケートの質問文に反映されます。標準は17pxです。</small></label>
       <label className="field">ロゴ表示<select name="logoMode" defaultValue={config.logoMode??'icon'}><option value="none">表示しない</option><option value="icon">アイコン</option><option value="upload">ロゴ画像</option></select></label>

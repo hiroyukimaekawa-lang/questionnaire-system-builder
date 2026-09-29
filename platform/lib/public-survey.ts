@@ -22,6 +22,15 @@ export function resolveIdentityMode(config: SurveyConfig): ResolvedIdentityMode 
   return 'legacy';
 }
 
+// For the edit form only: unlike resolveIdentityMode (which guesses anonymous_only for
+// display so legacy anonymous:true surveys keep showing their note), the form must never
+// guess a mode into existence. A config without an explicit identityMode is 'legacy' here
+// regardless of the anonymous boolean, so opening/saving the form without touching this
+// field never adds identityMode to the draft.
+export function resolveIdentityModeFormValue(config: SurveyConfig): ResolvedIdentityMode {
+  return config.identityMode && IDENTITY_MODES.includes(config.identityMode) ? config.identityMode : 'legacy';
+}
+
 export function publicSurveyTitle(name: string, config: SurveyConfig): string {
   const title = (config.heroTitle || config.title || 'お客様アンケート').trim();
   const businessName = name.trim();
