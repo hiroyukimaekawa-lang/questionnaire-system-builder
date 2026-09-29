@@ -74,6 +74,7 @@ export interface BuilderContext {
   questions?: SurveyQuestion[];
   questionsConfirmed?: boolean;
   anonymous?: boolean;
+  identityMode?: IdentityMode;
   heroLabel?: string;
   heroTitle?: string;
   heroSubtitle?: string;

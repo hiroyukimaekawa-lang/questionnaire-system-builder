@@ -23,7 +23,7 @@ export async function POST(request:Request){
 
     const config=publicSurvey.version.config;
     const identityMode=resolveIdentityMode(config);
-    let identityChoice:'anonymous'|'identified';
+    let identityChoice:'anonymous'|'identified'|null=null;
     let respondentName:string|null=null;
     if(identityMode==='anonymous_only'){
       identityChoice='anonymous';
@@ -32,7 +32,7 @@ export async function POST(request:Request){
       const name=(input.respondentName??'').trim();
       if(!name)return NextResponse.json({error:'お名前を入力してください。'},{status:400});
       respondentName=name;
-    }else{
+    }else if(identityMode==='respondent_choice'){
       if(input.identityChoice!=='anonymous'&&input.identityChoice!=='identified')return NextResponse.json({error:'回答方法を選択してください。'},{status:400});
       identityChoice=input.identityChoice;
       if(identityChoice==='identified'){
@@ -41,6 +41,8 @@ export async function POST(request:Request){
         respondentName=name;
       }
     }
+    // identityMode==='legacy': no identityMode was ever configured for this version.
+    // Keep accepting the pre-3-mode request body as-is; don't require or store identity.
 
     const completion=evaluateCompletionRules(config,input.answers);
     const reviewEligible=evaluateGoogleReviewEligibility(config,publicSurvey.version.questions,input.answers);
@@ -54,8 +56,8 @@ export async function POST(request:Request){
         needsFollowUp:completion.needsFollowUp,
         matchedRuleId:completion.matchedRuleId,
         reviewEligible,
-        identityChoice,
-        respondentName,
+        ...(identityChoice?{identityChoice}:{}),
+        ...(respondentName?{respondentName}:{}),
       },
     });
     if(error)return NextResponse.json({error:'回答を保存できませんでした。入力内容をご確認ください。'},{status:400});

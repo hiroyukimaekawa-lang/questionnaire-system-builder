@@ -17,7 +17,8 @@ export function ConfigForm({surveyId,versionId,config,onChange}:{surveyId:string
   const [state,action,pending]=useActionState(saveConfigAction.bind(null,surveyId,versionId),null);
   const themeId=config.themeId??'clinic-clean';
   const defaults=getThemeTemplate(themeId).config;
-  const [identityMode,setIdentityMode]=useState<IdentityMode>(resolveIdentityMode(config));
+  const resolvedIdentityMode=resolveIdentityMode(config);
+  const [identityMode,setIdentityMode]=useState<IdentityMode>(resolvedIdentityMode==='legacy'?'respondent_choice':resolvedIdentityMode);
   const initialCopy:Record<OptionalCopyKey,string>={
     heroLabel:config.heroLabel===undefined?'QUESTIONNAIRE':config.heroLabel??'',
     heroSubtitle:config.heroSubtitle===undefined?(config.description??''):config.heroSubtitle??'',

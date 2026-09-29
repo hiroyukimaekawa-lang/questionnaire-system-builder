@@ -13,11 +13,11 @@ import type {SurveyConfig} from '../types/database';
 const read=(path:string)=>readFileSync(new URL(path,import.meta.url),'utf8');
 const render=(config:Partial<SurveyConfig>)=>renderToStaticMarkup(React.createElement(AppRouterContext.Provider,{value:{} as any},React.createElement(SurveyRenderer,{name:'テスト店舗',slug:'test',preview:true,version:{id:'v',config:{...defaultConfig,...config},questions:[]} as any})));
 
-test('既存 anonymous=true はanonymous_onlyへ、anonymous=falseはidentified_onlyへ後方互換変換する',()=>{
+test('既存 anonymous=trueはanonymous_onlyへ、anonymous=falseや未設定はlegacyへ後方互換変換する',()=>{
   assert.equal(resolveIdentityMode({...defaultConfig,anonymous:true}),'anonymous_only');
-  assert.equal(resolveIdentityMode({...defaultConfig,anonymous:false}),'identified_only');
-  assert.equal(resolveIdentityMode({...defaultConfig,anonymousText:'こちらのアンケートは匿名です。'}),'anonymous_only');
-  assert.equal(resolveIdentityMode({...defaultConfig,anonymousText:'回答内容は運営者が確認します。'}),'identified_only');
+  assert.equal(resolveIdentityMode({...defaultConfig,anonymous:false}),'legacy');
+  assert.equal(resolveIdentityMode({...defaultConfig,anonymousText:'こちらのアンケートは匿名です。'}),'legacy');
+  assert.equal(resolveIdentityMode({...defaultConfig,anonymousText:'回答内容は運営者が確認します。'}),'legacy');
 });
 
 test('identityModeが明示されていれば旧anonymousより優先する',()=>{
@@ -64,9 +64,23 @@ test('anonymous_onlyは匿名案内のみを表示し、選択UIも名前input�
   assert.doesNotMatch(html,/identity-name-field/);
 });
 
-test('旧anonymous=false設定（identityMode未設定）はidentified_only扱いで名前inputが必須表示になる',()=>{
+test('旧anonymous=false設定（identityMode未設定）はlegacy扱いで名前inputも回答方法選択も出さない',()=>{
   const html=render({anonymous:false,identityMode:undefined});
-  assert.match(html,/identity-name-field/);
+  assert.doesNotMatch(html,/identity-name-field/);
+  assert.doesNotMatch(html,/回答方法を選択してください/);
+  assert.doesNotMatch(html,/survey-anonymous-note/);
+});
+
+test('identityModeもanonymousも未設定のconfig（真のlegacy）は従来UIのまま送信できる',()=>{
+  const html=render({anonymous:undefined,identityMode:undefined});
+  assert.doesNotMatch(html,/identity-name-field/);
+  assert.doesNotMatch(html,/回答方法を選択してください/);
+});
+
+test('legacyでもisAnonymousSurveyがtrueなら既存の匿名案内文は表示を維持する',()=>{
+  const html=render({anonymous:undefined,identityMode:undefined,anonymousText:'こちらのアンケートは匿名です。'});
+  assert.match(html,/survey-anonymous-note/);
+  assert.doesNotMatch(html,/identity-name-field/);
 });
 
 test('SurveyRendererは回答方法未選択時にエラーを出し、記名選択時のみ名前必須にする検証ロジックを持つ',()=>{
@@ -77,11 +91,12 @@ test('SurveyRendererは回答方法未選択時にエラーを出し、記名選
   assert.match(source,/if \(needsName && !trimmedName\)/);
 });
 
-test('送信payloadはidentityChoiceを常に送り、記名時のみrespondentNameを送る（匿名時はrespondentNameを送らない）',()=>{
+test('送信payloadは3モードでのみidentityChoiceを送り、記名時のみrespondentNameを送る（legacyはどちらも送らない）',()=>{
   const source=read('../components/survey/SurveyRenderer.tsx');
   assert.match(source,/identityChoice: finalIdentityChoice/);
+  assert.match(source,/\.\.\.\(finalIdentityChoice \? \{ identityChoice: finalIdentityChoice \} : \{\}\)/);
   assert.match(source,/\.\.\.\(finalIdentityChoice === 'identified' \? \{ respondentName: trimmedName \} : \{\}\)/);
-  assert.match(source,/const finalIdentityChoice = identityMode === 'anonymous_only' \? 'anonymous' : identityMode === 'identified_only' \? 'identified' : identityChoice/);
+  assert.match(source,/const finalIdentityChoice = identityMode === 'anonymous_only' \? 'anonymous' : identityMode === 'identified_only' \? 'identified' : identityMode === 'legacy' \? '' : identityChoice/);
 });
 
 test('API routeはidentityMode別にrespondentNameを必須化しserver側でvalidationする（クライアント値を信用しない）',()=>{
@@ -92,7 +107,15 @@ test('API routeはidentityMode別にrespondentNameを必須化しserver側でval
   assert.match(source,/identityMode==='identified_only'\){\s*identityChoice='identified';/);
   assert.match(source,/if\(!name\)return NextResponse\.json\(\{error:'お名前を入力してください。'\},\{status:400\}\)/);
   assert.match(source,/if\(input\.identityChoice!=='anonymous'&&input\.identityChoice!=='identified'\)return NextResponse\.json\(\{error:'回答方法を選択してください。'\},\{status:400\}\)/);
-  assert.match(source,/identityChoice,\s*respondentName,/);
+  assert.match(source,/identityMode==='legacy'/);
+  assert.match(source,/\.\.\.\(identityChoice\?\{identityChoice\}:\{\}\)/);
+  assert.match(source,/\.\.\.\(respondentName\?\{respondentName\}:\{\}\)/);
+});
+
+test('legacy versionはidentityChoice/respondentNameを要求せずslug・versionId・answersだけで送信できる',()=>{
+  const source=read('../app/api/responses/route.ts');
+  assert.match(source,/identityMode==='legacy': no identityMode was ever configured/);
+  assert.doesNotMatch(source,/identityMode==='legacy'\){\s*return NextResponse\.json/);
 });
 
 test('migrationはsubmit_survey_responseのみを更新しpublish_survey等の公開versionロジックには触れない',()=>{
@@ -104,6 +127,17 @@ test('migrationはsubmit_survey_responseのみを更新しpublish_survey等の�
   assert.match(source,/raise exception 'お名前を入力してください'/);
   assert.match(source,/raise exception '必須項目が未回答です'/);
   assert.match(source,/'identityChoice', to_jsonb\(clean_identity_choice\)/);
+});
+
+test('新しい補正migrationは旧migrationを編集せずlegacy versionの識別要求を撤廃する',()=>{
+  const original=read('../supabase/migrations/20260929010000_survey_identity_mode.sql');
+  assert.doesNotMatch(original,/'legacy'/);
+  const source=read('../supabase/migrations/20260929020000_fix_legacy_identity_compat.sql');
+  assert.match(source,/create or replace function public\.submit_survey_response/);
+  assert.doesNotMatch(source,/publish_survey/);
+  assert.match(source,/identity_mode := case when v_config->>'anonymous' = 'true' then 'anonymous_only' else 'legacy' end/);
+  assert.match(source,/-- legacy: no identity requirement, nothing recorded\./);
+  assert.match(source,/clean_identity_choice := null;\s*clean_respondent_name := null;\s*end if;/);
 });
 
 test('displayIdentityは匿名/記名/未記録を正しく判定する',()=>{

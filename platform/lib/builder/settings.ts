@@ -1,4 +1,4 @@
-import type {AnswerValue, BuilderContext, GoogleReviewRule, SurveyConfig, SurveyQuestion} from '@/types/database';
+import type {AnswerValue, BuilderContext, GoogleReviewRule, IdentityMode, SurveyConfig, SurveyQuestion} from '@/types/database';
 import {defaultConfig, scoreMax} from '@/lib/survey';
 import {getThemeTemplate, themeIdForBusiness} from '@/lib/theme/templates';
 import {safeGoogleReviewUrl} from '@/lib/google-review';
@@ -20,8 +20,23 @@ export function reviewComment(config:SurveyConfig,questions:SurveyQuestion[],ans
   const value=candidates.map(q=>answers[q.id]).find(v=>typeof v==='string'&&v.trim());
   return typeof value==='string'?value:'';
 }
+const IDENTITY_MODES:IdentityMode[]=['respondent_choice','anonymous_only','identified_only'];
+
+// identityMode is the single source of truth for a survey's anonymous/named
+// behavior. New sessions default to respondent_choice; sessions saved before the
+// 3-mode setting existed (identityMode/config.identityMode absent, only the old
+// anonymous boolean present) convert once here instead of re-asking the admin.
+export function resolveBuilderIdentityMode(context:BuilderContext):IdentityMode {
+  if(context.identityMode&&IDENTITY_MODES.includes(context.identityMode))return context.identityMode;
+  if(context.config?.identityMode&&IDENTITY_MODES.includes(context.config.identityMode))return context.config.identityMode;
+  if(context.anonymous===true)return 'anonymous_only';
+  if(context.anonymous===false)return 'identified_only';
+  return 'respondent_choice';
+}
+
 export function builderConfig(context:BuilderContext):SurveyConfig {
   const theme=getThemeTemplate(context.themeId??themeIdForBusiness(context.businessType??'other'));
+  const identityMode=resolveBuilderIdentityMode(context);
   const config:SurveyConfig={
     ...defaultConfig,
     ...theme.config,
@@ -32,8 +47,6 @@ export function builderConfig(context:BuilderContext):SurveyConfig {
     heroLabel:context.heroLabel??'QUESTIONNAIRE',
     description:'',
     introText:context.introText??'',
-    anonymousText:context.anonymous===false?'':defaultConfig.anonymousText,
-    anonymous:context.anonymous??true,
     completionText:context.completionText??theme.config.completionText,
     questionFontSize:context.questionFontSize??17,
     primaryColor:context.mainColor??theme.config.primaryColor,
@@ -44,6 +57,9 @@ export function builderConfig(context:BuilderContext):SurveyConfig {
     googleReviewUrl:context.googleReviewUrl??null,
     googleReviewRule:context.googleReviewRule??null,
     ...context.config,
+    identityMode,
+    anonymous:identityMode==='anonymous_only',
+    anonymousText:identityMode==='anonymous_only'?(context.config?.anonymousText??defaultConfig.anonymousText):'',
     businessCategory:context.businessCategory??context.config?.businessCategory??'',
     prefecture:context.prefecture??context.config?.prefecture??'',
   };
