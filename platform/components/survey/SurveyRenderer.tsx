@@ -5,7 +5,7 @@ import { useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import type { AnswerValue, SurveyVersion } from '@/types/database';
 import { choicePresentation, scoreMax, validateAnswers } from '@/lib/survey';
-import { publicSurveyTitle, resolveIdentityMode } from '@/lib/public-survey';
+import { isAnonymousSurvey, publicSurveyTitle, resolveIdentityMode } from '@/lib/public-survey';
 import { resolveSurveyTheme } from '@/lib/theme/templates';
 
 function questionNumber(index: number) {
@@ -66,7 +66,7 @@ export function SurveyRenderer({
     }
     setPending(true);
     setSubmitError('');
-    const finalIdentityChoice = identityMode === 'anonymous_only' ? 'anonymous' : identityMode === 'identified_only' ? 'identified' : identityChoice;
+    const finalIdentityChoice = identityMode === 'anonymous_only' ? 'anonymous' : identityMode === 'identified_only' ? 'identified' : identityMode === 'legacy' ? '' : identityChoice;
     try {
       const response = await fetch('/api/responses', {
         method: 'POST',
@@ -75,7 +75,7 @@ export function SurveyRenderer({
           slug,
           versionId: version.id,
           answers,
-          identityChoice: finalIdentityChoice,
+          ...(finalIdentityChoice ? { identityChoice: finalIdentityChoice } : {}),
           ...(finalIdentityChoice === 'identified' ? { respondentName: trimmedName } : {}),
         }),
       });
@@ -176,7 +176,7 @@ export function SurveyRenderer({
           preview ? <button key={field} type="button" className="preview-editable intro-editable" onClick={() => onEditTarget?.(field)}><p className="survey-description jp-copy jp-preserve-lines">{config[field]}</p></button>
             : <p key={field} className="survey-description jp-copy jp-preserve-lines">{config[field]}</p>
         ))}
-        {identityMode === 'anonymous_only' && anonymousText && (
+        {(identityMode === 'anonymous_only' || (identityMode === 'legacy' && isAnonymousSurvey(version.config))) && anonymousText && (
           <div className="survey-intro">
             {preview ? (
               <button type="button" className="preview-editable intro-editable" onClick={() => onEditTarget?.('anonymousText')}>

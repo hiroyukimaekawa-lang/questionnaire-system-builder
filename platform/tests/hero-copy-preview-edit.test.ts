@@ -19,7 +19,7 @@ test('旧configだけ既定文へfallbackし、明示的な空欄は非表示に
   assert.match(renderer,/version\.config\.heroSubtitle === undefined/);
   assert.match(renderer,/heroLabel && \(preview \?/);
   assert.match(renderer,/heroSubtitle && \(preview \?/);
-  assert.match(renderer,/identityMode === 'anonymous_only' && anonymousText &&/);
+  assert.match(renderer,/\(identityMode === 'anonymous_only' \|\| \(identityMode === 'legacy' && isAnonymousSurvey\(version\.config\)\)\) && anonymousText &&/);
 });
 
 test('hero 3項目は専用preview targetへ解決しmainColorへ誤接続しない',()=>{

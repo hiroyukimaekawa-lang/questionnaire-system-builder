@@ -44,7 +44,10 @@ export class RuleBasedBuilderEngine implements BuilderEngine {
     const missing: string[] = [];
     if (!c.purpose) missing.push('purpose'); if (!c.storeName) missing.push('storeName'); if (!c.businessType) missing.push('businessType');
     if (!c.startingPoint) missing.push('startingPoint'); if (!c.questions?.length) missing.push('questions'); if (!c.questionsConfirmed) missing.push('questionsConfirmed');
-    if (c.anonymous === undefined) missing.push('anonymous'); if (!c.heroTitle?.trim()) missing.push('heroTitle'); if (c.questionFontSize === undefined) missing.push('questionFontSize'); if (!c.logoMode) missing.push('logoMode');
+    // identityMode is the source of truth; a legacy context that only ever answered the
+    // old anonymous boolean converts automatically (see resolveBuilderIdentityMode) and
+    // isn't re-asked.
+    if (!c.identityMode && c.anonymous === undefined) missing.push('identityMode'); if (!c.heroTitle?.trim()) missing.push('heroTitle'); if (c.questionFontSize === undefined) missing.push('questionFontSize'); if (!c.logoMode) missing.push('logoMode');
     if (c.logoMode === 'upload' && !c.logoUrl) missing.push('logoUrl'); if (c.googleReviewEnabled === undefined) missing.push('googleReviewEnabled');
     if (c.googleReviewEnabled && !c.googleReviewUrl) missing.push('googleReviewUrl'); if (!c.completionText) missing.push('completionText');
     return missing;
