@@ -3,7 +3,7 @@ import {getAdminBuilderSessions,getAdminSurveys,getAuthState} from '@/lib/data';
 import {logoutAction} from '@/app/actions';
 import {AdminSidebar} from '@/components/admin/AdminSidebar';
 import {AssistantMount} from '@/components/assistant/AssistantMount';
-import {AssistantPageProvider} from '@/components/assistant/AssistantPageContext';
+import {assistantHistoryStorageKey} from '@/lib/assistant/storage-key';
 import {isInternalAssistantEnabled} from '@/lib/feature-flags';
 import {resolveAppCommitSha,resolveEnvironment} from '@/lib/runtime-identity';
 
@@ -18,5 +18,9 @@ export default async function AdminLayout({children}:{children:React.ReactNode})
   // is even referenced - see AssistantMount.tsx for why that keeps its JS out of
   // disabled/viewer sessions entirely, not just visually hidden.
   const showAssistant=isInternalAssistantEnabled()&&(profile.role==='admin'||profile.role==='sales');
-  return <AssistantPageProvider><div className="crm-shell"><AdminSidebar role={profile.role} counts={listError?null:counts} recent={surveys.slice(0,4)}/><div className="crm-workspace"><header className="crm-topbar"><div className="topbar-identity"><span className="topbar-avatar" aria-hidden="true">{(profile.name||profile.email).slice(0,1).toUpperCase()}</span><span><strong>{profile.name||profile.email}</strong><small>{profile.role==='admin'?'管理者':profile.role==='viewer'?'閲覧者':'担当者'}</small></span></div><form action={logoutAction}><button className="topbar-logout" type="submit">ログアウト</button></form></header><main className="crm-main"><div className="crm-main-inner">{children}</div></main></div></div>{showAssistant&&<AssistantMount role={profile.role} appCommitSha={resolveAppCommitSha()} environment={resolveEnvironment()}/>}</AssistantPageProvider>;
+  // No provider/context wraps the tree for this: the assistant has no dependency
+  // on anything in the core editor (see SurveyEditorWorkspace.tsx), so a disabled
+  // or viewer session renders exactly the same admin tree as before this feature
+  // existed, plus nothing.
+  return <><div className="crm-shell"><AdminSidebar role={profile.role} counts={listError?null:counts} recent={surveys.slice(0,4)}/><div className="crm-workspace"><header className="crm-topbar"><div className="topbar-identity"><span className="topbar-avatar" aria-hidden="true">{(profile.name||profile.email).slice(0,1).toUpperCase()}</span><span><strong>{profile.name||profile.email}</strong><small>{profile.role==='admin'?'管理者':profile.role==='viewer'?'閲覧者':'担当者'}</small></span></div><form action={logoutAction}><button className="topbar-logout" type="submit">ログアウト</button></form></header><main className="crm-main"><div className="crm-main-inner">{children}</div></main></div></div>{showAssistant&&<AssistantMount role={profile.role} appCommitSha={resolveAppCommitSha()} environment={resolveEnvironment()} historyStorageKey={assistantHistoryStorageKey(user.id)}/>}</>;
 }

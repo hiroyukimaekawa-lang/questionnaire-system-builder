@@ -7,17 +7,40 @@ directly into the questionnaire admin UI. Employees see one ordinary chat box �
 ## Who sees it
 
 - `admin`, `sales`: yes, when the feature flag is on.
-- `viewer`, public respondents, anonymous visitors: never. Enforced both in the UI
-  (the button/drawer aren't rendered) and server-side in every
-  `/api/internal-assistant/*` route (401 unauthenticated, 403 non-staff/inactive).
+- `viewer`, public respondents, anonymous visitors: never. Enforced in the UI (the
+  button/drawer aren't rendered) **and independently** in every
+  `/api/internal-assistant/*` route: the feature flag is checked first (404 when
+  off, before any auth/Supabase call), then auth (401 unauthenticated, 403
+  non-staff/inactive). A direct API call can't reach the provider or the database
+  by skipping the UI.
 
 ## Feature flag
 
 `QUESTIONNAIRE_INTERNAL_ASSISTANT_ENABLED` (default: **off**). Landing this feature's
 code does not expose it anywhere until an environment explicitly sets it to `true`.
-See `lib/feature-flags.ts`. The check happens server-side in `app/admin/layout.tsx`
-*before* the chat UI's client component is even referenced, so a disabled/viewer
-session ships zero assistant JS.
+See `lib/feature-flags.ts`. It's checked in two independent places, both before
+anything else runs:
+
+- `app/admin/layout.tsx`, before the chat UI's client component is even referenced
+  (dynamic import, `ssr:false`) — a disabled/viewer session ships zero assistant JS.
+- The top of both API routes (`app/api/internal-assistant/chat/route.ts`,
+  `.../improvements/route.ts`), before `authorizeAssistantRequest()` — a disabled
+  environment never reaches a Supabase query, the provider, or an
+  `improvement_requests` insert, even via a direct API call.
+
+### Release prerequisite: migration before flag
+
+Turning the flag on in an environment requires the `improvement_requests`
+migration (`20260929070000_internal_assistant_improvements.sql`) to already be
+applied there — the improvements API will fail every insert otherwise. Order:
+
+1. Apply the migration.
+2. Read-only confirm: `improvement_requests` exists with the expected RLS (see
+   `supabase/tests/database/internal_assistant_improvements.test.sql`).
+3. Deploy the app (flag still off — no behavior change for anyone).
+4. Smoke-test with the flag off (existing admin/sales/viewer flows unaffected).
+5. Turn `QUESTIONNAIRE_INTERNAL_ASSISTANT_ENABLED=true` on for a limited/admin
+   audience first, then expand.
 
 ## What it does (V1)
 
@@ -47,11 +70,18 @@ employee never types a URL or ID:
 }
 ```
 
-`draftVersionId` isn't in the URL, so pages that know it (currently the survey
-editor) publish it via `AssistantPageContext`. `activeSection` comes from an
-`IntersectionObserver` over the survey editor's own section ids
-(`basic-information`, `design-copy`, `questions`, `completion-settings`,
-`publish-settings`) — only the section **id** is read, never its contents.
+`draftVersionId` isn't in the URL, and the client never supplies it: both API
+routes resolve it themselves from `surveyId` via `resolveDraftVersionId()`
+(`lib/assistant/resolve-draft-version.ts`), using the caller's own authenticated,
+RLS-scoped Supabase client — the same access any other staff page has to that
+survey. This is deliberate: the survey editor (`SurveyEditorWorkspace.tsx`) has
+**no import or dependency on the assistant at all**, and a client-supplied
+`draftVersionId` would be an unverified value attributed to the request context.
+`activeSection` comes from an `IntersectionObserver` over the survey editor's own
+section ids (`basic-information`, `design-copy`, `questions`,
+`completion-settings`, `publish-settings`) — only the section **id** is read,
+never its contents, and this observation is DOM-based (no code coupling back into
+the editor component).
 
 **Never included automatically:** respondent answers, respondent names, any PII,
 cookies, `Authorization` headers, Supabase service role keys, API keys, OAuth
@@ -60,10 +90,16 @@ authenticated profile's actual role before it's used for anything.
 
 ## Conversation state
 
-Kept in `sessionStorage` (`internal-assistant:history`), capped at the last 20
-messages, cleared when the browser tab/session ends. No respondent PII is ever
-part of this history — it's only what the employee typed and what the assistant
-replied.
+Kept in `sessionStorage`, capped at the last 20 messages, cleared when the browser
+tab/session ends. The storage key is not a fixed string — `app/admin/layout.tsx`
+computes a stable per-user key (`assistantHistoryStorageKey()` in
+`lib/assistant/storage-key.ts`, a truncated SHA-256 of the user id) and passes it
+down through `AssistantMount` → `AssistantRoot` → `AssistantDrawer`. This matters
+because `sessionStorage` is scoped to the browser tab/origin, not to who's
+currently logged in: if employee A logs out and employee B logs into the same tab
+without closing it, a fixed key would let B read A's conversation. No respondent
+PII is ever part of this history — it's only what the employee typed and what the
+assistant replied.
 
 ## V1 provider: no external AI call
 

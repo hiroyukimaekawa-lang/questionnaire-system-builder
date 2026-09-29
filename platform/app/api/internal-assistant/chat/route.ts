@@ -3,7 +3,9 @@ import {z} from 'zod';
 import {authorizeAssistantRequest, isAssistantAuthError} from '@/lib/assistant/auth';
 import {runConversationTurn} from '@/lib/assistant/conversation';
 import {fallbackAssistantProvider} from '@/lib/assistant/fallback-provider';
+import {isInternalAssistantEnabled} from '@/lib/feature-flags';
 import {checkRateLimit} from '@/lib/assistant/rate-limit';
+import {resolveDraftVersionId} from '@/lib/assistant/resolve-draft-version';
 import {assistantContextSchema, assistantMessageSchema} from '@/lib/assistant/schema';
 import {parseLimitedJson} from '@/lib/request-security';
 
@@ -14,6 +16,10 @@ const chatSchema = z.object({
 });
 
 export async function POST(request: Request) {
+  // Checked before anything else - including auth - so a disabled environment
+  // never reaches a Supabase query, the provider, or any DB work at all.
+  if (!isInternalAssistantEnabled()) return NextResponse.json({error: '利用できません。'}, {status: 404});
+
   const auth = await authorizeAssistantRequest();
   if (isAssistantAuthError(auth)) return NextResponse.json({error: auth.error}, {status: auth.status});
 
@@ -29,8 +35,14 @@ export async function POST(request: Request) {
   }
 
   // The verified server-side role always wins over whatever the client sent -
-  // context is metadata for the reply, never an authorization input.
-  const context = {...input.context, userRole: auth.role};
+  // context is metadata for the reply, never an authorization input. Likewise
+  // draftVersionId is always resolved server-side from surveyId, never trusted
+  // from the client (a spoofed id would misattribute the conversation's subject).
+  const context = {
+    ...input.context,
+    userRole: auth.role,
+    draftVersionId: await resolveDraftVersionId(auth.s, input.context.surveyId),
+  };
 
   const {reply} = await runConversationTurn({
     message: input.message,

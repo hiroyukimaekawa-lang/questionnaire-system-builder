@@ -39,8 +39,54 @@ test('38: improvements routeはidempotency keyで重複送信を防ぐ', () => {
 });
 
 test('userRole is server-authoritative: both routes overwrite context.userRole with the verified role', () => {
-  assert.match(source('app/api/internal-assistant/chat/route.ts'), /const context = \{\.\.\.input\.context, userRole: auth\.role\}/);
-  assert.match(source('app/api/internal-assistant/improvements/route.ts'), /const context = \{\.\.\.input\.context, userRole: auth\.role\}/);
+  assert.match(source('app/api/internal-assistant/chat/route.ts'), /userRole: auth\.role,/);
+  assert.match(source('app/api/internal-assistant/improvements/route.ts'), /userRole: auth\.role,/);
+});
+
+test('draftVersionId is server-resolved from surveyId, never trusted from the client, in both routes', () => {
+  const chat = source('app/api/internal-assistant/chat/route.ts');
+  const improvements = source('app/api/internal-assistant/improvements/route.ts');
+  for (const route of [chat, improvements]) {
+    assert.match(route, /draftVersionId: await resolveDraftVersionId\(auth\.s, input\.context\.surveyId\),/);
+  }
+});
+
+test('resolveDraftVersionId looks up current_draft_version_id via the caller\'s own RLS-scoped client', () => {
+  const resolver = source('lib/assistant/resolve-draft-version.ts');
+  assert.match(resolver, /\.from\('surveys'\)\.select\('current_draft_version_id'\)\.eq\('id', surveyId\)/);
+});
+
+test('client-supplied context.draftVersionId is never read by either route (spoofing has no effect)', () => {
+  for (const path of ['app/api/internal-assistant/chat/route.ts', 'app/api/internal-assistant/improvements/route.ts']) {
+    assert.doesNotMatch(source(path), /input\.context\.draftVersionId/);
+  }
+});
+
+test('5: SurveyEditorWorkspace has zero import or reference to any assistant module', () => {
+  const workspace = source('components/admin/SurveyEditorWorkspace.tsx');
+  assert.doesNotMatch(workspace, /assistant/i);
+});
+
+test('admin layout no longer wraps the tree in an assistant context provider', () => {
+  const layout = source('app/admin/layout.tsx');
+  assert.doesNotMatch(layout, /AssistantPageProvider|AssistantPageContext/);
+});
+
+test('per-user history storage key is a deterministic hash of the user id, not the raw id or a fixed string', () => {
+  const storageKey = source('lib/assistant/storage-key.ts');
+  assert.match(storageKey, /createHash\('sha256'\)\.update\(userId\)\.digest\('hex'\)/);
+  const layout = source('app/admin/layout.tsx');
+  assert.match(layout, /historyStorageKey=\{assistantHistoryStorageKey\(user\.id\)\}/);
+});
+
+test('both API routes check the feature flag first, before authorizeAssistantRequest (no Supabase call when off)', () => {
+  for (const path of ['app/api/internal-assistant/chat/route.ts', 'app/api/internal-assistant/improvements/route.ts']) {
+    const routeSource = source(path);
+    assert.match(routeSource, /if \(!isInternalAssistantEnabled\(\)\) return NextResponse\.json\(\{error: '利用できません。'\}, \{status: 404\}\);/);
+    const flagCheckIndex = routeSource.indexOf('isInternalAssistantEnabled()');
+    const authCallIndex = routeSource.indexOf('authorizeAssistantRequest()');
+    assert.ok(flagCheckIndex >= 0 && authCallIndex >= 0 && flagCheckIndex < authCallIndex, `${path}: flag check must precede the auth call`);
+  }
 });
 
 test('9/19-24: contextスキーマは自動添付禁止項目(respondent answers/PII/secrets)を一切含まない', () => {

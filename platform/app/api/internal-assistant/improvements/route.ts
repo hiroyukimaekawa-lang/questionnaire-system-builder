@@ -1,10 +1,11 @@
 import {NextResponse} from 'next/server';
 import {z} from 'zod';
 import {authorizeAssistantRequest, isAssistantAuthError} from '@/lib/assistant/auth';
+import {isInternalAssistantEnabled} from '@/lib/feature-flags';
 import {checkRateLimit} from '@/lib/assistant/rate-limit';
+import {resolveDraftVersionId} from '@/lib/assistant/resolve-draft-version';
 import {assistantContextSchema, improvementProposalDraftSchema} from '@/lib/assistant/schema';
 import {parseLimitedJson} from '@/lib/request-security';
-import {createClient} from '@/lib/supabase/server';
 
 const submitSchema = z.object({
   proposal: improvementProposalDraftSchema,
@@ -15,6 +16,10 @@ const submitSchema = z.object({
 // by the chat turn itself (see docs/INTERNAL_ASSISTANT.md: help/bug/ux/feature
 // conversations never create a request on their own).
 export async function POST(request: Request) {
+  // Checked before anything else - including auth - so a disabled environment
+  // never reaches a Supabase query or an improvement_requests insert.
+  if (!isInternalAssistantEnabled()) return NextResponse.json({error: '利用できません。'}, {status: 404});
+
   const auth = await authorizeAssistantRequest();
   if (isAssistantAuthError(auth)) return NextResponse.json({error: auth.error}, {status: auth.status});
 
@@ -31,8 +36,14 @@ export async function POST(request: Request) {
     return NextResponse.json({error: '入力内容を確認してください。'}, {status: 400});
   }
 
-  const s = await createClient();
-  const context = {...input.context, userRole: auth.role};
+  const s = auth.s;
+  // Server-resolved from surveyId, same as the chat route - never trust the
+  // client-supplied draftVersionId.
+  const context = {
+    ...input.context,
+    userRole: auth.role,
+    draftVersionId: await resolveDraftVersionId(auth.s, input.context.surveyId),
+  };
 
   if (idempotencyKey) {
     const {data: existing} = await s

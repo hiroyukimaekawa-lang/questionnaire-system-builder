@@ -8,6 +8,6 @@ import type {AssistantEnvironment} from '@/lib/assistant/types';
 // viewer session never even references this chunk.
 const AssistantRoot = dynamic(() => import('./AssistantRoot').then(m => m.AssistantRoot), {ssr: false});
 
-export function AssistantMount({role, appCommitSha, environment}: {role: 'admin' | 'sales' | 'viewer'; appCommitSha?: string; environment: AssistantEnvironment}) {
-  return <AssistantRoot role={role} appCommitSha={appCommitSha} environment={environment}/>;
+export function AssistantMount({role, appCommitSha, environment, historyStorageKey}: {role: 'admin' | 'sales' | 'viewer'; appCommitSha?: string; environment: AssistantEnvironment; historyStorageKey: string}) {
+  return <AssistantRoot role={role} appCommitSha={appCommitSha} environment={environment} historyStorageKey={historyStorageKey}/>;
 }

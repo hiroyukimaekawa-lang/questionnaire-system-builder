@@ -2,15 +2,18 @@
 import {useEffect, useMemo, useRef, useState} from 'react';
 import type {AssistantMessage, ImprovementProposalDraft, QuestionnaireAssistantContext} from '@/lib/assistant/types';
 
-const HISTORY_KEY = 'internal-assistant:history';
 const MAX_HISTORY = 20;
 const SUGGESTED_PROMPTS = ['この画面の使い方を教えて', 'Google口コミ設定について教えて', 'アンケートの公開方法を教えて', 'ここが使いづらい'];
 const INITIAL_MESSAGE = 'こんにちは。\nアンケートシステムの操作方法や、使いづらいところについて質問できます。\n\n現在開いている画面も把握しているので、\n『これどう使う?』\n『ここが使いづらい』\nだけでも大丈夫です。';
 
-function loadHistory(): AssistantMessage[] {
+// Keyed by a server-computed per-user key (see lib/assistant/storage-key.ts) rather
+// than a fixed constant - sessionStorage is scoped to the tab/origin, not to who's
+// logged in, so a fixed key would let a second employee who logs into the same tab
+// read the first employee's conversation.
+function loadHistory(key: string): AssistantMessage[] {
   if (typeof window === 'undefined') return [];
   try {
-    const raw = window.sessionStorage.getItem(HISTORY_KEY);
+    const raw = window.sessionStorage.getItem(key);
     if (!raw) return [];
     const parsed = JSON.parse(raw);
     return Array.isArray(parsed) ? parsed : [];
@@ -19,10 +22,10 @@ function loadHistory(): AssistantMessage[] {
   }
 }
 
-function saveHistory(history: AssistantMessage[]) {
+function saveHistory(key: string, history: AssistantMessage[]) {
   if (typeof window === 'undefined') return;
   try {
-    window.sessionStorage.setItem(HISTORY_KEY, JSON.stringify(history.slice(-MAX_HISTORY)));
+    window.sessionStorage.setItem(key, JSON.stringify(history.slice(-MAX_HISTORY)));
   } catch {
     // sessionStorage unavailable (private mode etc.) - conversation just won't persist.
   }
@@ -34,8 +37,8 @@ interface ChatResponse {
   proposal?: ImprovementProposalDraft;
 }
 
-export function AssistantDrawer({context, onClose, titleId, drawerId}: {context: QuestionnaireAssistantContext; onClose: () => void; titleId: string; drawerId: string}) {
-  const [history, setHistory] = useState<AssistantMessage[]>(() => loadHistory());
+export function AssistantDrawer({context, onClose, titleId, drawerId, historyStorageKey}: {context: QuestionnaireAssistantContext; onClose: () => void; titleId: string; drawerId: string; historyStorageKey: string}) {
+  const [history, setHistory] = useState<AssistantMessage[]>(() => loadHistory(historyStorageKey));
   const [input, setInput] = useState('');
   const [pending, setPending] = useState(false);
   const [error, setError] = useState(false);
@@ -48,7 +51,7 @@ export function AssistantDrawer({context, onClose, titleId, drawerId}: {context:
   const idempotencyKeyRef = useRef<string>('');
 
   useEffect(() => { composerRef.current?.focus(); }, []);
-  useEffect(() => { saveHistory(history); }, [history]);
+  useEffect(() => { saveHistory(historyStorageKey, history); }, [historyStorageKey, history]);
   useEffect(() => {
     const onKeyDown = (event: KeyboardEvent) => {
       if (event.key === 'Escape') { onClose(); return; }

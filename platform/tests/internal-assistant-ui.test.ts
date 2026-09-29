@@ -50,8 +50,16 @@ test('11: 初回だけ4つのsuggested promptを表示し、自由入力も常�
 test('12: 直近20 messageまでをsessionStorageへ保持し、respondent PIIは扱わない', () => {
   const drawer = source('components/assistant/AssistantDrawer.tsx');
   assert.match(drawer, /const MAX_HISTORY = 20/);
-  assert.match(drawer, /window\.sessionStorage\.setItem\(HISTORY_KEY/);
-  assert.match(drawer, /window\.sessionStorage\.getItem\(HISTORY_KEY\)/);
+  assert.match(drawer, /window\.sessionStorage\.setItem\(key, JSON\.stringify\(history\.slice\(-MAX_HISTORY\)\)\)/);
+  assert.match(drawer, /window\.sessionStorage\.getItem\(key\)/);
+});
+
+test('3: 履歴はserver提供のper-user keyでload/saveされ、固定文字列のHISTORY_KEYは存在しない', () => {
+  const drawer = source('components/assistant/AssistantDrawer.tsx');
+  assert.doesNotMatch(drawer, /const HISTORY_KEY/);
+  assert.match(drawer, /historyStorageKey: string/);
+  assert.match(drawer, /loadHistory\(historyStorageKey\)/);
+  assert.match(drawer, /saveHistory\(historyStorageKey, history\)/);
 });
 
 test('改善要望の確認ボタンは明示的な送信操作でのみImprovement APIを叩く', () => {
