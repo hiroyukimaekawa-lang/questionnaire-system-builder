@@ -2,7 +2,7 @@ import {NextResponse} from 'next/server';
 import {getSurveyAccess,getUser} from '@/lib/data';
 import {can} from '@/lib/auth/permissions';
 import {csvEscape} from '@/lib/survey';
-import {displayAnswer,responseExportData} from '@/lib/responses';
+import {displayAnswer,displayIdentity,responseExportData} from '@/lib/responses';
 
 export async function GET(_:Request,{params}:{params:Promise<{id:string}>}){
   const user=await getUser();
@@ -11,7 +11,7 @@ export async function GET(_:Request,{params}:{params:Promise<{id:string}>}){
   if(!can(user.role,'csv')||!access.canEdit)return NextResponse.json({error:'CSVを出力する権限がありません。'},{status:403});
   const {responses,questions}=await responseExportData(id);
   const ordered=[...questions].sort((a:any,b:any)=>a.sort_order-b.sort_order);
-  const rows=[['回答日時',...ordered.map((q:any)=>q.title),'合計スコア','平均スコア'].map(csvEscape).join(',')];
-  for(const r of responses as any[]){rows.push([new Date(r.submitted_at).toLocaleString('ja-JP'),...ordered.map((q:any)=>displayAnswer(r.response_answers.find((a:any)=>a.question_id===q.id),q)),r.total_score??'',r.average_score??''].map(csvEscape).join(','))}
+  const rows=[['回答日時','回答方法','回答者名',...ordered.map((q:any)=>q.title),'合計スコア','平均スコア'].map(csvEscape).join(',')];
+  for(const r of responses as any[]){const identity=displayIdentity(r);rows.push([new Date(r.submitted_at).toLocaleString('ja-JP'),identity.method,identity.name,...ordered.map((q:any)=>displayAnswer(r.response_answers.find((a:any)=>a.question_id===q.id),q)),r.total_score??'',r.average_score??''].map(csvEscape).join(','))}
   return new NextResponse('\uFEFF'+rows.join('\r\n'),{headers:{'content-type':'text/csv; charset=utf-8','content-disposition':`attachment; filename="responses-${id}.csv"`,'cache-control':'no-store'}});
 }

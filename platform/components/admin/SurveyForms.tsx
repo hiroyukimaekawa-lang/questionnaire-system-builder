@@ -1,10 +1,10 @@
 'use client';
-import {isAnonymousSurvey} from '@/lib/public-survey';
+import {resolveIdentityMode} from '@/lib/public-survey';
 import {useActionState,useState} from 'react';
 import {createSurveyAction,saveConfigAction,saveSurveyAction} from '@/app/actions';
 import {slugify,normalizeQuestionFontSize} from '@/lib/survey';
 import {getThemeTemplate} from '@/lib/theme/templates';
-import type {SurveyConfig} from '@/types/database';
+import type {IdentityMode,SurveyConfig} from '@/types/database';
 import {AssetUrlField} from '@/components/admin/AssetUrlField';
 
 const DEFAULT_REVIEW_PROMPT='よろしければ、Googleでもご感想をお聞かせください。';
@@ -17,7 +17,7 @@ export function ConfigForm({surveyId,versionId,config,onChange}:{surveyId:string
   const [state,action,pending]=useActionState(saveConfigAction.bind(null,surveyId,versionId),null);
   const themeId=config.themeId??'clinic-clean';
   const defaults=getThemeTemplate(themeId).config;
-  const [anonymous,setAnonymous]=useState(isAnonymousSurvey(config));
+  const [identityMode,setIdentityMode]=useState<IdentityMode>(resolveIdentityMode(config));
   const initialCopy:Record<OptionalCopyKey,string>={
     heroLabel:config.heroLabel===undefined?'QUESTIONNAIRE':config.heroLabel??'',
     heroSubtitle:config.heroSubtitle===undefined?(config.description??''):config.heroSubtitle??'',
@@ -44,8 +44,8 @@ export function ConfigForm({surveyId,versionId,config,onChange}:{surveyId:string
       {optionalField('heroSubtitle','ヒーローの説明',3)}
       {optionalField('description','説明文',3)}
       {optionalField('introText','冒頭文章',4)}
-      <label className="field">匿名設定<select name="anonymous" value={String(anonymous)} onChange={e=>{const value=e.target.value==='true';setAnonymous(value);onChange?.({anonymous:value});}}><option value="true">匿名にする</option><option value="false">匿名にしない</option></select></label>
-      {anonymous&&optionalField('anonymousText','匿名案内文',2)}
+      <label className="field">回答方法<select name="identityMode" value={identityMode} onChange={e=>{const value=e.target.value as IdentityMode;setIdentityMode(value);onChange?.({identityMode:value});}}><option value="respondent_choice">回答者が匿名・記名を選択</option><option value="anonymous_only">匿名のみ</option><option value="identified_only">記名のみ</option></select><small className="editor-field-help">回答者が匿名・記名を選択する場合、回答画面の冒頭で選んでいただきます。既存アンケートでも変更できます（変更は下書きのみで、公開中の画面はそのままです）。</small></label>
+      {identityMode==='anonymous_only'&&optionalField('anonymousText','匿名案内文',2)}
       <label className="field">送信ボタンの文言<input name="submitLabel" defaultValue={config.buttonLabel??config.submitLabel} required/></label>
       <label className="field editor-field-label question-font-size-field">質問文の文字サイズ<span className="question-font-size-control"><input name="questionFontSize" type="number" min="14" max="22" step="1" defaultValue={normalizeQuestionFontSize(config.questionFontSize)} onChange={e=>onChange?.({questionFontSize:Number(e.target.value)})}/><span className="question-font-size-unit">px</span></span><small className="editor-field-help">公開アンケートの質問文に反映されます。標準は17pxです。</small></label>
       <label className="field">ロゴ表示<select name="logoMode" defaultValue={config.logoMode??'icon'}><option value="none">表示しない</option><option value="icon">アイコン</option><option value="upload">ロゴ画像</option></select></label>

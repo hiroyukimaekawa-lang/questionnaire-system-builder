@@ -6,13 +6,13 @@ import {CompletionSettingsForm} from '@/components/admin/CompletionSettingsForm'
 import {QuestionBuilder} from '@/components/admin/QuestionBuilder';
 import {LiveSurveyPreview} from '@/components/admin/LiveSurveyPreview';
 import {PublishSection} from '@/components/admin/PublishSection';
-import type {SurveyQuestion,SurveyVersion} from '@/types/database';
+import type {IdentityMode,SurveyQuestion,SurveyVersion} from '@/types/database';
 
 type PublishFormAction=(state:any,form:FormData)=>Promise<any>;
 
 export function SurveyEditorWorkspace({survey,draft,publicUrl,publishAction,unpublishAction}:{survey:any;draft:SurveyVersion;publicUrl:string;publishAction:PublishFormAction;unpublishAction:PublishFormAction}){
   const [name,setName]=useState(survey.name as string),[config,setConfig]=useState(draft.config),[questions,setQuestions]=useState(draft.questions);
-  const syncForm=(event:React.FormEvent<HTMLElement>)=>{const input=event.target as HTMLInputElement|HTMLTextAreaElement|HTMLSelectElement;if(!input.name)return;if(input.name==='anonymous'){setConfig(current=>({...current,anonymous:input.value==='true'}));return;}if(input.name==='name'){setName(input.value);return;}if(['primaryColor','backgroundColor','secondaryColor','accentColor','heroOverlayColor','heroTextColor','buttonBackground','buttonTextColor','cardBackground','logoBadgeBackground','title','heroLabel','heroTitle','questionFontSize','heroSubtitle','description','introText','anonymousText','completionText','submitLabel','logoUrl','iconUrl','logoMode','heroBackgroundType','themeId','googleReviewMode','googleReviewUrl'].includes(input.name))setConfig(current=>input.name==='submitLabel'?{...current,submitLabel:input.value,buttonLabel:input.value}:{...current,[input.name]:input.name==='questionFontSize'?Number(input.value):input.value});};
+  const syncForm=(event:React.FormEvent<HTMLElement>)=>{const input=event.target as HTMLInputElement|HTMLTextAreaElement|HTMLSelectElement;if(!input.name)return;if(input.name==='anonymous'){setConfig(current=>({...current,anonymous:input.value==='true'}));return;}if(input.name==='identityMode'){setConfig(current=>({...current,identityMode:input.value as IdentityMode}));return;}if(input.name==='name'){setName(input.value);return;}if(['primaryColor','backgroundColor','secondaryColor','accentColor','heroOverlayColor','heroTextColor','buttonBackground','buttonTextColor','cardBackground','logoBadgeBackground','title','heroLabel','heroTitle','questionFontSize','heroSubtitle','description','introText','anonymousText','completionText','submitLabel','logoUrl','iconUrl','logoMode','heroBackgroundType','themeId','googleReviewMode','googleReviewUrl'].includes(input.name))setConfig(current=>input.name==='submitLabel'?{...current,submitLabel:input.value,buttonLabel:input.value}:{...current,[input.name]:input.name==='questionFontSize'?Number(input.value):input.value});};
   const questionsChanged=useCallback((next:SurveyQuestion[])=>setQuestions(next),[]);
 
   const revealTarget=(container:HTMLElement|null,focusable?:HTMLElement|null)=>{

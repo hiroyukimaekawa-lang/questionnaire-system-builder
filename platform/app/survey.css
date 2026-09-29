@@ -144,6 +144,46 @@
   line-height: 1.7;
 }
 
+.survey-identity {
+  margin: 0 0 46px;
+}
+
+.identity-choice-group {
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+
+.identity-choice-legend {
+  width: 100%;
+  margin: 0 0 12px;
+  padding: 0;
+  font-size: 15px;
+  font-weight: 800;
+  line-height: 1.5;
+}
+
+.identity-choice-copy {
+  display: grid;
+  min-width: 0;
+  gap: 3px;
+}
+
+.identity-choice-copy small {
+  color: #7d858b;
+  font-size: 12px;
+  line-height: 1.6;
+}
+
+.identity-name-field {
+  margin-top: 16px;
+}
+
+.identity-name-field > span:first-child {
+  font-size: 14px;
+  font-weight: 700;
+}
+
 .question-block {
   display: grid;
   min-width: 0;
