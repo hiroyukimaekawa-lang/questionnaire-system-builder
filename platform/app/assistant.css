@@ -1,0 +1,24 @@
+.assistant-launcher{position:fixed;right:20px;bottom:20px;z-index:60;min-height:48px;padding:12px 20px;border-radius:999px;border:0;background:var(--brand);color:#fff;font-weight:700;box-shadow:0 10px 30px rgba(15,23,42,.25);cursor:pointer}
+.assistant-overlay{position:fixed;inset:0;z-index:70;background:rgba(15,23,42,.35);display:flex;justify-content:flex-end}
+.assistant-drawer{width:min(420px,100%);height:100%;background:var(--surface,#fff);display:flex;flex-direction:column;box-shadow:-12px 0 30px rgba(15,23,42,.15)}
+.assistant-header{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;padding:16px 18px;border-bottom:1px solid var(--line)}
+.assistant-header h2{margin:0;font-size:18px}
+.assistant-header p{margin:2px 0 0}
+.assistant-close{border:0;background:none;font-size:22px;line-height:1;cursor:pointer;color:var(--muted);min-height:32px;min-width:32px}
+.assistant-messages{flex:1;overflow-y:auto;padding:16px 18px;display:grid;gap:10px;align-content:start}
+.assistant-bubble{max-width:88%;padding:10px 14px;border-radius:14px;line-height:1.6;white-space:pre-wrap;word-break:normal;overflow-wrap:anywhere}
+.assistant-bubble-assistant{background:#eef2f8;color:var(--ink);justify-self:start;border-bottom-left-radius:4px}
+.assistant-bubble-user{background:var(--brand);color:#fff;justify-self:end;border-bottom-right-radius:4px}
+.assistant-bubble-error{background:#fef2f2;color:#b91c1c;justify-self:start;display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.assistant-pending{color:var(--muted)}
+.assistant-retry{min-height:32px;padding:4px 12px}
+.assistant-proposal-actions{display:flex;gap:8px;flex-wrap:wrap;justify-self:start}
+.assistant-suggestions{display:flex;gap:8px;flex-wrap:wrap;padding:0 18px 12px}
+.assistant-suggestion{min-height:36px;font-size:13px}
+.assistant-composer{display:flex;gap:8px;padding:12px 18px;border-top:1px solid var(--line);align-items:flex-end}
+.assistant-composer textarea{flex:1;resize:none;border:1px solid #bcc8d6;border-radius:10px;padding:10px 12px;max-height:120px}
+@media(max-width:640px){
+  .assistant-overlay{align-items:stretch}
+  .assistant-drawer{width:100%;height:100dvh}
+  .assistant-launcher{right:14px;bottom:14px}
+}

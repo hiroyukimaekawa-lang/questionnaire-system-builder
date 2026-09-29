@@ -1,17 +1,23 @@
 'use client';
 
-import {useCallback,useState} from 'react';
+import {useCallback,useEffect,useState} from 'react';
 import {BasicForm,ConfigForm} from '@/components/admin/SurveyForms';
 import {CompletionSettingsForm} from '@/components/admin/CompletionSettingsForm';
 import {QuestionBuilder} from '@/components/admin/QuestionBuilder';
 import {LiveSurveyPreview} from '@/components/admin/LiveSurveyPreview';
 import {PublishSection} from '@/components/admin/PublishSection';
+import {useSetAssistantDraftVersionId} from '@/components/assistant/AssistantPageContext';
 import type {SurveyQuestion,SurveyVersion} from '@/types/database';
 
 type PublishFormAction=(state:any,form:FormData)=>Promise<any>;
 
 export function SurveyEditorWorkspace({survey,draft,publicUrl,publishAction,unpublishAction}:{survey:any;draft:SurveyVersion;publicUrl:string;publishAction:PublishFormAction;unpublishAction:PublishFormAction}){
   const [name,setName]=useState(survey.name as string),[config,setConfig]=useState(draft.config),[questions,setQuestions]=useState(draft.questions);
+  // Publishes the current draft id for the internal assistant's page context
+  // (lib/assistant/context.ts can't see it - it isn't in the URL). Purely additive:
+  // no effect on editing/saving/publishing if the assistant is disabled.
+  const setAssistantDraftVersionId=useSetAssistantDraftVersionId();
+  useEffect(()=>{setAssistantDraftVersionId(draft.id);return()=>setAssistantDraftVersionId(undefined);},[draft.id,setAssistantDraftVersionId]);
   // identityMode is intentionally not handled here: ConfigForm owns its own
   // legacy | IdentityMode select state and already calls its onChange prop (which
   // updates this config state) exactly once, only on an explicit non-legacy choice.
