@@ -6,13 +6,18 @@ import {CompletionSettingsForm} from '@/components/admin/CompletionSettingsForm'
 import {QuestionBuilder} from '@/components/admin/QuestionBuilder';
 import {LiveSurveyPreview} from '@/components/admin/LiveSurveyPreview';
 import {PublishSection} from '@/components/admin/PublishSection';
-import type {IdentityMode,SurveyQuestion,SurveyVersion} from '@/types/database';
+import type {SurveyQuestion,SurveyVersion} from '@/types/database';
 
 type PublishFormAction=(state:any,form:FormData)=>Promise<any>;
 
 export function SurveyEditorWorkspace({survey,draft,publicUrl,publishAction,unpublishAction}:{survey:any;draft:SurveyVersion;publicUrl:string;publishAction:PublishFormAction;unpublishAction:PublishFormAction}){
   const [name,setName]=useState(survey.name as string),[config,setConfig]=useState(draft.config),[questions,setQuestions]=useState(draft.questions);
-  const syncForm=(event:React.FormEvent<HTMLElement>)=>{const input=event.target as HTMLInputElement|HTMLTextAreaElement|HTMLSelectElement;if(!input.name)return;if(input.name==='anonymous'){setConfig(current=>({...current,anonymous:input.value==='true'}));return;}if(input.name==='identityMode'){setConfig(current=>({...current,identityMode:input.value as IdentityMode}));return;}if(input.name==='name'){setName(input.value);return;}if(['primaryColor','backgroundColor','secondaryColor','accentColor','heroOverlayColor','heroTextColor','buttonBackground','buttonTextColor','cardBackground','logoBadgeBackground','title','heroLabel','heroTitle','questionFontSize','heroSubtitle','description','introText','anonymousText','completionText','submitLabel','logoUrl','iconUrl','logoMode','heroBackgroundType','themeId','googleReviewMode','googleReviewUrl'].includes(input.name))setConfig(current=>input.name==='submitLabel'?{...current,submitLabel:input.value,buttonLabel:input.value}:{...current,[input.name]:input.name==='questionFontSize'?Number(input.value):input.value});};
+  // identityMode is intentionally not handled here: ConfigForm owns its own
+  // legacy | IdentityMode select state and already calls its onChange prop (which
+  // updates this config state) exactly once, only on an explicit non-legacy choice.
+  // A second, unconditional write from this native-event listener raced that
+  // controlled <select> and could revert the visible selection back to legacy.
+  const syncForm=(event:React.FormEvent<HTMLElement>)=>{const input=event.target as HTMLInputElement|HTMLTextAreaElement|HTMLSelectElement;if(!input.name||input.name==='identityMode')return;if(input.name==='anonymous'){setConfig(current=>({...current,anonymous:input.value==='true'}));return;}if(input.name==='name'){setName(input.value);return;}if(['primaryColor','backgroundColor','secondaryColor','accentColor','heroOverlayColor','heroTextColor','buttonBackground','buttonTextColor','cardBackground','logoBadgeBackground','title','heroLabel','heroTitle','questionFontSize','heroSubtitle','description','introText','anonymousText','completionText','submitLabel','logoUrl','iconUrl','logoMode','heroBackgroundType','themeId','googleReviewMode','googleReviewUrl'].includes(input.name))setConfig(current=>input.name==='submitLabel'?{...current,submitLabel:input.value,buttonLabel:input.value}:{...current,[input.name]:input.name==='questionFontSize'?Number(input.value):input.value});};
   const questionsChanged=useCallback((next:SurveyQuestion[])=>setQuestions(next),[]);
 
   const revealTarget=(container:HTMLElement|null,focusable?:HTMLElement|null)=>{
@@ -46,7 +51,7 @@ export function SurveyEditorWorkspace({survey,draft,publicUrl,publishAction,unpu
   };
 
   const version={...draft,config,questions};
-  return <div className="preview-first-layout"><div className="editor-panel" onInput={syncForm} onChange={syncForm}>
+  return <div className="preview-first-layout"><div className="editor-panel" onChange={syncForm}>
     <nav className="editor-section-nav" aria-label="編集セクション"><a href="#basic-information">基本情報</a><a href="#design-copy">文章・ロゴ</a><a href="#questions">質問</a><a href="#completion-settings">口コミ・完了条件</a><a href="#publish-settings">公開設定</a></nav>
     <section id="basic-information" className="editor-section"><BasicForm survey={survey}/></section>
     <section id="design-copy" className="editor-section"><ConfigForm surveyId={survey.id} versionId={draft.id} config={draft.config} onChange={patch=>setConfig(c=>({...c,...patch}))}/></section>
