@@ -119,7 +119,7 @@ test('legacy versionはidentityChoice/respondentNameを要求せずslug・versio
 });
 
 test('migrationはsubmit_survey_responseのみを更新しpublish_survey等の公開versionロジックには触れない',()=>{
-  const source=read('../supabase/migrations/20260929010000_survey_identity_mode.sql');
+  const source=read('../supabase/migrations/20260929064859_survey_identity_mode.sql');
   assert.match(source,/create or replace function public\.submit_survey_response/);
   assert.doesNotMatch(source,/publish_survey/);
   assert.match(source,/identity_mode is null or identity_mode not in \('respondent_choice', 'anonymous_only', 'identified_only'\)/);
@@ -130,9 +130,9 @@ test('migrationはsubmit_survey_responseのみを更新しpublish_survey等の�
 });
 
 test('新しい補正migrationは旧migrationを編集せずlegacy versionの識別要求を撤廃する',()=>{
-  const original=read('../supabase/migrations/20260929010000_survey_identity_mode.sql');
+  const original=read('../supabase/migrations/20260929064859_survey_identity_mode.sql');
   assert.doesNotMatch(original,/'legacy'/);
-  const source=read('../supabase/migrations/20260929020000_fix_legacy_identity_compat.sql');
+  const source=read('../supabase/migrations/20260929064903_fix_legacy_identity_compat.sql');
   assert.match(source,/create or replace function public\.submit_survey_response/);
   assert.doesNotMatch(source,/publish_survey/);
   assert.match(source,/identity_mode := case when v_config->>'anonymous' = 'true' then 'anonymous_only' else 'legacy' end/);
