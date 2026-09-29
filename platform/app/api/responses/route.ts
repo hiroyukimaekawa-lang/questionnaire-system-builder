@@ -5,9 +5,10 @@ import {getPublicSurvey} from '@/lib/data';
 import {validateAnswers} from '@/lib/survey';
 import {evaluateCompletionRules} from '@/lib/completion';
 import {evaluateGoogleReviewEligibility} from '@/lib/google-review';
+import {resolveIdentityMode} from '@/lib/public-survey';
 import {parseLimitedJson,rateLimitSurveyResponse} from '@/lib/request-security';
 
-const schema=z.object({slug:z.string().regex(/^[a-z0-9]+(?:-[a-z0-9]+)*$/),versionId:z.string().uuid(),answers:z.record(z.string(),z.union([z.string().max(5000),z.number().min(1).max(10),z.array(z.string().max(300)).max(50)]))});
+const schema=z.object({slug:z.string().regex(/^[a-z0-9]+(?:-[a-z0-9]+)*$/),versionId:z.string().uuid(),answers:z.record(z.string(),z.union([z.string().max(5000),z.number().min(1).max(10),z.array(z.string().max(300)).max(50)])),identityChoice:z.enum(['anonymous','identified']).optional(),respondentName:z.string().max(100).optional()});
 
 export async function POST(request:Request){
   try{
@@ -21,6 +22,26 @@ export async function POST(request:Request){
     if(Object.keys(validation).length)return NextResponse.json({error:Object.values(validation)[0]},{status:400});
 
     const config=publicSurvey.version.config;
+    const identityMode=resolveIdentityMode(config);
+    let identityChoice:'anonymous'|'identified';
+    let respondentName:string|null=null;
+    if(identityMode==='anonymous_only'){
+      identityChoice='anonymous';
+    }else if(identityMode==='identified_only'){
+      identityChoice='identified';
+      const name=(input.respondentName??'').trim();
+      if(!name)return NextResponse.json({error:'お名前を入力してください。'},{status:400});
+      respondentName=name;
+    }else{
+      if(input.identityChoice!=='anonymous'&&input.identityChoice!=='identified')return NextResponse.json({error:'回答方法を選択してください。'},{status:400});
+      identityChoice=input.identityChoice;
+      if(identityChoice==='identified'){
+        const name=(input.respondentName??'').trim();
+        if(!name)return NextResponse.json({error:'お名前を入力してください。'},{status:400});
+        respondentName=name;
+      }
+    }
+
     const completion=evaluateCompletionRules(config,input.answers);
     const reviewEligible=evaluateGoogleReviewEligibility(config,publicSurvey.version.questions,input.answers);
     const s=createPublicClient();
@@ -33,6 +54,8 @@ export async function POST(request:Request){
         needsFollowUp:completion.needsFollowUp,
         matchedRuleId:completion.matchedRuleId,
         reviewEligible,
+        identityChoice,
+        respondentName,
       },
     });
     if(error)return NextResponse.json({error:'回答を保存できませんでした。入力内容をご確認ください。'},{status:400});

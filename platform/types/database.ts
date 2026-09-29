@@ -4,6 +4,7 @@ export type QuestionType = 'single_choice' | 'multiple_choice' | 'rating_10' | '
 export type SurveyThemeId = 'clinic-clean' | 'restaurant-clean' | 'salon-clean';
 export type HeroBackgroundType = 'solid' | 'soft-gradient';
 export type GoogleReviewMode = 'disabled' | 'all' | 'score';
+export type IdentityMode = 'respondent_choice' | 'anonymous_only' | 'identified_only';
 export type RuleOperator = 'gte' | 'lte' | 'eq';
 
 export interface RuleCondition { questionId: string; operator: RuleOperator; value: number }
@@ -27,6 +28,7 @@ export interface SurveyConfig {
   googleReviewPromptText?: string;
   fontSizes?: Partial<Record<'business' | 'title' | 'description' | 'choice' | 'button', number>>;
   anonymous?: boolean;
+  identityMode?: IdentityMode;
   title: string; description: string; introText: string; anonymousText: string;
   completionText: string; submitLabel: string; primaryColor: string;
   backgroundColor: string; logoUrl: string | null; iconUrl: string | null;

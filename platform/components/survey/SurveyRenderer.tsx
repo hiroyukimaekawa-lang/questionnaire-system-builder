@@ -5,7 +5,7 @@ import { useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import type { AnswerValue, SurveyVersion } from '@/types/database';
 import { choicePresentation, scoreMax, validateAnswers } from '@/lib/survey';
-import { isAnonymousSurvey, publicSurveyTitle } from '@/lib/public-survey';
+import { publicSurveyTitle, resolveIdentityMode } from '@/lib/public-survey';
 import { resolveSurveyTheme } from '@/lib/theme/templates';
 
 function questionNumber(index: number) {
@@ -26,19 +26,36 @@ export function SurveyRenderer({
   onEditTarget?: (target: string) => void;
 }) {
   const config = resolveSurveyTheme(version.config), router = useRouter();
+  const identityMode = resolveIdentityMode(version.config);
   const [answers, setAnswers] = useState<Record<string, AnswerValue>>({});
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [pending, setPending] = useState(false);
   const [submitError, setSubmitError] = useState('');
+  const [identityChoice, setIdentityChoice] = useState<'anonymous' | 'identified' | ''>('');
+  const [respondentName, setRespondentName] = useState('');
+  const [identityError, setIdentityError] = useState('');
   const refs = useRef<Record<string, HTMLElement | null>>({});
+  const identityRef = useRef<HTMLElement | null>(null);
   const set = (id: string, value: AnswerValue) => {
     setAnswers((current) => ({ ...current, [id]: value }));
     setErrors((current) => ({ ...current, [id]: '' }));
   };
+  const needsName = identityMode === 'identified_only' || (identityMode === 'respondent_choice' && identityChoice === 'identified');
 
   async function submit(event: React.FormEvent) {
     event.preventDefault();
     if (preview) return;
+    if (identityMode === 'respondent_choice' && !identityChoice) {
+      setIdentityError('回答方法を選択してください。');
+      identityRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      return;
+    }
+    const trimmedName = respondentName.trim();
+    if (needsName && !trimmedName) {
+      setIdentityError('お名前を入力してください。');
+      identityRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      return;
+    }
     const found = validateAnswers(version.questions, answers);
     setErrors(found);
     const first = Object.keys(found)[0];
@@ -49,11 +66,18 @@ export function SurveyRenderer({
     }
     setPending(true);
     setSubmitError('');
+    const finalIdentityChoice = identityMode === 'anonymous_only' ? 'anonymous' : identityMode === 'identified_only' ? 'identified' : identityChoice;
     try {
       const response = await fetch('/api/responses', {
         method: 'POST',
         headers: { 'content-type': 'application/json' },
-        body: JSON.stringify({ slug, versionId: version.id, answers }),
+        body: JSON.stringify({
+          slug,
+          versionId: version.id,
+          answers,
+          identityChoice: finalIdentityChoice,
+          ...(finalIdentityChoice === 'identified' ? { respondentName: trimmedName } : {}),
+        }),
       });
       const json = await response.json();
       if (!response.ok) throw new Error(json.error || '送信できませんでした。');
@@ -152,7 +176,7 @@ export function SurveyRenderer({
           preview ? <button key={field} type="button" className="preview-editable intro-editable" onClick={() => onEditTarget?.(field)}><p className="survey-description jp-copy jp-preserve-lines">{config[field]}</p></button>
             : <p key={field} className="survey-description jp-copy jp-preserve-lines">{config[field]}</p>
         ))}
-        {isAnonymousSurvey(config) && anonymousText && (
+        {identityMode === 'anonymous_only' && anonymousText && (
           <div className="survey-intro">
             {preview ? (
               <button type="button" className="preview-editable intro-editable" onClick={() => onEditTarget?.('anonymousText')}>
@@ -161,6 +185,52 @@ export function SurveyRenderer({
             ) : (
               <p className="survey-anonymous-note jp-copy jp-preserve-lines">{anonymousText}</p>
             )}
+          </div>
+        )}
+
+        {(identityMode === 'respondent_choice' || identityMode === 'identified_only') && (
+          <div className="survey-identity" ref={(element) => { identityRef.current = element; }}>
+            {identityMode === 'respondent_choice' && (
+              <fieldset className="identity-choice-group">
+                <legend className="jp-heading identity-choice-legend">回答方法を選択してください</legend>
+                <label className="choice identity-choice">
+                  <input
+                    type="radio"
+                    name="identityChoice"
+                    checked={identityChoice === 'anonymous'}
+                    onChange={() => { setIdentityChoice('anonymous'); setRespondentName(''); setIdentityError(''); }}
+                  />
+                  <span className="jp-copy identity-choice-copy">
+                    <strong>匿名で回答する</strong>
+                    <small>お名前を入力せずに回答できます</small>
+                  </span>
+                </label>
+                <label className="choice identity-choice">
+                  <input
+                    type="radio"
+                    name="identityChoice"
+                    checked={identityChoice === 'identified'}
+                    onChange={() => { setIdentityChoice('identified'); setIdentityError(''); }}
+                  />
+                  <span className="jp-copy identity-choice-copy">
+                    <strong>記名で回答する</strong>
+                    <small>お名前と回答内容が運営者に表示されます</small>
+                  </span>
+                </label>
+              </fieldset>
+            )}
+            {needsName && (
+              <label className="field identity-name-field">
+                <span className="jp-copy">お名前<span className="required-badge">※必須</span></span>
+                <input
+                  className="survey-text-input"
+                  value={respondentName}
+                  onChange={(event) => { setRespondentName(event.target.value); setIdentityError(''); }}
+                  placeholder="お名前"
+                />
+              </label>
+            )}
+            {identityError && <p className="error jp-copy" role="alert">{identityError}</p>}
           </div>
         )}
 
