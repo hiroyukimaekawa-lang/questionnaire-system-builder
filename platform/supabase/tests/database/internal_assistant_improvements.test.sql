@@ -43,16 +43,17 @@ select results_eq(
   'sales reporter sees their own submitted request'
 );
 
+-- throws_ok's 3rd positional argument is matched against the exact error message
+-- (not used as a free-form description) once an errcode is also supplied, so we
+-- stick to the 2-arg form here and let pgTAP generate the description.
 select throws_ok(
   $$ insert into public.improvement_requests(reporter_user_id,category,message) values ('a0000000-0000-4000-8000-000000000003','bug','spoofed') $$,
-  '42501',
-  'sales cannot insert an improvement request attributed to another user'
+  '42501'
 );
 
 select throws_ok(
   $$ insert into public.improvement_requests(reporter_user_id,category,message,idempotency_key) values ('a0000000-0000-4000-8000-000000000002','bug','duplicate','idem-key-1') $$,
-  '23505',
-  'same reporter cannot reuse an idempotency key'
+  '23505'
 );
 
 update public.improvement_requests set status = 'resolved' where id = 'b0000000-0000-4000-8000-000000000001';
@@ -77,8 +78,7 @@ select results_eq(
 );
 select throws_ok(
   $$ insert into public.improvement_requests(reporter_user_id,category,message) values ('a0000000-0000-4000-8000-000000000004','bug','viewer attempt') $$,
-  '42501',
-  'viewer cannot insert an improvement request'
+  '42501'
 );
 
 select set_config('request.jwt.claim.sub', 'a0000000-0000-4000-8000-000000000001', true);
@@ -96,10 +96,12 @@ select results_eq(
 
 set local role anon;
 select set_config('request.jwt.claim.sub', '', true);
-select results_eq(
-  'select count(*) from public.improvement_requests',
-  array[0::bigint],
-  'anonymous cannot read any improvement request'
+-- anon has no table-level privilege at all here (revoked in the migration, unlike
+-- surveys where anon can read published rows), so the query itself is rejected
+-- rather than merely returning zero rows through RLS.
+select throws_ok(
+  $$ select count(*) from public.improvement_requests $$,
+  '42501'
 );
 select isnt(has_table_privilege('anon', 'public.improvement_requests', 'select'), true, 'anonymous has no table-level select privilege');
 
