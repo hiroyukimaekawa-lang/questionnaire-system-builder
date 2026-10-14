@@ -39,12 +39,13 @@ test('コピー失敗時に手動コピーと口コミ遷移を分けて案内�
   assert.doesNotMatch(source,/window\.open/);
   const css=readFileSync(new URL('../app/survey.css',import.meta.url),'utf8');assert.match(css,/\.jp-preserve-lines,[\s\S]*?\.thanks-lead,[\s\S]*?\.completion-copy span\s*\{ white-space: pre-line/);
 });
-test('回答分類で個別条件と合計点を設定し口コミは全回答者表示だけにする',()=>{
+test('STEP3は3種類の案内設定と個別条件・合計点条件を統合する',()=>{
   const source=readFileSync(new URL('../components/admin/CompletionSettingsForm.tsx',import.meta.url),'utf8');
   const settings=readFileSync(new URL('../components/admin/ReviewSettings.tsx',import.meta.url),'utf8');
   const rules=readFileSync(new URL('../components/admin/CompletionRuleSettings.tsx',import.meta.url),'utf8');
-  assert.match(settings,/全回答者へ表示/);assert.doesNotMatch(settings,/高評価|満たした人だけ/);
+  assert.match(settings,/使用しない/);assert.match(settings,/全回答者へ表示/);assert.match(settings,/条件付き/);assert.doesNotMatch(settings,/高評価|満たした人だけ/);
   assert.match(rules,/個別条件/);assert.match(rules,/合計点条件/);assert.match(rules,/最大合計点/);assert.match(rules,/判定結果のプレビュー/);
+  assert.match(source,/conditional&&<CompletionRuleSettings/);
   assert.match(source,/JSON.stringify\(review\.completionRules\?\?\[\]\)/);
   assert.match(source,/回答後設定を保存/);
 });

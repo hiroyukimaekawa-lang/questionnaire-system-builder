@@ -11,8 +11,7 @@ export function completionSettingsConfig(
   completionRules: CompletionRule[],
   googleReviewRule: GoogleReviewRule | null = null,
 ): SurveyConfig {
-  const preserved = { ...existing } as SurveyConfig & { googleReviewRules?: unknown };
-  delete preserved.googleReviewRules;
+  const preserved = { ...existing };
   return {
     ...preserved,
     googleReviewMode: reviewMode,
