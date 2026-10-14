@@ -22,7 +22,7 @@ test('公開アンケートとThanksへ共通Japanese typography classを適用�
   }
   assert.match(thanks, /className="thanks-title jp-heading"/);
   assert.match(thanks, /className="card thanks-panel jp-copy"/);
-  assert.match(thanks, /className="jp-keep">よろしければ、<\/span>/);
+  assert.match(thanks, /className="thanks-review-copy jp-copy"/);
 });
 
 test('CSSは日本語禁則とauto-phraseをprogressive enhancementで使用する', () => {

@@ -11,10 +11,21 @@ const conditionSchema = z.object({
 export const completionRulesSchema = z.array(z.object({
   id: z.string().trim().min(1).max(100),
   logic: z.enum(['and', 'or']),
-  conditions: z.array(conditionSchema).min(1).max(10),
+  conditions: z.array(conditionSchema).max(10),
+  conditionType: z.enum(['individual', 'aggregate']).optional(),
+  aggregate: z.object({
+    questionIds: z.array(z.string().uuid()).min(2).max(10),
+    operator: z.literal('gte'),
+    value: z.number().int().finite().min(1).max(100),
+  }).strict().optional(),
   completionMessage: z.string().max(1000).optional(),
   needsFollowUp: z.boolean().optional().default(false),
-}).strict()).max(20);
+}).strict().superRefine((rule,ctx)=>{
+  if(rule.conditionType==='aggregate') {
+    if(!rule.aggregate)ctx.addIssue({code:'custom',message:'合計点条件が必要です。'});
+    if(rule.conditions.length)ctx.addIssue({code:'custom',message:'合計点条件に個別条件は指定できません。'});
+  } else if(!rule.conditions.length)ctx.addIssue({code:'custom',message:'個別条件が必要です。'});
+})).max(20);
 
 export const googleReviewRuleSchema = z.object({
   logic: z.enum(['and', 'or']),
@@ -81,6 +92,15 @@ function validateConditionsForQuestions(conditions: Array<{ questionId: string; 
 
 export function validateRulesForQuestions(rules: z.infer<typeof completionRulesSchema>, questions: SurveyQuestion[]) {
   for (const rule of rules) {
+    if(rule.conditionType==='aggregate') {
+      const ids=rule.aggregate?.questionIds??[];
+      if(new Set(ids).size!==ids.length)return '合計対象に同じ評価質問を重複して指定できません。';
+      const ratings=new Map(questions.filter(q=>q.type==='rating_10').map(q=>[q.id,scoreMax(q)]));
+      if(ids.some(id=>!ratings.has(id)))return '合計対象には現在の下書きに存在する評価質問を選択してください。';
+      const maxTotal=ids.reduce((sum,id)=>sum+(ratings.get(id)??0),0);
+      if(!rule.aggregate||rule.aggregate.value>maxTotal)return `合計点の閾値は1〜${maxTotal}で入力してください。`;
+      continue;
+    }
     const error = validateConditionsForQuestions(rule.conditions, questions);
     if (error) return error;
   }

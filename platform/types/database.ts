@@ -16,6 +16,8 @@ export interface CompletionRule {
   id: string;
   logic: 'and' | 'or';
   conditions: RuleCondition[];
+  conditionType?: 'individual' | 'aggregate';
+  aggregate?: { questionIds: string[]; operator: 'gte'; value: number };
   completionMessage?: string;
   needsFollowUp?: boolean;
 }

@@ -13,35 +13,28 @@ test('質問カード直下から次の質問を追加できる',()=>{
 
 test('口コミ案内モードはチェックしづらいradioではなく選択ボタンで切り替える',()=>{
   const source=readFileSync(new URL('../components/admin/ReviewSettings.tsx',import.meta.url),'utf8');
-  assert.match(source,/type="hidden" name="googleReviewMode" value=\{mode\}/);
+  assert.match(source,/type="hidden" name="googleReviewMode" value=\{storedMode\}/);
   assert.match(source,/aria-label="Google口コミへの案内方法"/);
-  assert.match(source,/aria-pressed=\{mode===value\}/);
-  assert.match(source,/onClick=\{\(\)=>changeMode\(value\)\}/);
+  assert.match(source,/aria-pressed=\{visibleMode===value\}/);
+  assert.match(source,/onClick=\{\(\)=>onChange\(\{googleReviewMode:value\}\)\}/);
   assert.doesNotMatch(source,/type="radio" name="googleReviewMode"/);
 });
 
-test('口コミ条件UIは質問ごとの基準点とAND/ORだけで設定できる',()=>{
-  const source=readFileSync(new URL('../components/admin/ReviewSettings.tsx',import.meta.url),'utf8');
-  assert.match(source,/各質問の基準点/);
-  assert.match(source,/どれか1つ満たしたら表示/);
-  assert.match(source,/すべて満たしたら表示/);
-  assert.match(source,/aria-label="口コミ条件の判定方法"/);
-  assert.match(source,/changeLogic\('or'\)/);
-  assert.match(source,/changeLogic\('and'\)/);
-  assert.match(source,/すべて同じ基準点にする/);
-  assert.match(source,/applyCommonThreshold/);
+test('合計点UIは質問複数選択・gte閾値・最大点を設定できる',()=>{
+  const source=readFileSync(new URL('../components/admin/CompletionRuleSettings.tsx',import.meta.url),'utf8');
+  assert.match(source,/合計対象（複数選択）/);
+  assert.match(source,/最大合計点/);
+  assert.match(source,/合計点の閾値/);
   assert.match(source,/operator:'gte'/);
-  assert.match(source,/logic:effectiveRule\.logic/);
-  assert.doesNotMatch(source,/<option value="lte">/);
-  assert.doesNotMatch(source,/<option value="eq">/);
+  assert.match(source,/個別条件/);
+  assert.match(source,/すべて満たす（AND）/);
+  assert.match(source,/どれか満たす（OR）/);
 });
 
-test('口コミ条件テストは現在の設定で表示可否をリアルタイム確認できる',()=>{
+test('口コミUIはスコア選別を提供せず全回答者表示を明示する',()=>{
   const source=readFileSync(new URL('../components/admin/ReviewSettings.tsx',import.meta.url),'utf8');
-  assert.match(source,/動作確認/);
-  assert.match(source,/evaluateGoogleReviewEligibility\(previewConfig,questions,answers\)/);
-  assert.match(source,/この回答ではGoogle口コミを表示します/);
-  assert.match(source,/この回答ではGoogle口コミを表示しません/);
+  assert.match(source,/全回答者へ表示/);
+  assert.doesNotMatch(source,/満たした人だけ表示/);
 });
 
 test('既存編集画面ではカラーやテーマを営業担当者へ表示しない',()=>{

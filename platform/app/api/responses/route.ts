@@ -44,7 +44,7 @@ export async function POST(request:Request){
     // identityMode==='legacy': no identityMode was ever configured for this version.
     // Keep accepting the pre-3-mode request body as-is; don't require or store identity.
 
-    const completion=evaluateCompletionRules(config,input.answers);
+    const completion=evaluateCompletionRules(config,input.answers,publicSurvey.version.questions);
     const reviewEligible=evaluateGoogleReviewEligibility(config,publicSurvey.version.questions,input.answers);
     const s=createPublicClient();
     const {data,error}=await s.rpc('submit_survey_response',{
