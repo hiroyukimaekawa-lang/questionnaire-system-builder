@@ -4,6 +4,7 @@ import {useRouter} from 'next/navigation';
 import {saveBuilderSessionAction} from '@/app/actions';
 import {QuestionBuilder} from '@/components/admin/QuestionBuilder';
 import {ReviewSettings} from '@/components/admin/ReviewSettings';
+import {CompletionRuleSettings} from '@/components/admin/CompletionRuleSettings';
 import {DesignFields} from '@/components/admin/DesignFields';
 import {LiveSurveyPreview} from '@/components/admin/LiveSurveyPreview';
 import {builderConfig,industries,prefectures,resolveBuilderIdentityMode,validateReviewSettings} from '@/lib/builder/settings';
@@ -18,6 +19,7 @@ export function SurveyWizard({initial={},initialSessionId=null}:{initial?:Builde
   const [step,setStep]=useState(0),[session,setSession]=useState(initialSessionId),[revision,setRevision]=useState(0),[savedRevision,setSavedRevision]=useState(0),[message,setMessage]=useState(''),[pending,start]=useTransition();
   const dirty=revision!==savedRevision;
   const config=builderConfig(context);
+  const conditionalReview=config.googleReviewMode==='score'||String(config.googleReviewMode)==='conditional';
   const introEnabled=Boolean(config.introText?.trim());
   const anonymousTextEnabled=Boolean(config.anonymousText?.trim());
   const [assetId]=useState(()=>crypto.randomUUID());
@@ -38,7 +40,7 @@ export function SurveyWizard({initial={},initialSessionId=null}:{initial?:Builde
       {config.identityMode==='anonymous_only'&&<div className={`optional-copy-field ${anonymousTextEnabled?'enabled':'disabled'}`}><div className="optional-copy-heading"><strong>匿名案内文</strong><button type="button" className="btn secondary optional-copy-toggle" aria-pressed={anonymousTextEnabled} onClick={()=>design({anonymousText:anonymousTextEnabled?'':defaultConfig.anonymousText})}>{anonymousTextEnabled?'使用中（非表示にする）':'＋ 使用する'}</button></div>{anonymousTextEnabled?<label className="field"><textarea rows={2} value={config.anonymousText??''} onChange={e=>design({anonymousText:e.target.value})}/><small className="muted">匿名であることを補足する文章です。不要な場合は非表示にできます。</small></label>:<small className="muted">匿名を選んでいても、この案内文自体は非表示にできます。</small>}</div>}
       <label className="field">質問テンプレート<select value={context.template??''} onChange={e=>{if(context.questions?.length&&!window.confirm('現在の質問をテンプレートで置き換えますか？'))return;template(e.target.value as BuilderTemplate)}}><option value="" disabled>選択してください</option><option value="clinic_standard">クリニック標準</option><option value="restaurant_standard">飲食店標準</option><option value="salon_standard">美容室標準</option><option value="custom">自分で作る</option></select></label></div>
     <div hidden={step!==1}><QuestionBuilder key={context.template??'initial'} surveyId="" versionId="" initial={context.questions??[]} onChange={questionsChanged} localOnly/></div>
-    <div hidden={step!==2} className="card stack admin-form-card"><h2>STEP3 Google口コミ設定</h2><ReviewSettings config={config} questions={version.questions} onChange={design}/></div>
+    <div hidden={step!==2} className="card stack admin-form-card"><h2>STEP3 Google口コミ設定</h2><p className="muted">条件付きでも、Google口コミCTAはすべての回答者へ公平に表示します。</p><ReviewSettings config={config} questions={version.questions} onChange={design}/>{conditionalReview&&<CompletionRuleSettings rules={config.completionRules??[]} questions={version.questions} completionText={config.completionText} onChange={completionRules=>design({completionRules})}/>}</div>
     <div hidden={step!==3} className="card stack admin-form-card"><h2>STEP4 デザイン設定</h2><DesignFields config={config} onChange={design} surveyId={assetId}/></div>
     <div hidden={step!==4} className="card stack admin-form-card"><h2>STEP5 プレビュー・公開</h2><p>{context.storeName} ／ {context.industry} ／ {context.businessCategory} ／ {context.prefecture}</p><p>質問数：{version.questions.length}問</p><p>プレビューの「本編」「サンクス」「口コミ導線」を確認してください。作成後の公開設定から、公開URLとQRコードを発行できます。</p><button type="button" className="btn" disabled={pending} onClick={complete}>この内容で作成して公開設定へ</button></div>
     <div className="row"><button type="button" className="btn secondary" disabled={step===0} onClick={()=>setStep(s=>s-1)}>前へ</button><button type="button" className="btn" disabled={step===4} onClick={()=>setStep(s=>s+1)}>次へ</button></div>

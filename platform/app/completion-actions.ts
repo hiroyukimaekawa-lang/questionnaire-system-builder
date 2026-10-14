@@ -69,6 +69,7 @@ export async function saveCompletionSettingsAction(
 
     const completionValidation = validateRulesForQuestions(completionRules, questions);
     if (completionValidation) return { error: completionValidation };
+    if (mode === 'score' && completionRules.length === 0) return { error: '条件付きでは評価分類を1件以上設定してください。' };
 
     let googleReviewRule: GoogleReviewRule | null = null;
     if (mode === 'score') {
