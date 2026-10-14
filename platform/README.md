@@ -107,6 +107,10 @@ Cloudflare DashboardのWorker → Settings → Buildsで、Git自動デプロイ
 
 非本番ブランチのビルドを有効にすると、`upload` がOpenNextでビルドしたWorkerを新しいバージョンとしてアップロードします。`npm run preview` はローカル確認用です。
 
+Next.js 16.4.0 は実行時に `preview-props.json` を読み込むため、OpenNext 1.20.11へ
+`patch-package` で同manifestをbundle対象へ追加しています。依存更新時はpatchの上流反映を確認し、
+`npm ci` 後に `npm run preview` で `/login` などの動的ルートが500にならないことを確認してください。
+
 モノレポのリポジトリ直下には `package.json` / `wrangler.jsonc` がないため、Root directoryは必ず `platform` に設定してください。設定が異なるとこれらを見つけられず失敗します。`upload` scriptの追加だけではコマンドの実行ディレクトリは変わりません。`npx wrangler versions upload` をリポジトリルートから直接実行しないでください。
 
 参考: [Cloudflare Builds設定](https://developers.cloudflare.com/workers/ci-cd/builds/configuration/)、[OpenNext CLI](https://opennext.js.org/cloudflare/cli)。
