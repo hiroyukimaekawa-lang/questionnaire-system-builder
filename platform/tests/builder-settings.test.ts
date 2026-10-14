@@ -25,10 +25,11 @@ test('指定した長文質問だけを口コミ文章として使用し、使�
 });
 
 test('複製・公開後の新しい質問IDへ口コミ条件と文章質問を付け替える',()=>{
-  const config={googleReviewRule:{logic:'and',conditions:[{questionId:questions[0].id,operator:'gte',value:9}]},completionRules:[{id:'r',logic:'and',conditions:[{questionId:questions[1].id,operator:'lte',value:5}]}],reviewTextQuestionId:questions[2].id} as SurveyConfig;
+  const config={googleReviewRule:{logic:'and',conditions:[{questionId:questions[0].id,operator:'gte',value:9}]},completionRules:[{id:'r',logic:'and',conditions:[{questionId:questions[1].id,operator:'lte',value:5}]},{id:'sum',conditionType:'aggregate',logic:'and',conditions:[],aggregate:{questionIds:[questions[0].id,questions[1].id],operator:'gte',value:15}}],reviewTextQuestionId:questions[2].id} as SurveyConfig;
   const mapped=remapConfigQuestions(config,{[questions[0].id]:'new-1',[questions[1].id]:'new-2',[questions[2].id]:'new-3'});
   assert.equal(mapped.googleReviewRule?.conditions[0].questionId,'new-1');
   assert.equal(mapped.completionRules?.[0].conditions[0].questionId,'new-2');
+  assert.deepEqual(mapped.completionRules?.[1].aggregate?.questionIds,['new-1','new-2']);
   assert.equal(mapped.reviewTextQuestionId,'new-3');
 });
 

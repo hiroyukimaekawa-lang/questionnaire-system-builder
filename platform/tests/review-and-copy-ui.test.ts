@@ -14,8 +14,9 @@ const renderThanks=(reviewMode:'all'|'score'|'disabled',reviewUrl='https://examp
 test('all CTAは正しいhrefと別タブ属性を持つ通常リンク',()=>{
   assert.match(renderThanks('all'),/href="https:\/\/example.com\/review\?x=1&amp;y=2" target="_blank" rel="noopener noreferrer"/);
 });
-test('disabled・未判定score・非HTTP URLにリンクを出さない',()=>{
-  for(const html of [renderThanks('disabled'),renderThanks('score'),renderThanks('all','javascript:alert(1)')])assert.doesNotMatch(html,/<a /);
+test('disabled・非HTTP URLはリンクを出さず、旧scoreも全員表示する',()=>{
+  for(const html of [renderThanks('disabled'),renderThanks('all','javascript:alert(1)')])assert.doesNotMatch(html,/<a /);
+  assert.match(renderThanks('score'),/<a /);
 });
 test('completionTextの改行は保持しHTMLとして解釈しない',()=>{
   const html=renderThanks('all');assert.ok(html.includes('一行目\n二行目 &lt;b&gt;そのまま&lt;/b&gt;'));assert.doesNotMatch(html,/<b>/);
@@ -38,21 +39,12 @@ test('コピー失敗時に手動コピーと口コミ遷移を分けて案内�
   assert.doesNotMatch(source,/window\.open/);
   const css=readFileSync(new URL('../app/survey.css',import.meta.url),'utf8');assert.match(css,/\.jp-preserve-lines,[\s\S]*?\.thanks-lead,[\s\S]*?\.completion-copy span\s*\{ white-space: pre-line/);
 });
-test('口コミ設定は質問別基準点とAND/ORだけを通常画面に表示する',()=>{
+test('回答分類で個別条件と合計点を設定し口コミは全回答者表示だけにする',()=>{
   const source=readFileSync(new URL('../components/admin/CompletionSettingsForm.tsx',import.meta.url),'utf8');
   const settings=readFileSync(new URL('../components/admin/ReviewSettings.tsx',import.meta.url),'utf8');
-  assert.match(settings,/口コミを表示する条件/);
-  assert.match(settings,/どれか1つ満たしたら表示/);
-  assert.match(settings,/すべて満たしたら表示/);
-  assert.match(settings,/各質問の基準点/);
-  assert.match(settings,/operator:'gte'/);
-  assert.match(settings,/changeLogic\('or'\)/);
-  assert.match(settings,/changeLogic\('and'\)/);
-  assert.doesNotMatch(settings,/<option value="lte">/);
-  assert.doesNotMatch(settings,/<option value="eq">/);
-  assert.doesNotMatch(source,/条件別の回答後処理/);
-  assert.doesNotMatch(source,/＋ 条件を追加/);
-  assert.doesNotMatch(source,/＋ 完了条件ルールを追加/);
-  assert.match(source,/name="completionRules" value=\{JSON.stringify\(config\.completionRules\?\?\[\]\)\}/);
-  assert.match(source,/口コミ設定を保存/);
+  const rules=readFileSync(new URL('../components/admin/CompletionRuleSettings.tsx',import.meta.url),'utf8');
+  assert.match(settings,/全回答者へ表示/);assert.doesNotMatch(settings,/高評価|満たした人だけ/);
+  assert.match(rules,/個別条件/);assert.match(rules,/合計点条件/);assert.match(rules,/最大合計点/);assert.match(rules,/判定結果のプレビュー/);
+  assert.match(source,/JSON.stringify\(review\.completionRules\?\?\[\]\)/);
+  assert.match(source,/回答後設定を保存/);
 });

@@ -82,5 +82,5 @@ export function validateReviewSettings(config:SurveyConfig,questions:SurveyQuest
 /** A copied version gets new question IDs; all question references must follow it. */
 export function remapConfigQuestions(config:SurveyConfig,idMap:Record<string,string>):SurveyConfig {
   const rule=(r:GoogleReviewRule)=>({...r,conditions:r.conditions.map(c=>({...c,questionId:idMap[c.questionId]??c.questionId}))});
-  return {...config,...(config.googleReviewRule?{googleReviewRule:rule(config.googleReviewRule)}:{}),...(config.completionRules?{completionRules:config.completionRules.map(r=>({...r,...rule(r)}))}:{}),...(config.reviewTextQuestionId?{reviewTextQuestionId:idMap[config.reviewTextQuestionId]??config.reviewTextQuestionId}:{})};
+  return {...config,...(config.googleReviewRule?{googleReviewRule:rule(config.googleReviewRule)}:{}),...(config.completionRules?{completionRules:config.completionRules.map(r=>({...r,...rule(r),...(r.aggregate?{aggregate:{...r.aggregate,questionIds:r.aggregate.questionIds.map(id=>idMap[id]??id)}}:{})}))}:{}),...(config.reviewTextQuestionId?{reviewTextQuestionId:idMap[config.reviewTextQuestionId]??config.reviewTextQuestionId}:{})};
 }

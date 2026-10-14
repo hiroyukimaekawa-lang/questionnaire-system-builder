@@ -15,9 +15,9 @@ test('管理画面と作成フローで文章と質問文を複数行入力で�
   const config=read('../components/admin/SurveyForms.tsx');
   const questions=read('../components/admin/QuestionBuilder.tsx');
   const builder=read('../components/builder/BuilderWorkspace.tsx');
-  assert.match(config,/<textarea rows=\{3\} name="heroSubtitle"/);
-  assert.match(config,/<textarea rows=\{3\} name="description"/);
-  assert.match(config,/<textarea rows=\{4\} name="introText"/);
+  assert.match(config,/optionalField\('heroSubtitle','ヒーローの説明',3\)/);
+  assert.match(config,/optionalField\('description','説明文',3\)/);
+  assert.match(config,/optionalField\('introText','冒頭文章',4\)/);
   assert.match(questions,/<textarea rows=\{2\} data-question-title/);
   assert.match(builder,/質問文<textarea rows=\{2\}/);
   for(const source of [config,questions,builder])assert.match(source,/改行したい位置でEnter/);
