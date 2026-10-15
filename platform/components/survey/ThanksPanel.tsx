@@ -24,6 +24,7 @@ export function ThanksPanel({
   reviewMode,
   primaryColor,
   reviewPromptText,
+  scoreGated = false,
   previewCompletion,
   onEditTarget,
 }: {
@@ -33,6 +34,7 @@ export function ThanksPanel({
   reviewMode: GoogleReviewMode;
   primaryColor: string;
   reviewPromptText?: string;
+  scoreGated?: boolean;
   previewCompletion?: StoredCompletion;
   onEditTarget?: (target:string)=>void;
 }) {
@@ -51,7 +53,7 @@ export function ThanksPanel({
   const [copyFailed, setCopyFailed] = useState(false);
   const reviewPrompt=reviewPromptText===undefined?DEFAULT_REVIEW_PROMPT:reviewPromptText.trim();
   const completionCopy=stored.message || text;
-  const showReview = Boolean(href) && reviewMode !== 'disabled';
+  const showReview = Boolean(href) && reviewMode !== 'disabled' && (!scoreGated || stored.reviewEligible === true);
 
   async function review(goToGoogle=false) {
     if (!comment) return;
@@ -96,9 +98,7 @@ export function ThanksPanel({
           <p className="muted thanks-review-note">Google口コミは一般公開されます。公開したくない情報が含まれている場合は、貼り付け後に編集してから投稿してください。</p>
           {copyFailed && <p className="notice thanks-copy-notice" role="status">自動コピーできませんでした。上に表示された文章を長押ししてコピーしてからお進みください。</p>}
           {copied && <p className="notice thanks-copy-notice" role="status">感想をコピーしました。</p>}
-          <small className="muted thanks-review-note">
-            この案内はすべての回答者に同じ条件で表示されます。
-          </small>
+          {scoreGated&&<small className="muted thanks-review-note">評価分類の条件を満たした方に表示しています。</small>}
         </div>
       )}
     </section>

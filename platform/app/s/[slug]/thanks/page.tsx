@@ -21,6 +21,7 @@ export default async function Thanks({ params }: { params: Promise<{ slug: strin
         reviewMode={reviewMode}
         primaryColor={config.primaryColor}
         reviewPromptText={config.googleReviewPromptText}
+        scoreGated={config.scoreGatesGoogleReview===true}
       />
     </main>
   );
