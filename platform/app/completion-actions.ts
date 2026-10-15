@@ -78,7 +78,10 @@ export async function saveCompletionSettingsAction(
       googleReviewRule = (version.config as SurveyConfig).googleReviewRule ?? null;
     }
 
-    const config = completionSettingsConfig(version.config, mode, reviewUrl, completionRules, googleReviewRule);
+    const scoreGatesGoogleReview=form.has('scoreGatesGoogleReview')
+      ? form.get('scoreGatesGoogleReview')==='true'
+      : (version.config as SurveyConfig).scoreGatesGoogleReview;
+    const config = completionSettingsConfig(version.config, mode, reviewUrl, completionRules, googleReviewRule, scoreGatesGoogleReview);
     if (
       submittedReviewMode === 'conditional'
       && (version.config as Record<string, unknown>).googleReviewMode === 'conditional'

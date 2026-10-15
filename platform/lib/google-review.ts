@@ -1,14 +1,20 @@
 import type {AnswerValue,SurveyConfig,SurveyQuestion} from '@/types/database';
 import {googleReviewMode} from '@/lib/survey';
+import {evaluateCompletionRules} from '@/lib/completion';
 
 export function evaluateGoogleReviewEligibility(
   config:SurveyConfig,
-  _questions:SurveyQuestion[],
-  _answers:Record<string,AnswerValue>,
+  questions:SurveyQuestion[],
+  answers:Record<string,AnswerValue>,
 ) {
-  void _questions;
-  void _answers;
-  return googleReviewMode(config)!=='disabled'&&Boolean(safeGoogleReviewUrl(config.googleReviewUrl));
+  const mode=googleReviewMode(config);
+  if(mode==='disabled'||!safeGoogleReviewUrl(config.googleReviewUrl))return false;
+  // Missing flag means a pre-gating survey: preserve its previous all-respondent behavior.
+  if(mode==='score'&&config.scoreGatesGoogleReview===true){
+    const result=evaluateCompletionRules(config,answers,questions);
+    return result.matchedRuleId!==null&&!result.needsFollowUp;
+  }
+  return true;
 }
 
 /** Only navigable web URLs are allowed, including for legacy stored config. */

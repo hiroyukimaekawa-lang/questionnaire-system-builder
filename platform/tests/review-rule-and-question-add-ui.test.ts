@@ -17,7 +17,7 @@ test('口コミ案内モードはチェックしづらいradioではなく選択
   assert.match(source,/aria-label="Google口コミへの案内方法"/);
   assert.match(source,/\['score','条件付き'\]/);
   assert.match(source,/aria-pressed=\{visibleMode===value\}/);
-  assert.match(source,/onClick=\{\(\)=>onChange\(\{googleReviewMode:value\}\)\}/);
+  assert.match(source,/onClick=\{\(\)=>onChange\(\{googleReviewMode:value,scoreGatesGoogleReview:value==='score'\}\)\}/);
   assert.doesNotMatch(source,/type="radio" name="googleReviewMode"/);
 });
 
@@ -32,11 +32,11 @@ test('合計点UIは質問複数選択・gte閾値・最大点を設定できる
   assert.match(source,/どれか満たす（OR）/);
 });
 
-test('口コミUIはスコア選別を提供せず全回答者表示を明示する',()=>{
+test('口コミUIは条件付きCTAを評価分類に連動させる設定を提供する',()=>{
   const source=readFileSync(new URL('../components/admin/ReviewSettings.tsx',import.meta.url),'utf8');
   assert.match(source,/全回答者へ表示/);
-  assert.match(source,/条件の達成・未達にかかわらず/);
-  assert.doesNotMatch(source,/満たした人だけ表示/);
+  assert.match(source,/条件を満たした回答者にだけ口コミCTAを表示する/);
+  assert.match(source,/scoreGatesGoogleReview/);
 });
 
 test('新規作成STEP3でも条件付きの評価分類を設定できる',()=>{

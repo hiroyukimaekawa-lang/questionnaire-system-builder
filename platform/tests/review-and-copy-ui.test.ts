@@ -14,9 +14,11 @@ const renderThanks=(reviewMode:'all'|'score'|'disabled',reviewUrl='https://examp
 test('all CTAは正しいhrefと別タブ属性を持つ通常リンク',()=>{
   assert.match(renderThanks('all'),/href="https:\/\/example.com\/review\?x=1&amp;y=2" target="_blank" rel="noopener noreferrer"/);
 });
-test('disabled・非HTTP URLはリンクを出さず、旧scoreも全員表示する',()=>{
+test('disabled・非HTTP URLはリンクを出さず、旧scoreは全員表示し、新規scoreは達成時だけ表示する',()=>{
   for(const html of [renderThanks('disabled'),renderThanks('all','javascript:alert(1)')])assert.doesNotMatch(html,/<a /);
   assert.match(renderThanks('score'),/<a /);
+  const gated=(reviewEligible:boolean)=>renderToStaticMarkup(React.createElement(ThanksPanel,{slug:'test',text,reviewMode:'score',reviewUrl:'https://example.com/review',primaryColor:'#123456',scoreGated:true,previewCompletion:{reviewEligible}}));
+  assert.match(gated(true),/<a /);assert.doesNotMatch(gated(false),/<a /);
 });
 test('completionTextの改行は保持しHTMLとして解釈しない',()=>{
   const html=renderThanks('all');assert.ok(html.includes('一行目\n二行目 &lt;b&gt;そのまま&lt;/b&gt;'));assert.doesNotMatch(html,/<b>/);
@@ -43,7 +45,7 @@ test('STEP3は3種類の案内設定と個別条件・合計点条件を統合�
   const source=readFileSync(new URL('../components/admin/CompletionSettingsForm.tsx',import.meta.url),'utf8');
   const settings=readFileSync(new URL('../components/admin/ReviewSettings.tsx',import.meta.url),'utf8');
   const rules=readFileSync(new URL('../components/admin/CompletionRuleSettings.tsx',import.meta.url),'utf8');
-  assert.match(settings,/使用しない/);assert.match(settings,/全回答者へ表示/);assert.match(settings,/条件付き/);assert.doesNotMatch(settings,/高評価|満たした人だけ/);
+  assert.match(settings,/使用しない/);assert.match(settings,/全回答者へ表示/);assert.match(settings,/条件付き/);assert.match(settings,/条件を満たした回答者にだけ口コミCTAを表示する/);
   assert.match(rules,/個別条件/);assert.match(rules,/合計点条件/);assert.match(rules,/最大合計点/);assert.match(rules,/判定結果のプレビュー/);
   assert.match(source,/conditional&&<CompletionRuleSettings/);
   assert.match(source,/JSON.stringify\(review\.completionRules\?\?\[\]\)/);

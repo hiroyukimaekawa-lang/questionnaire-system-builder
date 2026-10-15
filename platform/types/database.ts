@@ -36,6 +36,8 @@ export interface SurveyConfig {
   backgroundColor: string; logoUrl: string | null; iconUrl: string | null;
   googleReviewUrl: string | null;
   googleReviewMode?: GoogleReviewMode;
+  /** Explicit opt-in; absent legacy configs keep their historical all-respondent CTA behavior. */
+  scoreGatesGoogleReview?: boolean;
   googleReviewRule?: GoogleReviewRule | null;
   completionRules?: CompletionRule[];
   themeId?: SurveyThemeId; secondaryColor?: string; heroBackgroundType?: HeroBackgroundType;

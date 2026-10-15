@@ -10,10 +10,11 @@ export function CompletionSettingsForm({surveyId,versionId,config,questions,onCh
   const [review,setReview]=useState(config);
   const conditional=review.googleReviewMode==='score'||String(review.googleReviewMode)==='conditional';
   return <form action={action} className="card stack admin-form-card">
-    <div><h2>STEP3 Google口コミ設定</h2><p className="muted">条件付きでも、Google口コミCTAは回答スコアにかかわらず、すべての回答者へ公平に表示します。</p></div>
+    <div><h2>STEP3 Google口コミ設定</h2><p className="muted">条件付き表示を選ぶと、評価分類の結果に応じて口コミCTAの表示を設定できます。</p></div>
     <ReviewSettings config={review} questions={questions} onChange={patch=>{setReview(current=>({...current,...patch}));onChange?.(patch)}}/>
     {conditional&&<CompletionRuleSettings rules={review.completionRules??[]} questions={questions} completionText={review.completionText} onChange={completionRules=>{setReview(current=>({...current,completionRules}));onChange?.({completionRules})}}/>}
     <input type="hidden" name="googleReviewRule" value={JSON.stringify(review.googleReviewRule??null)}/>
+    <input type="hidden" name="scoreGatesGoogleReview" value={String(review.scoreGatesGoogleReview===true)}/>
     <input type="hidden" name="completionRules" value={JSON.stringify(review.completionRules??[])}/>
     {state?.error&&<p className="error" role="alert">{state.error}</p>}
     {state?.success&&<p className="notice" role="status">{state.success}</p>}

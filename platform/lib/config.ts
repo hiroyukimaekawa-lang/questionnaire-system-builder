@@ -10,6 +10,7 @@ export function completionSettingsConfig(
   reviewUrl: string,
   completionRules: CompletionRule[],
   googleReviewRule: GoogleReviewRule | null = null,
+  scoreGatesGoogleReview?: boolean,
 ): SurveyConfig {
   const preserved = { ...existing };
   return {
@@ -17,6 +18,7 @@ export function completionSettingsConfig(
     googleReviewMode: reviewMode,
     googleReviewUrl: reviewMode === 'disabled' ? null : reviewUrl,
     googleReviewRule: reviewMode === 'score' ? googleReviewRule : null,
+    ...(scoreGatesGoogleReview === undefined ? {} : { scoreGatesGoogleReview: reviewMode === 'score' && scoreGatesGoogleReview }),
     completionRules,
   };
 }
