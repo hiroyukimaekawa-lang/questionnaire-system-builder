@@ -44,3 +44,14 @@ test('旧条件を内部分類に復元しても公開アンケートURLやQR生
  assert.match(publicUrl,/\/s\/\$\{slug\}/);
  assert.match(qr,/QRCode\.toDataURL\(url,/);
 });
+
+test('デモ管理の合計13点以上は既存completionRulesで分類し、未達でも口コミURLは維持する',()=>{
+ const config={
+   googleReviewMode:'score',googleReviewUrl:'https://example.com/review',completionText:'完了',
+   completionRules:[{id:'aggregate-13',logic:'and',conditions:[],conditionType:'aggregate',aggregate:{operator:'gte',questionIds:['q1','q2'],value:13},needsFollowUp:false}],
+ } as SurveyConfig;
+ const questions=[scoreQuestion('q1',10),scoreQuestion('q2',10)];
+ assert.equal(evaluateCompletionRules(config,{q1:7,q2:6},questions).matchedRuleId,'aggregate-13');
+ assert.equal(evaluateCompletionRules(config,{q1:6,q2:6},questions).matchedRuleId,null);
+ assert.equal(evaluateGoogleReviewEligibility(config,questions,{q1:6,q2:6}),true);
+});
