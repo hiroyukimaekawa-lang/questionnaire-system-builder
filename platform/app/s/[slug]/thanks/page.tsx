@@ -1,6 +1,7 @@
 import { getPublicSurvey } from '@/lib/data';
 import { ThanksPanel } from '@/components/survey/ThanksPanel';
 import { googleReviewMode } from '@/lib/survey';
+import {isGoogleReviewScoreGated} from '@/lib/google-review';
 
 export const metadata = { robots: { index: false, follow: false } };
 
@@ -21,7 +22,7 @@ export default async function Thanks({ params }: { params: Promise<{ slug: strin
         reviewMode={reviewMode}
         primaryColor={config.primaryColor}
         reviewPromptText={config.googleReviewPromptText}
-        scoreGated={config.scoreGatesGoogleReview===true}
+        scoreGated={isGoogleReviewScoreGated(config)}
       />
     </main>
   );

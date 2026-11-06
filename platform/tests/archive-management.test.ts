@@ -6,9 +6,9 @@ import {join} from 'node:path';
 const root=join(import.meta.dirname,'..');
 const source=(path:string)=>readFileSync(join(root,path),'utf8');
 
-test('/adminはホーム、/admin/manageは案件管理として重複メニューを持たない',()=>{
+test('/adminはホーム、/admin/manageはアンケート一覧として重複メニューを持たない',()=>{
   const sidebar=source('components/admin/AdminSidebar.tsx'),home=source('app/admin/page.tsx'),manage=source('app/admin/manage/page.tsx');
-  assert.match(sidebar,/>ホーム</);assert.match(sidebar,/>管理</);assert.doesNotMatch(sidebar,/view=surveys/);assert.match(home,/<p>ホーム<\/p>/);assert.match(manage,/'案件管理'/);
+  assert.match(sidebar,/>ホーム</);assert.match(sidebar,/>アンケート一覧</);assert.doesNotMatch(sidebar,/view=surveys/);assert.match(home,/<p>ホーム<\/p>/);assert.match(manage,/'案件管理'/);
 });
 
 test('published・draft・unpublishedをsoft deleteし関連回答をDELETEしない',()=>{
