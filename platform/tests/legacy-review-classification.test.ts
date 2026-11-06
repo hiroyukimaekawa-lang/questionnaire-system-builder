@@ -29,7 +29,8 @@ test('旧形式のAND/OR閾値は新UIの内部評価分類へ読み替えられ
     assert.equal(resolvedCompletionRules(config).length,1,c.name);
     assert.notEqual(evaluateCompletionRules(config,Object.fromEntries(c.hit.map((n,i)=>[ids[i],n])),questions).matchedRuleId,null,c.name+' match');
     assert.equal(evaluateCompletionRules(config,Object.fromEntries(c.miss.map((n,i)=>[ids[i],n])),questions).matchedRuleId,null,c.name+' miss');
-    assert.equal(evaluateGoogleReviewEligibility(config,questions,Object.fromEntries(c.miss.map((n,i)=>[ids[i],n]))),true,c.name+' review unchanged');
+    assert.equal(evaluateGoogleReviewEligibility(config,questions,Object.fromEntries(c.miss.map((n,i)=>[ids[i],n]))),false,c.name+' below threshold');
+    assert.equal(evaluateGoogleReviewEligibility(config,questions,Object.fromEntries(c.hit.map((n,i)=>[ids[i],n]))),true,c.name+' at threshold');
   }
 });
 test('新形式の評価分類は旧条件より優先し、旧設定を勝手に書き換えない',()=>{
@@ -45,7 +46,7 @@ test('旧条件を内部分類に復元しても公開アンケートURLやQR生
  assert.match(qr,/QRCode\.toDataURL\(url,/);
 });
 
-test('デモ管理の合計13点以上は既存completionRulesで分類し、未達でも口コミURLは維持する',()=>{
+test('デモ管理の合計13点以上を維持し、点数条件で口コミCTAを判定する',()=>{
  const config={
    googleReviewMode:'score',googleReviewUrl:'https://example.com/review',completionText:'完了',
    completionRules:[{id:'aggregate-13',logic:'and',conditions:[],conditionType:'aggregate',aggregate:{operator:'gte',questionIds:['q1','q2'],value:13},needsFollowUp:false}],
@@ -53,5 +54,6 @@ test('デモ管理の合計13点以上は既存completionRulesで分類し、未
  const questions=[scoreQuestion('q1',10),scoreQuestion('q2',10)];
  assert.equal(evaluateCompletionRules(config,{q1:7,q2:6},questions).matchedRuleId,'aggregate-13');
  assert.equal(evaluateCompletionRules(config,{q1:6,q2:6},questions).matchedRuleId,null);
- assert.equal(evaluateGoogleReviewEligibility(config,questions,{q1:6,q2:6}),true);
+ assert.equal(evaluateGoogleReviewEligibility(config,questions,{q1:6,q2:6}),false);
+ assert.equal(evaluateGoogleReviewEligibility(config,questions,{q1:7,q2:6}),true);
 });
