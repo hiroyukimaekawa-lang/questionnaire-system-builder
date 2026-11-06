@@ -2,6 +2,13 @@ import type {AnswerValue,SurveyConfig,SurveyQuestion} from '@/types/database';
 import {googleReviewMode} from '@/lib/survey';
 import {evaluateCompletionRules} from '@/lib/completion';
 
+/** Historical score surveys may have saved rules before an explicit gate flag existed. */
+export function isGoogleReviewScoreGated(config:SurveyConfig):boolean {
+  if(googleReviewMode(config)!=='score')return false;
+  if(config.scoreGatesGoogleReview!==undefined)return config.scoreGatesGoogleReview===true;
+  return Boolean(config.completionRules?.length||config.googleReviewRule?.conditions?.length);
+}
+
 export function evaluateGoogleReviewEligibility(
   config:SurveyConfig,
   questions:SurveyQuestion[],
@@ -9,8 +16,7 @@ export function evaluateGoogleReviewEligibility(
 ) {
   const mode=googleReviewMode(config);
   if(mode==='disabled'||!safeGoogleReviewUrl(config.googleReviewUrl))return false;
-  // Missing flag means a pre-gating survey: preserve its previous all-respondent behavior.
-  if(mode==='score'&&config.scoreGatesGoogleReview===true){
+  if(isGoogleReviewScoreGated(config)){
     const result=evaluateCompletionRules(config,answers,questions);
     return result.matchedRuleId!==null&&!result.needsFollowUp;
   }
