@@ -12,10 +12,10 @@ test('disabled・URLなし・不正URLでは口コミCTAを表示しない',()=>
 const q1='11111111-1111-4111-8111-111111111111';
 const q2='22222222-2222-4222-8222-222222222222';
 const questions=[q1,q2].map((id,index)=>({id,type:'rating_10' as const,title:`評価${index+1}`,description:'',required:true,sortOrder:index,settings:{maxScore:5 as const},options:[]}));
-test('既存score設定はフラグがない限りCTAを全員に表示する',()=>{
+test('score設定に保存済み分類がある場合は明示フラグなしでも点数判定を使う',()=>{
   const config={...defaultConfig,googleReviewMode:'score' as const,googleReviewUrl:url,completionRules:[{id:'high',logic:'and' as const,conditions:[{questionId:q1,operator:'gte' as const,value:5}]}]};
   const cases:Record<string,number|string|string[]>[]=[{},{[q1]:1},{[q1]:5}];
-  for(const answers of cases)assert.equal(evaluateGoogleReviewEligibility(config,questions,answers),true);
+  assert.deepEqual(cases.map(answers=>evaluateGoogleReviewEligibility(config,questions,answers)),[false,false,true]);
 });
 test('新しい個別条件では達成時のみ口コミCTAを表示する',()=>{
   const config={...defaultConfig,googleReviewMode:'score' as const,scoreGatesGoogleReview:true,googleReviewUrl:url,completionRules:[{id:'high',logic:'and' as const,conditions:[{questionId:q1,operator:'gte' as const,value:4}]}]};
