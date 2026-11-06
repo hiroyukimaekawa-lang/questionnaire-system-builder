@@ -23,8 +23,23 @@ function matchesAggregate(rule:CompletionRule,answers:Record<string,AnswerValue>
   return total>=rule.aggregate.value;
 }
 
+/** Display legacy review thresholds as internal classification without changing review CTA visibility. */
+export function resolvedCompletionRules(config:SurveyConfig):CompletionRule[] {
+  if(config.completionRules?.length)return config.completionRules;
+  const legacy=config.googleReviewRule;
+  if(!legacy?.conditions?.length)return [];
+  return [{
+    id:'legacy-internal-score',
+    logic:legacy.logic,
+    conditionType:'individual',
+    conditions:legacy.conditions.map(condition=>({...condition})),
+    completionMessage:'',
+    needsFollowUp:false,
+  }];
+}
+
 export function evaluateCompletionRules(config: SurveyConfig, answers: Record<string, AnswerValue>, questions:SurveyQuestion[]=[]): CompletionResult {
-  for (const rule of config.completionRules ?? []) {
+  for (const rule of resolvedCompletionRules(config)) {
     if (rule.conditionType!=='aggregate'&&!rule.conditions.length) continue;
     const matched = rule.conditionType==='aggregate'?matchesAggregate(rule,answers,questions):rule.logic === 'or'
       ? rule.conditions.some(condition => matchesCondition(condition, answers))
