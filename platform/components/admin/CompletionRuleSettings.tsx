@@ -4,13 +4,13 @@ import type {AnswerValue,CompletionRule,SurveyQuestion} from '@/types/database';
 import {evaluateCompletionRules} from '@/lib/completion';
 import {scoreMax} from '@/lib/survey';
 
-export function CompletionRuleSettings({rules,questions,completionText,onChange}:{rules:CompletionRule[];questions:SurveyQuestion[];completionText:string;onChange:(rules:CompletionRule[])=>void}){
+export function CompletionRuleSettings({rules,questions,completionText,onChange,singleRule=false}:{rules:CompletionRule[];questions:SurveyQuestion[];completionText:string;onChange:(rules:CompletionRule[])=>void;singleRule?:boolean}){
   const ratings=useMemo(()=>questions.filter(q=>q.type==='rating_10'),[questions]);
   const [answers,setAnswers]=useState<Record<string,AnswerValue>>({});
   const update=(index:number,rule:CompletionRule)=>onChange(rules.map((current,i)=>i===index?rule:current));
   const add=()=>onChange([...rules,{id:crypto.randomUUID(),conditionType:'individual',logic:'and',conditions:[],completionMessage:'',needsFollowUp:false}]);
   return <section className="stack completion-rule-settings">
-    <div><h2>回答の評価分類</h2><p className="muted">「条件付き」では、以下の判定条件を満たした回答がGoogle口コミ案内の対象となります。個別条件では質問ごとに異なる基準点を設定できます。</p></div>
+    <div><h2>{singleRule?'Google口コミの表示条件':'回答の評価分類'}</h2><p className="muted">{singleRule?'判定方式を選び、各質問の基準点を設定してください。ANDはすべて、ORはいずれかの条件を満たすと達成です。':'条件ごとに評価方法と質問の基準点を設定します。'}</p></div>
     {!ratings.length&&<p className="muted">評価分類を設定するには、点数評価の質問を追加してください。</p>}
     {rules.map((rule,index)=>{
       const type=rule.conditionType??'individual';
@@ -18,7 +18,7 @@ export function CompletionRuleSettings({rules,questions,completionText,onChange}
       const maxTotal=selected.reduce((sum,id)=>{const question=ratings.find(q=>q.id===id);return sum+(question?scoreMax(question):0)},0);
       const setType=(next:'individual'|'aggregate')=>update(index,next==='aggregate'?{...rule,conditionType:'aggregate',logic:'and',conditions:[],aggregate:{questionIds:[],operator:'gte',value:1}}:{...rule,conditionType:'individual',aggregate:undefined});
       return <div className="completion-rule stack" key={rule.id}>
-        <div className="row"><strong>分類条件 {index+1}</strong><button type="button" className="btn secondary" onClick={()=>onChange(rules.filter((_,i)=>i!==index))}>削除</button></div>
+        {!singleRule&&<div className="row"><strong>分類条件 {index+1}</strong><button type="button" className="btn secondary" onClick={()=>onChange(rules.filter((_,i)=>i!==index))}>削除</button></div>}
         <fieldset className="stack"><legend>判定方式</legend><div className="row" role="group" aria-label={`分類条件${index+1}の判定方式`}><button type="button" className={type==='individual'?'btn':'btn secondary'} aria-pressed={type==='individual'} onClick={()=>setType('individual')}>個別条件</button><button type="button" className={type==='aggregate'?'btn':'btn secondary'} aria-pressed={type==='aggregate'} onClick={()=>setType('aggregate')}>合計点条件</button></div></fieldset>
         {type==='individual'?<>
           <fieldset className="stack"><legend>質問ごとの基準点をどう組み合わせますか？</legend><div className="row"><button type="button" className={rule.logic==='and'?'btn':'btn secondary'} onClick={()=>update(index,{...rule,logic:'and'})}>すべて満たす（AND）</button><button type="button" className={rule.logic==='or'?'btn':'btn secondary'} onClick={()=>update(index,{...rule,logic:'or'})}>どれか満たす（OR）</button></div></fieldset>
@@ -32,7 +32,7 @@ export function CompletionRuleSettings({rules,questions,completionText,onChange}
         <label className="field">条件達成時の完了メッセージ（任意）<textarea value={rule.completionMessage??''} onChange={e=>update(index,{...rule,completionMessage:e.target.value})}/></label>
       </div>;
     })}
-    <button type="button" className="btn secondary" disabled={!ratings.length} onClick={add}>＋ 評価分類を追加</button>
-    {rules.length>0&&<div className="stack"><strong>判定結果のプレビュー</strong>{ratings.map(q=><label className="field" key={q.id}>Q{questions.indexOf(q)+1} {q.title}<select value={typeof answers[q.id]==='number'?String(answers[q.id]):''} onChange={e=>setAnswers(current=>({...current,[q.id]:e.target.value===''?'':Number(e.target.value)}))}><option value="">未回答</option>{Array.from({length:scoreMax(q)},(_,i)=>i+1).map(n=><option key={n} value={n}>{n}点</option>)}</select></label>)}<p className="notice" role="status">{(()=>{const result=evaluateCompletionRules({completionText,completionRules:rules} as never,answers,questions);return result.matchedRuleId?`条件達成：${rules.findIndex(r=>r.id===result.matchedRuleId)+1}番の分類条件`:'条件未達';})()}</p></div>}
+    {!singleRule&&<button type="button" className="btn secondary" disabled={!ratings.length} onClick={add}>＋ 評価分類を追加</button>}
+    {rules.length>0&&<div className="stack"><strong>判定結果のプレビュー</strong>{ratings.map(q=><label className="field" key={q.id}>Q{questions.indexOf(q)+1} {q.title}<select value={typeof answers[q.id]==='number'?String(answers[q.id]):''} onChange={e=>setAnswers(current=>({...current,[q.id]:e.target.value===''?'':Number(e.target.value)}))}><option value="">未回答</option>{Array.from({length:scoreMax(q)},(_,i)=>i+1).map(n=><option key={n} value={n}>{n}点</option>)}</select></label>)}<p className="notice" role="status">{(()=>{const result=evaluateCompletionRules({completionText,completionRules:rules} as never,answers,questions);return result.matchedRuleId?(singleRule?'条件達成：Google口コミの表示条件を満たしています':`条件達成：${rules.findIndex(r=>r.id===result.matchedRuleId)+1}番の分類条件`):'条件未達';})()}</p></div>}
   </section>;
 }
