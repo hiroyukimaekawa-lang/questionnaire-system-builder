@@ -2,9 +2,9 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
 
-test('SANGLIERのみ既存の編集画面を5ステップ化し、survey.idとslugは維持する',()=>{
+test('すべての既存編集画面を5ステップ化し、survey.idとslugは維持する',()=>{
   const route=readFileSync(new URL('../app/admin/surveys/[id]/page.tsx',import.meta.url),'utf8');
-  assert.match(route,/fiveStep=\{survey\.slug==='sanglier-question'\}/);
+  assert.match(route,/<SurveyEditorWorkspace[^>]+ fiveStep publicUrl=/);
   assert.match(route,/getDraftForSurvey\(id\)/);
   assert.match(route,/publicSurveyUrl\(appUrl\(\),survey\.slug\)/);
 });
