@@ -48,7 +48,7 @@ test('旧条件を内部分類に復元しても公開アンケートURLやQR生
 });
 
 test('デモ管理の合計13点以上を維持し、点数条件で口コミCTAを判定する',()=>{
- const config={
+ const config:SurveyConfig={
    ...defaultConfig,googleReviewMode:'score',googleReviewUrl:'https://example.com/review',completionText:'完了',
    completionRules:[{id:'aggregate-13',logic:'and',conditions:[],conditionType:'aggregate',aggregate:{operator:'gte',questionIds:['q1','q2'],value:13},needsFollowUp:false}],
  };
