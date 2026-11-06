@@ -10,7 +10,10 @@ import type {SurveyQuestion,SurveyVersion} from '@/types/database';
 
 type PublishFormAction=(state:any,form:FormData)=>Promise<any>;
 
-export function SurveyEditorWorkspace({survey,draft,publicUrl,publishAction,unpublishAction}:{survey:any;draft:SurveyVersion;publicUrl:string;publishAction:PublishFormAction;unpublishAction:PublishFormAction}){
+export function SurveyEditorWorkspace({survey,draft,publicUrl,publishAction,unpublishAction,fiveStep=false}:{survey:any;draft:SurveyVersion;fiveStep?:boolean;publicUrl:string;publishAction:PublishFormAction;unpublishAction:PublishFormAction}){
+  const [step,setStep]=useState(0);
+  const steps=[{id:'basic-information',label:'1. 基本情報'},{id:'questions',label:'2. 質問作成'},{id:'completion-settings',label:'3. Google口コミ設定'},{id:'design-copy',label:'4. デザイン設定'},{id:'publish-settings',label:'5. プレビュー・公開'}] as const;
+  const showSection=(id:string)=>!fiveStep||steps[step].id===id;
   const [name,setName]=useState(survey.name as string),[config,setConfig]=useState(draft.config),[questions,setQuestions]=useState(draft.questions);
   // identityMode is intentionally not handled here: ConfigForm owns its own
   // legacy | IdentityMode select state and already calls its onChange prop (which
@@ -30,6 +33,7 @@ export function SurveyEditorWorkspace({survey,draft,publicUrl,publishAction,unpu
   };
 
   const focusTarget=(target:string)=>{
+    if(fiveStep){if(target.startsWith('question-'))setStep(1);else if(target==='googleReview'||['completionText','googleReviewUrl','googleReviewMode'].includes(target))setStep(2);else if(['logoUrl','iconUrl','primaryColor','backgroundColor','themeId','heroLabel','heroTitle','heroSubtitle','questionFontSize','description','introText'].includes(target))setStep(3);else setStep(0);}
     if(target.startsWith('question-')){
       const questionId=target.slice(9);
       const card=Array.from(document.querySelectorAll<HTMLElement>('.editor-questions .question-builder-card')).find(element=>element.dataset.questionId===questionId)??null;
@@ -52,11 +56,12 @@ export function SurveyEditorWorkspace({survey,draft,publicUrl,publishAction,unpu
 
   const version={...draft,config,questions};
   return <div className="preview-first-layout"><div className="editor-panel" onChange={syncForm}>
-    <nav className="editor-section-nav" aria-label="編集セクション"><a href="#basic-information">基本情報</a><a href="#design-copy">文章・ロゴ</a><a href="#questions">質問</a><a href="#completion-settings">口コミ・完了条件</a><a href="#publish-settings">公開設定</a></nav>
-    <section id="basic-information" className="editor-section"><BasicForm survey={survey}/></section>
-    <section id="design-copy" className="editor-section"><ConfigForm surveyId={survey.id} versionId={draft.id} config={draft.config} onChange={patch=>setConfig(c=>({...c,...patch}))}/></section>
-    <section id="questions" className="editor-section editor-questions"><QuestionBuilder surveyId={survey.id} versionId={draft.id} initial={draft.questions} onChange={questionsChanged}/></section>
-    <section id="completion-settings" className="editor-section"><CompletionSettingsForm surveyId={survey.id} versionId={draft.id} config={draft.config} questions={questions} onChange={patch=>setConfig(c=>({...c,...patch}))}/></section>
-    <section id="publish-settings" className="editor-section card publish-help"><PublishSection variant="full" status={survey.status} hasPublishedBefore={Boolean(survey.current_published_version_id)} publicUrl={publicUrl} slug={survey.slug} publishAction={publishAction} unpublishAction={unpublishAction}/></section>
+    {fiveStep?<nav className="editor-section-nav" aria-label="編集ステップ">{steps.map((item,index)=><button key={item.id} type="button" className={index===step?"btn":"btn secondary"} aria-current={index===step?"step":undefined} onClick={()=>setStep(index)}>{item.label}</button>)}</nav>:<nav className="editor-section-nav" aria-label="編集セクション"><a href="#basic-information">基本情報</a><a href="#design-copy">文章・ロゴ</a><a href="#questions">質問</a><a href="#completion-settings">口コミ・完了条件</a><a href="#publish-settings">公開設定</a></nav>}
+    <section id="basic-information" style={{display:showSection('basic-information')?undefined:'none'}} className="editor-section"><BasicForm survey={survey}/></section>
+    <section id="design-copy" style={{display:showSection('design-copy')?undefined:'none'}} className="editor-section"><ConfigForm surveyId={survey.id} versionId={draft.id} config={draft.config} onChange={patch=>setConfig(c=>({...c,...patch}))}/></section>
+    <section id="questions" style={{display:showSection('questions')?undefined:'none'}} className="editor-section editor-questions"><QuestionBuilder surveyId={survey.id} versionId={draft.id} initial={draft.questions} onChange={questionsChanged}/></section>
+    <section id="completion-settings" style={{display:showSection('completion-settings')?undefined:'none'}} className="editor-section"><CompletionSettingsForm surveyId={survey.id} versionId={draft.id} config={draft.config} questions={questions} onChange={patch=>setConfig(c=>({...c,...patch}))}/></section>
+    <section id="publish-settings" style={{display:showSection('publish-settings')?undefined:'none'}} className="editor-section card publish-help"><PublishSection variant="full" status={survey.status} hasPublishedBefore={Boolean(survey.current_published_version_id)} publicUrl={publicUrl} slug={survey.slug} publishAction={publishAction} unpublishAction={unpublishAction}/></section>
+    {fiveStep?<div className="row"><button className="btn secondary" type="button" disabled={step===0} onClick={()=>setStep(s=>Math.max(0,s-1))}>前へ</button><button className="btn" type="button" disabled={step===4} onClick={()=>setStep(s=>Math.min(4,s+1))}>次へ</button></div>:null}
   </div><LiveSurveyPreview name={name||'店舗・医院名'} version={version} onEdit={focusTarget}/></div>;
 }
