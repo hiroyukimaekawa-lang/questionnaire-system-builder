@@ -34,10 +34,12 @@ test('公開済みでも既存publishActionへ再公開フォームを接続す�
   const html=renderToStaticMarkup(React.createElement(PublishSection,{status:'published',hasPublishedBefore:true,publicUrl:'https://example.com/test',slug:'test',publishAction:async()=>({}),unpublishAction:async()=>({})}));
   assert.match(html,/変更内容を公開する/);assert.match(html,/https:\/\/example.com\/test/);
 });
-test('コピー失敗時に手動コピーと口コミ遷移を分けて案内する',()=>{
+test('コピー処理とGoogle口コミ遷移を独立しスマホでもリンクを開ける',()=>{
   const source=readFileSync(new URL('../components/survey/ThanksPanel.tsx',import.meta.url),'utf8');
   assert.match(source,/await navigator.clipboard.writeText\(comment\)/);assert.match(source,/catch\s*\{[\s\S]*?setCopyFailed\(true\)/);
-  assert.match(source,/文章をコピーする/);assert.match(source,/Google口コミへ進む/);
+  assert.match(source,/感想をコピーする/);assert.match(source,/Google口コミを書く/);
+  assert.match(source,/<a className="btn thanks-review-button jp-ui-label" href=\{href!\} target="_blank"/);
+  assert.doesNotMatch(source,/window\.location\.assign/);
   assert.doesNotMatch(source,/window\.open/);
   const css=readFileSync(new URL('../app/survey.css',import.meta.url),'utf8');assert.match(css,/\.jp-preserve-lines,[\s\S]*?\.thanks-lead,[\s\S]*?\.completion-copy span\s*\{ white-space: pre-line/);
 });
