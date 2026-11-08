@@ -55,14 +55,14 @@ export function ThanksPanel({
   const completionCopy=stored.message || text;
   const showReview = Boolean(href) && reviewMode !== 'disabled' && (!scoreGated || stored.reviewEligible === true);
 
-  async function review(goToGoogle=false) {
+  async function copyComment() {
     if (!comment) return;
     try {
       if (!navigator.clipboard?.writeText) throw new Error('Clipboard API is unavailable');
       await navigator.clipboard.writeText(comment);
       setCopied(true);
       setCopyFailed(false);
-      if(goToGoogle && href && !previewCompletion){window.alert('感想をコピーしました。Google口コミ画面で貼り付けてご利用ください。');window.location.assign(href);}
+
     } catch {
       setCopied(false);
       setCopyFailed(true);
@@ -93,10 +93,10 @@ export function ThanksPanel({
       {showReview && (
         <div className="thanks-review-block">
           {reviewPrompt&&(previewCompletion&&onEditTarget?<button type="button" className="preview-editable thanks-review-copy jp-copy" onClick={()=>onEditTarget('googleReviewPromptText')}>{reviewPrompt}</button>:<p className="thanks-review-copy jp-copy">{reviewPrompt}</p>)}
-          {comment ? <button type="button" className="btn thanks-review-button jp-ui-label" onClick={previewCompletion&&onEditTarget?()=>onEditTarget('googleReviewUrl'):()=>void review(true)}>感想をコピーしてGoogle口コミへ</button> : <a className="btn thanks-review-button jp-ui-label" href={href!} target="_blank" rel="noopener noreferrer" onClick={e=>{if(previewCompletion){e.preventDefault();onEditTarget?.('googleReviewUrl');}}}>Google口コミを書く</a>}
-          {copyFailed&&<div className="stack"><button type="button" className="btn secondary" onClick={()=>void review()}>文章をコピーする</button><a className="btn secondary" href={href!} target="_blank" rel="noopener noreferrer" onClick={e=>{if(previewCompletion)e.preventDefault()}}>Google口コミへ進む</a></div>}
+          <a className="btn thanks-review-button jp-ui-label" href={href!} target="_blank" rel="noopener noreferrer" onClick={e=>{if(previewCompletion){e.preventDefault();onEditTarget?.('googleReviewUrl');}}}>Google口コミを書く</a>
+          {comment && <button type="button" className="btn secondary jp-ui-label" onClick={()=>void copyComment()}>感想をコピーする</button>}
           <p className="muted thanks-review-note">Google口コミは一般公開されます。公開したくない情報が含まれている場合は、貼り付け後に編集してから投稿してください。</p>
-          {copyFailed && <p className="notice thanks-copy-notice" role="status">自動コピーできませんでした。上に表示された文章を長押ししてコピーしてからお進みください。</p>}
+          {copyFailed && <p className="notice thanks-copy-notice" role="status">コピーできませんでした。上に表示された文章を長押ししてコピーできます。Google口コミへの移動は上のボタンから可能です。</p>}
           {copied && <p className="notice thanks-copy-notice" role="status">感想をコピーしました。</p>}
           {scoreGated&&<small className="muted thanks-review-note">評価分類の条件を満たした方に表示しています。</small>}
         </div>
