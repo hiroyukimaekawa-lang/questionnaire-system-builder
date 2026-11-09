@@ -32,7 +32,7 @@ export async function POST(request:Request){
   let input:unknown;
   try{input=await request.json();}catch{return jsonError('入力内容を確認してください。',400)}
   if(!input||typeof input!=='object')return jsonError('入力内容を確認してください。',400);
-  const body=input as {sessionId?:unknown;context?:unknown};
+  const body=input as {sessionId?:unknown;context?:unknown;mobileReviewConfirmed?:unknown};
   if(body.sessionId!==null&&typeof body.sessionId!=='string')return jsonError('入力内容を確認してください。',400);
   if(!body.context||typeof body.context!=='object'||Array.isArray(body.context))return jsonError('入力内容を確認してください。',400);
   const sessionId=body.sessionId as string|null;
@@ -45,6 +45,7 @@ export async function POST(request:Request){
   const finalConfig=builderConfig(context);
   const reviewValidation=validateReviewSettings(finalConfig,context.questions);
   if(reviewValidation)return jsonError(reviewValidation,400);
+  if(finalConfig.googleReviewMode!=='disabled'&&body.mobileReviewConfirmed!==true)return jsonError('スマホでGoogle口コミ投稿画面を確認してから作成してください。',400);
 
   const questionIdMap=Object.fromEntries(context.questions.map(question=>[question.id,crypto.randomUUID()]));
   const persistedQuestions=context.questions.map(question=>({...question,id:questionIdMap[question.id]}));

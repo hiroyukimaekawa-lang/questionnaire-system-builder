@@ -1,7 +1,7 @@
 import type {AnswerValue, BuilderContext, GoogleReviewRule, IdentityMode, SurveyConfig, SurveyQuestion} from '@/types/database';
 import {defaultConfig, scoreMax} from '@/lib/survey';
 import {getThemeTemplate, themeIdForBusiness} from '@/lib/theme/templates';
-import {safeGoogleReviewUrl} from '@/lib/google-review';
+import {safeGoogleReviewUrl,isDedicatedGoogleReviewUrl} from '@/lib/google-review';
 import {validateRulesForQuestions} from '@/lib/completion-validation';
 
 export const industries=['クリニック','飲食店','美容室','サロン','小売','宿泊','その他'];
@@ -72,6 +72,7 @@ export function builderConfig(context:BuilderContext):SurveyConfig {
 }
 export function validateReviewSettings(config:SurveyConfig,questions:SurveyQuestion[]):string|null {
   if(config.googleReviewMode!=='disabled'&&!safeGoogleReviewUrl(config.googleReviewUrl))return 'Google口コミURLを入力してください。';
+  if(config.googleReviewMode!=='disabled'&&!isDedicatedGoogleReviewUrl(config.googleReviewUrl))return '新規アンケートには口コミ投稿専用URL（g.page/r/.../review または search.google.com/local/writereview?placeid=...）を入力してください。Google検索結果URLは使用できません。';
   if((config.googleReviewMode==='score'||String(config.googleReviewMode)==='conditional')&&!config.completionRules?.length)return '条件付きでは評価分類を1件以上設定してください。';
   if(config.reviewTextQuestionId&&!questions.some(q=>q.id===config.reviewTextQuestionId&&q.type==='textarea'))return '口コミ用文章には現在の長文質問を選択してください。';
   return validateRulesForQuestions(
