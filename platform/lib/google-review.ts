@@ -28,3 +28,22 @@ export function safeGoogleReviewUrl(value:string|null|undefined):string|null {
   if(!value)return null;
   try {const url=new URL(value);return url.protocol==='https:'||url.protocol==='http:'?url.href:null;} catch {return null;}
 }
+
+/**
+ * New surveys must link to a review composer, not a Google search result.
+ * Existing surveys retain legacy URLs; this stricter rule applies only when creating a survey.
+ */
+export function isDedicatedGoogleReviewUrl(value:string|null|undefined):boolean {
+  const safe=safeGoogleReviewUrl(value);
+  if(!safe)return false;
+  try {
+    const url=new URL(safe);
+    if(url.protocol!=='https:'||url.username||url.password)return false;
+    const host=url.hostname.toLowerCase();
+    if(host==='search.google.com'&&url.pathname==='/local/writereview')
+      return Boolean(url.searchParams.get('placeid')?.trim());
+    if(host==='g.page')
+      return /^\/r\/[^/]+\/review\/?$/.test(url.pathname);
+    return false;
+  } catch { return false; }
+}
