@@ -35,6 +35,8 @@ export interface SurveyConfig {
   completionText: string; submitLabel: string; primaryColor: string;
   backgroundColor: string; logoUrl: string | null; iconUrl: string | null;
   googleReviewUrl: string | null;
+  /** Explicit temporary Google search URL allowance for sales demonstrations; replace before actual rollout. */
+  demoGoogleReviewLink?: boolean;
   googleReviewMode?: GoogleReviewMode;
   /** Explicit opt-in; absent legacy configs keep their historical all-respondent CTA behavior. */
   scoreGatesGoogleReview?: boolean;
