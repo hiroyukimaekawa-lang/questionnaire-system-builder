@@ -44,7 +44,7 @@ export function ConfigForm({surveyId,versionId,config,onChange}:{surveyId:string
   const copyHelp='改行したい位置でEnterを押してください。改行を入れない場合は画面幅に合わせて自動で折り返します。';
   const optionalField=(key:OptionalCopyKey,label:string,rows=3,singleLine=false)=><div className={`optional-copy-field ${copyEnabled[key]?'enabled':'disabled'}`} key={key}><div className="optional-copy-heading"><strong>{label}</strong><button type="button" className={copyEnabled[key]?'btn secondary optional-copy-toggle':'btn secondary optional-copy-toggle'} aria-pressed={copyEnabled[key]} onClick={()=>toggleCopy(key)}>{copyEnabled[key]?'使用中（非表示にする）':'＋ 使用する'}</button></div>{copyEnabled[key]?<label className="field">{singleLine?<input name={key} value={copyValues[key]} onChange={e=>updateCopy(key,e.target.value)} placeholder="文章を入力"/>:<textarea rows={rows} name={key} value={copyValues[key]} onChange={e=>updateCopy(key,e.target.value)} placeholder="文章を入力"/>}<small className="editor-field-help">不要になった場合は「非表示にする」を押してください。{singleLine?'':copyHelp}</small></label>:<input type="hidden" name={key} value=""/>}</div>;
   const copyPatch=Object.fromEntries((Object.keys(copyValues) as OptionalCopyKey[]).map(key=>[key,effectiveCopy(key)]));
-  return <form action={action} className="card stack admin-form-card design-settings-form"><div><p className="form-kicker">公開画面</p><h2>文章・ロゴ設定</h2><p className="muted">文章は実際に回答者が見る順番で設定します。右側のプレビュー内の文章をクリックすると、対応する編集欄へ移動できます。</p></div>
+  return <form action={action} className="card stack admin-form-card design-settings-form"><div><p className="form-kicker">公開画面</p><h2>文章・ロゴ設定</h2><p className="muted">文章は実際に回答者が見る順番で設定します。公開中のアンケートは、変更した文章を保存すると公開画面にも即時反映されます。質問・デザインなどの変更は従来どおり公開操作が必要です。</p></div>
     <section className="copy-flow-section"><div className="copy-flow-heading"><span>1</span><div><h3>回答画面の文章</h3><p className="muted">アンケートを開いて、回答を送信するまでに表示される内容です。</p></div></div>
       <label className="field">画面タイトル<input name="title" defaultValue={config.title} required/></label>
       {optionalField('heroLabel','上部ラベル',1,true)}
@@ -76,6 +76,6 @@ export function ConfigForm({surveyId,versionId,config,onChange}:{surveyId:string
     <input type="hidden" name="heroBackgroundType" value={config.heroBackgroundType??defaults.heroBackgroundType}/>
     <input type="hidden" name="cardRadius" value={config.cardRadius??defaults.cardRadius}/>
     <input type="hidden" name="designPatch" value={JSON.stringify(copyPatch)}/>
-    <Result state={state}/><button className="btn" disabled={pending}>{pending?'保存中…':'文章・ロゴ設定を下書き保存'}</button>
+    <Result state={state}/><button className="btn" disabled={pending}>{pending?'保存中…':'文章・ロゴ設定を保存'}</button>
   </form>;
 }
