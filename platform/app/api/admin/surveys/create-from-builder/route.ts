@@ -45,7 +45,7 @@ export async function POST(request:Request){
   const finalConfig=builderConfig(context);
   const reviewValidation=validateReviewSettings(finalConfig,context.questions);
   if(reviewValidation)return jsonError(reviewValidation,400);
-  if(finalConfig.googleReviewMode!=='disabled'&&body.mobileReviewConfirmed!==true)return jsonError('スマホでGoogle口コミ投稿画面を確認してから作成してください。',400);
+  if(finalConfig.googleReviewMode!=='disabled'&&finalConfig.demoGoogleReviewLink!==true&&body.mobileReviewConfirmed!==true)return jsonError('スマホでGoogle口コミ投稿画面を確認してから作成してください。',400);
 
   const questionIdMap=Object.fromEntries(context.questions.map(question=>[question.id,crypto.randomUUID()]));
   const persistedQuestions=context.questions.map(question=>({...question,id:questionIdMap[question.id]}));
