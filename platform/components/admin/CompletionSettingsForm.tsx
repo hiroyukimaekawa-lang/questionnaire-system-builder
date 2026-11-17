@@ -18,7 +18,7 @@ export function CompletionSettingsForm({surveyId,versionId,config,questions,onCh
     <input type="hidden" name="googleReviewRule" value={JSON.stringify(review.googleReviewRule??null)}/>
     <input type="hidden" name="scoreGatesGoogleReview" value={String(review.scoreGatesGoogleReview===true)}/>
     <input type="hidden" name="completionRules" value={JSON.stringify(review.completionRules??[])}/>
-    {state?.error&&<p className="error" role="alert">{state.error}</p>}
+    {state?.error&&<div role="alert"><p className="error">{state.error}</p>{state.error.includes('現在の下書きに存在する評価質問')&&<p className="muted">STEP2の質問を先に保存したうえでSTEP3を再表示し、分類条件で現在の評価質問を選び直してください。古い質問IDが残っている場合は該当条件を削除して再設定します。</p>}</div>}
     {state?.success&&<p className="notice" role="status">{state.success}</p>}
     <button className="btn" disabled={pending}>{pending?'保存中…':'回答後設定を保存'}</button>
   </form>;
