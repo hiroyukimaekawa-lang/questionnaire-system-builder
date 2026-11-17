@@ -4,7 +4,7 @@ set local search_path=public,extensions;
 select plan(10);
 
 insert into auth.users(id,email,raw_user_meta_data) values
- ('aa100000-0000-4000-8000-000000000001','atomic-save-admin@example.test','{}'::jsonb);
+ ('aa100000-0000-4000-8000-000000000001','atomic-save-admin@crestix-inc.com','{}'::jsonb);
 update public.profiles set role='admin',is_active=true
  where id='aa100000-0000-4000-8000-000000000001';
 
