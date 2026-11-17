@@ -74,23 +74,37 @@ export async function saveQuestionsAction(surveyId:string,versionId:string,quest
     const sameQuestionOrder=previousDraft.questions.length===questions.length
       && questions.every((q,i)=>q.id===previousDraft.questions[i].id);
 
-    // Keep the existing draft-only question save flow. Never delete public questions.
-    const {error:de}=await s.from('questions').delete().eq('survey_version_id',versionId);
-    if(de)return {error:'質問の保存に失敗しました。'};
-    for(let i=0;i<questions.length;i++){
-      const q=questions[i];
-      const {data:created,error}=await s.from('questions').insert({
-        id:q.id,survey_version_id:versionId,type:q.type,title:q.title.trim(),
-        description:q.description.trim(),required:q.required,sort_order:i,settings:q.settings
-      }).select('id').single();
-      if(error||!created)return {error:'質問の保存に失敗しました。'};
-      if(q.type==='single_choice'||q.type==='multiple_choice'){
-        const opts=q.options.filter(o=>o.label.trim()).map((o,n)=>({
-          question_id:created.id,label:o.label.trim(),
-          value:o.value.trim()||`option-${n+1}`,sort_order:n
-        }));
-        const {error:oe}=await s.from('question_options').insert(opts);
-        if(oe)return {error:'選択肢の保存に失敗しました。'};
+    // Text-only edits update rows in place, preserving draft question IDs,
+    // choices and references. Structural edits retain the existing draft save path.
+    const normalized=questions.map(q=>({...q,title:q.title.trim(),description:q.description.trim()}));
+    const draftTextUpdates=sameQuestionOrder
+      ?publishedQuestionCopyUpdates(previousDraft.questions,normalized):null;
+    if(draftTextUpdates!==null){
+      for(const update of draftTextUpdates){
+        const {data:updated,error}=await s.from('questions')
+          .update({title:update.title,description:update.description})
+          .eq('id',update.id).eq('survey_version_id',versionId).select('id').maybeSingle();
+        if(error||!updated)return {error:'質問文の保存に失敗しました。'};
+      }
+    } else {
+      // Structural changes continue to require explicit publication.
+      const {error:de}=await s.from('questions').delete().eq('survey_version_id',versionId);
+      if(de)return {error:'質問の保存に失敗しました。'};
+      for(let i=0;i<questions.length;i++){
+        const q=questions[i];
+        const {data:created,error}=await s.from('questions').insert({
+          id:q.id,survey_version_id:versionId,type:q.type,title:q.title.trim(),
+          description:q.description.trim(),required:q.required,sort_order:i,settings:q.settings
+        }).select('id').single();
+        if(error||!created)return {error:'質問の保存に失敗しました。'};
+        if(q.type==='single_choice'||q.type==='multiple_choice'){
+          const opts=q.options.filter(o=>o.label.trim()).map((o,n)=>({
+            question_id:created.id,label:o.label.trim(),
+            value:o.value.trim()||`option-${n+1}`,sort_order:n
+          }));
+          const {error:oe}=await s.from('question_options').insert(opts);
+          if(oe)return {error:'選択肢の保存に失敗しました。'};
+        }
       }
     }
     revalidatePath(`/admin/surveys/${surveyId}`);
