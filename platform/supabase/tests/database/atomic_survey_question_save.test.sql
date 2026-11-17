@@ -57,7 +57,7 @@ select throws_ok($$
       'required',true,'settings','{}'::jsonb,
       'options',jsonb_build_array(jsonb_build_object('label','','value','x'))))
   )
-$,'P0001','選択肢の入力内容が不正です','Invalid choice throws and rolls back deletion');
+$$,'P0001','選択肢の入力内容が不正です','Invalid choice throws and rolls back deletion');
 select is((select count(*) from public.questions where survey_version_id='aa120000-0000-4000-8000-000000000002'),
  1::bigint,'draft still contains a question after failed write');
 select is((select title from public.questions where survey_version_id='aa120000-0000-4000-8000-000000000002'),
@@ -73,7 +73,7 @@ select lives_ok($$
       'type','text','title','ご記入日','description','',
       'required',true,'settings','{}'::jsonb,'options','[]'::jsonb))
   )
-$,'Published question ID is remapped instead of violating primary key');
+$$,'Published question ID is remapped instead of violating primary key');
 select is((select id from public.questions where survey_version_id='aa120000-0000-4000-8000-000000000002'),
  'aa130000-0000-4000-8000-000000000002'::uuid,'stale published ID reuses current draft ID and preserves rule references');
 
