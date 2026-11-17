@@ -1,7 +1,7 @@
 begin;
 create extension if not exists pgtap with schema extensions;
 set local search_path=public,extensions;
-select plan(9);
+select plan(10);
 
 insert into auth.users(id,email,raw_user_meta_data) values
  ('aa100000-0000-4000-8000-000000000001','atomic-save-admin@example.test','{}'::jsonb);
@@ -73,7 +73,9 @@ select lives_ok($$
       'type','text','title','ご記入日','description','',
       'required',true,'settings','{}'::jsonb,'options','[]'::jsonb))
   )
-$$,'Published question ID is remapped instead of violating primary key');
+$,'Published question ID is remapped instead of violating primary key');
+select is((select id from public.questions where survey_version_id='aa120000-0000-4000-8000-000000000002'),
+ 'aa130000-0000-4000-8000-000000000002'::uuid,'stale published ID reuses current draft ID and preserves rule references');
 
 select * from finish();
 rollback;
