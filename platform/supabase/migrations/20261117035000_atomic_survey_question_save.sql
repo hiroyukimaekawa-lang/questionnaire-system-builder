@@ -62,11 +62,25 @@ begin
     v_seen:=array_append(v_seen,v_requested);
     select id into v_existing from public.questions
       where id=v_requested and survey_version_id=p_version_id;
+    if v_existing is null then
+      -- A tab left open across publication may still submit the published ID.
+      -- Reuse the already-created draft ID at the same position and type
+      -- so its completion-rule references remain valid.
+      select d.id into v_existing
+        from public.surveys s
+        join public.questions p on p.survey_version_id=s.current_published_version_id
+          and p.id=v_requested and p.sort_order=v_index
+        join public.questions d on d.survey_version_id=p_version_id
+          and d.sort_order=v_index and d.type=p.type
+        where s.id=p_survey_id and d.type::text=v_item->>'type';
+    end if;
     v_target:=coalesce(v_existing,gen_random_uuid());
     v_mapping:=v_mapping || jsonb_build_array(
       jsonb_build_object('id',v_target::text,'originalId',v_requested::text,'question',v_item)
     );
+    v_index:=v_index+1;
   end loop;
+  v_index:=0;
 
   -- All changes below are a single PostgreSQL transaction. Any exception rolls
   -- back both deletion and insertion, including the existing option rows.
