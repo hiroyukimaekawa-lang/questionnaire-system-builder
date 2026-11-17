@@ -74,50 +74,29 @@ export async function saveQuestionsAction(surveyId:string,versionId:string,quest
     const sameQuestionOrder=previousDraft.questions.length===questions.length
       && questions.every((q,i)=>q.id===previousDraft.questions[i].id);
 
-    // Text-only edits update rows in place, preserving draft question IDs,
-    // choices and references. Structural edits retain the existing draft save path.
-    const normalized=questions.map(q=>({...q,title:q.title.trim(),description:q.description.trim()}));
-    const draftTextUpdates=sameQuestionOrder
-      ?publishedQuestionCopyUpdates(previousDraft.questions,normalized):null;
-    if(draftTextUpdates!==null){
-      for(const update of draftTextUpdates){
-        const {data:updated,error}=await s.from('questions')
-          .update({title:update.title,description:update.description})
-          .eq('id',update.id).eq('survey_version_id',versionId).select('id').maybeSingle();
-        if(error||!updated)return {error:'質問文の保存に失敗しました。'};
-      }
-    } else {
-      // Structural changes continue to require explicit publication.
-      const {error:de}=await s.from('questions').delete().eq('survey_version_id',versionId);
-      if(de)return {error:'質問の保存に失敗しました。'};
-      for(let i=0;i<questions.length;i++){
-        const q=questions[i];
-        const {data:created,error}=await s.from('questions').insert({
-          id:q.id,survey_version_id:versionId,type:q.type,title:q.title.trim(),
-          description:q.description.trim(),required:q.required,sort_order:i,settings:q.settings
-        }).select('id').single();
-        if(error||!created)return {error:'質問の保存に失敗しました。'};
-        if(q.type==='single_choice'||q.type==='multiple_choice'){
-          const opts=q.options.filter(o=>o.label.trim()).map((o,n)=>({
-            question_id:created.id,label:o.label.trim(),
-            value:o.value.trim()||`option-${n+1}`,sort_order:n
-          }));
-          const {error:oe}=await s.from('question_options').insert(opts);
-          if(oe)return {error:'選択肢の保存に失敗しました。'};
-        }
-      }
+    // One Postgres transaction for delete + insert. Any failure restores the
+    // original draft automatically. Published-version question IDs are remapped.
+    const {error:writeError}=await s.rpc('save_survey_questions_atomic',{
+      p_survey_id:surveyId,
+      p_version_id:versionId,
+      p_questions:questions,
+    });
+    if(writeError){
+      console.error('[survey-questions-save]',{stage:'save_survey_questions_atomic',code:writeError.code});
+      return {error:'質問の保存に失敗しました。既存の質問は保持されています。画面を再読み込みしてからお試しください。'};
     }
+    const draft=await getVersion(versionId);
+    if(!draft)return {error:'質問は保存されましたが、読み込みに失敗しました。画面を再読み込みしてください。'};
     revalidatePath(`/admin/surveys/${surveyId}`);
-
-    // A published survey can accept a text correction immediately, but *never*
-    // auto-publish changes to structure, choices, scoring or required fields.
+    // Explicit publication remains necessary for structural/choice/order edits.
     if(survey.status==='published'&&survey.current_published_version_id){
-      const [draft,live]=await Promise.all([
-        getVersion(versionId),getVersion(survey.current_published_version_id)
-      ]);
-      if(!draft||!live)return {error:'質問は下書きに保存しましたが、公開中の質問を確認できませんでした。'};
+      const live=await getVersion(survey.current_published_version_id);
+      if(!live)return {error:'質問は下書きに保存しましたが、公開中の質問を確認できませんでした。'};
       const updates=publishedQuestionCopyUpdates(live.questions,draft.questions);
-      if(!sameQuestionOrder||updates===null)return {success:'質問を下書き保存しました。質問の順序・構成・選択肢などに変更があるため公開版は変更していません。「変更内容を公開する」で反映してください。'};
+      if(!sameQuestionOrder||updates===null)return {
+        success:'質問を下書き保存しました。質問の順序・構成・選択肢などに変更があるため公開版は変更していません。「変更内容を公開する」で反映してください。',
+        savedQuestions:draft.questions,
+      };
       for(const update of updates){
         const {data:updated,error}=await s.from('questions')
           .update({title:update.title,description:update.description})
@@ -126,13 +105,14 @@ export async function saveQuestionsAction(surveyId:string,versionId:string,quest
       }
       if(updates.length){
         revalidatePath(`/s/${survey.slug}`);
-        return {success:'質問を保存し、修正した質問文・補足説明を公開画面にも反映しました。'};
+        return {success:'質問を保存し、修正した質問文・補足説明を公開画面にも反映しました。',savedQuestions:draft.questions};
       }
-      return {success:'質問を保存しました。公開版と質問文は一致しています。'};
+      return {success:'質問を保存しました。公開版と質問文は一致しています。',savedQuestions:draft.questions};
     }
-    return {success:'質問を保存しました。公開するには「アンケートを公開する」を押してください。'};
-  }catch{
-    return {error:'質問の保存に失敗しました。'};
+    return {success:'質問を保存しました。公開するには「アンケートを公開する」を押してください。',savedQuestions:draft.questions};
+  }catch(e){
+    console.error('[survey-questions-save]',{stage:'unexpected',code:typeof e==='object'&&e!==null&&'code' in e?String(e.code):undefined});
+    return {error:'質問の保存に失敗しました。既存の質問は保持されています。'};
   }
 }
 export async function publishAction(id:string){
