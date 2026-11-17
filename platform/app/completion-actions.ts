@@ -1,6 +1,6 @@
 'use server';
 
-import { safeGoogleReviewUrl, isDedicatedGoogleReviewUrl } from '@/lib/google-review';
+import { safeGoogleReviewUrl, isDedicatedGoogleReviewUrl, isGoogleSearchDemoReviewUrl } from '@/lib/google-review';
 import { revalidatePath } from 'next/cache';
 import { createClient } from '@/lib/supabase/server';
 import { completionSettingsConfig } from '@/lib/config';
@@ -82,7 +82,10 @@ export async function saveCompletionSettingsAction(
       ? form.get('scoreGatesGoogleReview')==='true'
       : (version.config as SurveyConfig).scoreGatesGoogleReview;
     const config = completionSettingsConfig(version.config, mode, reviewUrl, completionRules, googleReviewRule, scoreGatesGoogleReview);
-    if (mode !== 'disabled' && isDedicatedGoogleReviewUrl(reviewUrl)) config.demoGoogleReviewLink = false;
+    const demoRequested = mode !== 'disabled' && form.get('demoGoogleReviewLink') === 'true';
+    if (demoRequested && !isDedicatedGoogleReviewUrl(reviewUrl) && !isGoogleSearchDemoReviewUrl(reviewUrl))
+      return { error: '商談デモ用にはGoogle検索の #lrd= 付きURL、または口コミ投稿専用URLを設定してください。' };
+    config.demoGoogleReviewLink = demoRequested && !isDedicatedGoogleReviewUrl(reviewUrl);
     if (
       submittedReviewMode === 'conditional'
       && (version.config as Record<string, unknown>).googleReviewMode === 'conditional'
