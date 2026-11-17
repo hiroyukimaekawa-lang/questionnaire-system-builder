@@ -47,3 +47,18 @@ export function isDedicatedGoogleReviewUrl(value:string|null|undefined):boolean 
     return false;
   } catch { return false; }
 }
+
+/** Allow historical Google search #lrd links only when staff explicitly selects sales demo. */
+export function isGoogleSearchDemoReviewUrl(value:string|null|undefined):boolean {
+  const safe=safeGoogleReviewUrl(value);
+  if(!safe)return false;
+  try {
+    const url=new URL(safe);
+    return url.protocol==='https:'
+      && !url.username && !url.password
+      && (url.hostname==='www.google.com'||url.hostname==='google.com')
+      && url.pathname==='/search'
+      && Boolean(url.searchParams.get('q')?.trim())
+      && url.hash.startsWith('#lrd=');
+  } catch { return false; }
+}

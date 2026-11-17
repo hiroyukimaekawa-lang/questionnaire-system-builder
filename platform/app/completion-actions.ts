@@ -1,6 +1,6 @@
 'use server';
 
-import { safeGoogleReviewUrl } from '@/lib/google-review';
+import { safeGoogleReviewUrl, isDedicatedGoogleReviewUrl } from '@/lib/google-review';
 import { revalidatePath } from 'next/cache';
 import { createClient } from '@/lib/supabase/server';
 import { completionSettingsConfig } from '@/lib/config';
@@ -82,6 +82,7 @@ export async function saveCompletionSettingsAction(
       ? form.get('scoreGatesGoogleReview')==='true'
       : (version.config as SurveyConfig).scoreGatesGoogleReview;
     const config = completionSettingsConfig(version.config, mode, reviewUrl, completionRules, googleReviewRule, scoreGatesGoogleReview);
+    if (mode !== 'disabled' && isDedicatedGoogleReviewUrl(reviewUrl)) config.demoGoogleReviewLink = false;
     if (
       submittedReviewMode === 'conditional'
       && (version.config as Record<string, unknown>).googleReviewMode === 'conditional'
