@@ -69,6 +69,10 @@ export async function saveQuestionsAction(surveyId:string,versionId:string,quest
     if(surveyError||!survey)return {error:'アンケートを更新できませんでした。'};
     if(survey.current_draft_version_id!==versionId)return {error:'編集中の下書きが更新されています。再読み込みしてから保存してください。'};
     for(const q of questions){const error=validateQuestion(q);if(error)return {error};}
+    const previousDraft=await getVersion(versionId);
+    if(!previousDraft)return {error:'下書きの質問を取得できませんでした。画面を再読み込みしてください。'};
+    const sameQuestionOrder=previousDraft.questions.length===questions.length
+      && questions.every((q,i)=>q.id===previousDraft.questions[i].id);
 
     // Keep the existing draft-only question save flow. Never delete public questions.
     const {error:de}=await s.from('questions').delete().eq('survey_version_id',versionId);
@@ -99,7 +103,7 @@ export async function saveQuestionsAction(surveyId:string,versionId:string,quest
       ]);
       if(!draft||!live)return {error:'質問は下書きに保存しましたが、公開中の質問を確認できませんでした。'};
       const updates=publishedQuestionCopyUpdates(live.questions,draft.questions);
-      if(updates===null)return {success:'質問を下書き保存しました。質問構成・選択肢などに差があるため公開版は変更していません。「変更内容を公開する」で反映してください。'};
+      if(!sameQuestionOrder||updates===null)return {success:'質問を下書き保存しました。質問の順序・構成・選択肢などに変更があるため公開版は変更していません。「変更内容を公開する」で反映してください。'};
       for(const update of updates){
         const {data:updated,error}=await s.from('questions')
           .update({title:update.title,description:update.description})
