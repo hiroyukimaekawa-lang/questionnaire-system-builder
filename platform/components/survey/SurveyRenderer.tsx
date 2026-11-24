@@ -69,19 +69,27 @@ export function SurveyRenderer({
     setSubmitError('');
     const finalIdentityChoice = identityMode === 'anonymous_only' ? 'anonymous' : identityMode === 'identified_only' ? 'identified' : identityMode === 'legacy' ? '' : identityChoice;
     try {
-      const response = await fetch('/api/responses', {
-        method: 'POST',
-        headers: { 'content-type': 'application/json' },
-        body: JSON.stringify({
-          slug,
-          versionId: version.id,
-          answers,
-          ...(finalIdentityChoice ? { identityChoice: finalIdentityChoice } : {}),
-          ...(finalIdentityChoice === 'identified' ? { respondentName: trimmedName } : {}),
-        }),
-      });
-      const json = await response.json();
-      if (!response.ok) throw new Error(json.error || '送信できませんでした。');
+      // Sales demo never writes answers to production Supabase.
+      const salesDemo = slug === 'survey-1793862622762'
+        && new URLSearchParams(window.location.search).get('sales-test') === '1';
+      let json: {id:string;completionMessage?:string;reviewEligible?:boolean;error?:string};
+      if (salesDemo) {
+        json = {id:'sales-demo-not-saved',completionMessage:version.config.completionText,reviewEligible:true};
+      } else {
+        const response = await fetch('/api/responses', {
+          method: 'POST',
+          headers: { 'content-type': 'application/json' },
+          body: JSON.stringify({
+            slug,
+            versionId: version.id,
+            answers,
+            ...(finalIdentityChoice ? { identityChoice: finalIdentityChoice } : {}),
+            ...(finalIdentityChoice === 'identified' ? { respondentName: trimmedName } : {}),
+          }),
+        });
+        json = await response.json();
+        if (!response.ok) throw new Error(json.error || '送信できませんでした。');
+      }
       const patientComment = reviewComment(version.config,version.questions,answers);
       const generated = slug === 'survey-1793862622762' && version.config.reviewTextQuestionId !== null && !patientComment.trim();
       const comment = generated ? generateSakuyamaAnswerDraft(version.questions,answers) : patientComment;
@@ -95,7 +103,7 @@ export function SurveyRenderer({
           reviewEligible: json.reviewEligible === true,
         }),
       );
-      router.push(`/s/${slug}/thanks`);
+      router.push(salesDemo ? `/s/${slug}/thanks?sales-test=1` : `/s/${slug}/thanks`);
     } catch (error) {
       setSubmitError(error instanceof Error ? error.message : '通信エラーが発生しました。');
       setPending(false);
