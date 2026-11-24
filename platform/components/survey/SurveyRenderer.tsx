@@ -103,7 +103,8 @@ export function SurveyRenderer({
           reviewEligible: json.reviewEligible === true,
         }),
       );
-      router.push(salesDemo ? `/s/${slug}/thanks?sales-test=1` : `/s/${slug}/thanks`);
+      if (salesDemo) router.push(`/s/${slug}/thanks?sales-test=1`);
+      else router.push(`/s/${slug}/thanks`);
     } catch (error) {
       setSubmitError(error instanceof Error ? error.message : '通信エラーが発生しました。');
       setPending(false);
