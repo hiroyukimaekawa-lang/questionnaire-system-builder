@@ -11,6 +11,7 @@ const knownBaseline=new Set([
 
 const failures=new Set();
 let stderr='';
+let failureDetails='';
 const testFiles=globSync('tests/**/*.test.ts');
 const child=spawn(process.execPath,[
   '--test-reporter=spec',
@@ -28,6 +29,7 @@ lines.on('line',line=>{
   const failure=clean.match(/^✖ (.+?) \(/)?.[1];
   if(failure)failures.add(failure);
   if(/^[✔✖]/u.test(clean))console.log(clean);
+  else if(failureDetails.length<16000&&(/AssertionError|Error:|error:|expected:|actual:|operator:|stack:|at /i.test(clean))) failureDetails+=clean+'\n';
 });
 child.stderr.on('data',chunk=>{
   if(stderr.length<64*1024)stderr+=chunk.toString();
@@ -52,5 +54,6 @@ if(failures.size>0&&regressions.length===0){
   process.exit(0);
 }
 
+if(failureDetails) console.error('Failure details:\n'+failureDetails);
 console.error(`New or unclassified test failures: ${regressions.join(', ')||'unable to classify test output'}`);
 process.exit(code??1);
