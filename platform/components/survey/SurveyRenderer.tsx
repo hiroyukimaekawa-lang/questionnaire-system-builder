@@ -83,7 +83,7 @@ export function SurveyRenderer({
       const json = await response.json();
       if (!response.ok) throw new Error(json.error || '送信できませんでした。');
       const patientComment = reviewComment(version.config,version.questions,answers);
-      const generated = slug === 'survey-1793862622762' && !patientComment.trim();
+      const generated = slug === 'survey-1793862622762' && version.config.reviewTextQuestionId !== null && !patientComment.trim();
       const comment = generated ? generateSakuyamaAnswerDraft(version.questions,answers) : patientComment;
       sessionStorage.setItem(
         `survey-completion:${slug}`,
