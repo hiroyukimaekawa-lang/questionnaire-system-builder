@@ -90,8 +90,19 @@ export function SurveyRenderer({
         json = await response.json();
         if (!response.ok) throw new Error(json.error || '送信できませんでした。');
       }
-      const patientComment = reviewComment(version.config,version.questions,answers);
-      const generated = slug === 'survey-1793862622762' && version.config.reviewTextQuestionId !== null && !patientComment.trim();
+      const sakuyamaDemo = slug === 'survey-1793862622762';
+      // This published clinic explicitly has reviewTextQuestionId:null (legacy "no copy").
+      // For this clinic only, prioritize the actual free text answer even with that setting.
+      const sakuyamaFreeText = sakuyamaDemo
+        ? version.questions.filter(q => q.type === 'textarea')
+            .sort((a,b) => a.sortOrder-b.sortOrder)
+            .map(q => answers[q.id])
+            .find(v => typeof v === 'string' && v.trim().length > 0)
+        : undefined;
+      const patientComment = sakuyamaDemo && typeof sakuyamaFreeText === 'string'
+        ? sakuyamaFreeText
+        : reviewComment(version.config,version.questions,answers);
+      const generated = sakuyamaDemo && !patientComment.trim();
       const comment = generated ? generateSakuyamaAnswerDraft(version.questions,answers) : patientComment;
       sessionStorage.setItem(
         `survey-completion:${slug}`,
