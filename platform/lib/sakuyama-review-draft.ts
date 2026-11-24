@@ -18,7 +18,7 @@ function pick(phrases:string[],seed:number) {
 }
 
 function scoreSentence(subject:string,score:number,seed:number):string {
-  return subject+'は'+pick(scorePhrases[score]??[],seed);
+  return subject+'については、'+pick(scorePhrases[score]??[],seed);
 }
 
 function choiceLabel(question:SurveyQuestion,value:AnswerValue|undefined):string|null {
