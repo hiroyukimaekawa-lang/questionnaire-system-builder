@@ -26,6 +26,7 @@ export function ThanksPanel({
   primaryColor,
   reviewPromptText,
   scoreGated = false,
+  salesTestMode = false,
   previewCompletion,
   onEditTarget,
 }: {
@@ -36,6 +37,7 @@ export function ThanksPanel({
   primaryColor: string;
   reviewPromptText?: string;
   scoreGated?: boolean;
+  salesTestMode?: boolean;
   previewCompletion?: StoredCompletion;
   onEditTarget?: (target:string)=>void;
 }) {
@@ -105,10 +107,11 @@ export function ThanksPanel({
         </div>
       )}
 
+      {salesTestMode && <p className="notice thanks-copy-notice" role="status">営業用テストモードです。回答はデータベースへ保存されず、Google口コミページへの移動も行いません。</p>}
       {showReview && (
         <div className="thanks-review-block">
           {reviewPrompt&&(previewCompletion&&onEditTarget?<button type="button" className="preview-editable thanks-review-copy jp-copy" onClick={()=>onEditTarget('googleReviewPromptText')}>{reviewPrompt}</button>:<p className="thanks-review-copy jp-copy">{reviewPrompt}</p>)}
-          <a className="btn thanks-review-button jp-ui-label" href={href!} target="_blank" rel="noopener noreferrer" onClick={e=>{if(previewCompletion){e.preventDefault();onEditTarget?.('googleReviewUrl');}}}>Google口コミを書く</a>
+          <a className="btn thanks-review-button jp-ui-label" href={href!} target="_blank" rel="noopener noreferrer" onClick={e=>{if(salesTestMode){e.preventDefault();return;}if(previewCompletion){e.preventDefault();onEditTarget?.('googleReviewUrl');}}}>Google口コミを書く</a>
           {comment && <button type="button" className="btn secondary jp-ui-label" onClick={()=>void copyComment()}>{generated?'確認した文章をコピーする':'感想をコピーする'}</button>}
           <p className="muted thanks-review-note">Google口コミは一般公開されます。公開したくない情報が含まれている場合は、貼り付け後に編集してから投稿してください。</p>
           {copyFailed && <p className="notice thanks-copy-notice" role="status">コピーできませんでした。上に表示された文章を長押ししてコピーできます。Google口コミへの移動は上のボタンから可能です。</p>}
