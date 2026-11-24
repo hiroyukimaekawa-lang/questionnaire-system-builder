@@ -107,11 +107,11 @@ export function ThanksPanel({
         </div>
       )}
 
-      {salesTestMode && <p className="notice thanks-copy-notice" role="status">営業用テストモードです。回答はデータベースへ保存されず、Google口コミページへの移動も行いません。</p>}
+      {salesTestMode && <p className="notice thanks-copy-notice" role="status">営業用テストモードです。回答はデータベースに保存されません。Google口コミページを開いて導線を確認できますが、テスト文章の投稿は行わないでください。</p>}
       {showReview && (
         <div className="thanks-review-block">
           {reviewPrompt&&(previewCompletion&&onEditTarget?<button type="button" className="preview-editable thanks-review-copy jp-copy" onClick={()=>onEditTarget('googleReviewPromptText')}>{reviewPrompt}</button>:<p className="thanks-review-copy jp-copy">{reviewPrompt}</p>)}
-          <a className="btn thanks-review-button jp-ui-label" href={href!} target="_blank" rel="noopener noreferrer" onClick={e=>{if(salesTestMode){e.preventDefault();return;}if(previewCompletion){e.preventDefault();onEditTarget?.('googleReviewUrl');}}}>Google口コミを書く</a>
+          <a className="btn thanks-review-button jp-ui-label" href={href!} target="_blank" rel="noopener noreferrer" onClick={e=>{if(previewCompletion){e.preventDefault();onEditTarget?.('googleReviewUrl');}}}>Google口コミを書く</a>
           {comment && (generated
             ? <button type="button" className="btn secondary jp-ui-label" onClick={()=>void copyComment()}>確認した文章をコピーする</button>
             : <button type="button" className="btn secondary jp-ui-label" onClick={()=>void copyComment()}>感想をコピーする</button>
