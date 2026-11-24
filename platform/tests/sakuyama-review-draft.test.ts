@@ -14,8 +14,8 @@ const questions:SurveyQuestion[]=[
 test('5点評価は選択された満足度を文章化し、未確認の具体的な体験を追加しない',()=>{
   const draft=generateSakuyamaAnswerDraft(questions,{purpose:'consultation',medical:5,staff:5,source:'google'});
   assert.match(draft,/診察で受診/);
-  assert.match(draft,/診療内容は/);
-  assert.match(draft,/スタッフの対応は/);
+  assert.match(draft,/診療内容については/);
+  assert.match(draft,/スタッフの対応については/);
   assert.match(draft,/Googleマップをきっかけに/);
   assert.doesNotMatch(draft,/先生の説明|看護師|丁寧|安心/);
 });
