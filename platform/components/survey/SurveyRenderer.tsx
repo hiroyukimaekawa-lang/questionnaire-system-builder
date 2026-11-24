@@ -1,5 +1,6 @@
 'use client';
 import {reviewComment} from '@/lib/builder/settings';
+import {generateSakuyamaAnswerDraft} from '@/lib/sakuyama-review-draft';
 
 import { useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
@@ -81,13 +82,16 @@ export function SurveyRenderer({
       });
       const json = await response.json();
       if (!response.ok) throw new Error(json.error || '送信できませんでした。');
-      const comment = reviewComment(version.config,version.questions,answers);
+      const patientComment = reviewComment(version.config,version.questions,answers);
+      const generated = slug === 'survey-1793862622762' && !patientComment.trim();
+      const comment = generated ? generateSakuyamaAnswerDraft(version.questions,answers) : patientComment;
       sessionStorage.setItem(
         `survey-completion:${slug}`,
         JSON.stringify({
           responseId: json.id,
           message: json.completionMessage,
           comment: comment ? String(comment) : '',
+          generated,
           reviewEligible: json.reviewEligible === true,
         }),
       );
