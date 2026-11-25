@@ -28,5 +28,9 @@ export const sakuyamaReviewTemplates: Record<string,string> = {
 
 export function sakuyamaReviewTemplate(purpose:string,medical:number,staff:number):string|null {
   if (!Number.isInteger(medical) || !Number.isInteger(staff) || medical<1 || medical>5 || staff<1 || staff>5 || medical+staff<8) return null;
-  return sakuyamaReviewTemplates[`${purpose}|${medical}|${staff}`]??null;
+  const template=sakuyamaReviewTemplates[`${purpose}|${medical}|${staff}`];
+  if (!template) return null;
+  // 自由記述が空欄の場合、未記入の差し込み項目を含む文は出さない。
+  // 他の完成済みの文章は維持する。
+  return template.split('。').filter(sentence=>sentence.trim()&&!/［[^］]+］/.test(sentence)).join('。')+'。';
 }
