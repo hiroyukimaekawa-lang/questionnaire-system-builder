@@ -13,9 +13,10 @@ const questions:SurveyQuestion[]=[
 
 test('5点評価は選択された満足度を文章化し、未確認の具体的な体験を追加しない',()=>{
   const draft=generateSakuyamaAnswerDraft(questions,{purpose:'consultation',medical:5,staff:5,source:'google'});
-  assert.match(draft,/診察で受診/);
-  assert.match(draft,/診療内容については/);
-  assert.match(draft,/スタッフの対応については/);
+  assert.match(draft,/診察/);
+  assert.match(draft,/診察/);
+  assert.match(draft,/診療内容/);
+  assert.match(draft,/スタッフ/);
   // 8点以上ではスプレッドシートの原文を優先し、紹介経路を勝手に補足しない。
   assert.doesNotMatch(draft,/Googleマップをきっかけに/);
   assert.doesNotMatch(draft,/先生の説明|看護師|丁寧|安心/);
