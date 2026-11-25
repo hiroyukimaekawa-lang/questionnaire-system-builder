@@ -13,10 +13,12 @@ const questions:SurveyQuestion[]=[
 
 test('5点評価は選択された満足度を文章化し、未確認の具体的な体験を追加しない',()=>{
   const draft=generateSakuyamaAnswerDraft(questions,{purpose:'consultation',medical:5,staff:5,source:'google'});
-  assert.match(draft,/診察で受診/);
-  assert.match(draft,/診療内容については/);
-  assert.match(draft,/スタッフの対応については/);
-  assert.match(draft,/Googleマップをきっかけに/);
+  assert.match(draft,/診察/);
+  assert.match(draft,/診察/);
+  assert.match(draft,/診察の内容/);
+  assert.match(draft,/スタッフ/);
+  // 8点以上ではスプレッドシートの原文を優先し、紹介経路を勝手に補足しない。
+  assert.doesNotMatch(draft,/Googleマップをきっかけに/);
   assert.doesNotMatch(draft,/先生の説明|看護師|丁寧|安心/);
 });
 
@@ -28,4 +30,18 @@ test('低評価を高評価に変えず、見知らぬ回答値から事実を�
 
 test('未回答なら空の文章を返す',()=>{
   assert.equal(generateSakuyamaAnswerDraft(questions,{}),'');
+});
+
+
+test('さくやま眼科の24分岐は各5点満点・合計8点以上のみ原文テンプレートを出す',async()=>{
+  const {sakuyamaReviewTemplate,sakuyamaReviewTemplates}=await import('../lib/sakuyama-review-templates');
+  assert.equal(Object.keys(sakuyamaReviewTemplates).length,24);
+  for(const purpose of ['診察','検査','診察と検査','その他']){
+    for(let medical=1;medical<=5;medical++)for(let staff=1;staff<=5;staff++){
+      const text=sakuyamaReviewTemplate(purpose,medical,staff);
+      assert.equal(Boolean(text),medical+staff>=8,`${purpose} ${medical}+${staff}`);
+    }
+  }
+  assert.equal(generateSakuyamaAnswerDraft(questions,{purpose:'consultation',medical:4,staff:4}),sakuyamaReviewTemplate('診察',4,4));
+  assert.notEqual(generateSakuyamaAnswerDraft(questions,{purpose:'consultation',medical:3,staff:4}),sakuyamaReviewTemplate('診察',4,4));
 });
