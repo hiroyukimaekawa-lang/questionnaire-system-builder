@@ -1,4 +1,5 @@
 import type {AnswerValue,SurveyQuestion} from '@/types/database';
+import {sakuyamaReviewTemplate} from './sakuyama-review-templates';
 
 /**
  * Survey-owned, zero-API-cost draft suggestions.
@@ -45,6 +46,8 @@ export function generateSakuyamaAnswerDraft(
   };
   if(label&&beginnings[label])parts.push(beginnings[label]);
   const scores=[medical,staff].map(q=>q?Number(answers[q.id]):NaN);
+  const selectedTemplate = label ? sakuyamaReviewTemplate(label,scores[0],scores[1]) : null;
+  if (selectedTemplate) return selectedTemplate;
   const seed=scores.reduce((n,s)=>n+(Number.isInteger(s)?s:0),0)+(label?.length??0);
   if(Number.isInteger(scores[0])&&scores[0]>=1&&scores[0]<=5)parts.push(scoreSentence('診療内容',scores[0],seed));
   if(Number.isInteger(scores[1])&&scores[1]>=1&&scores[1]<=5)parts.push(scoreSentence('スタッフの対応',scores[1],seed+1));
