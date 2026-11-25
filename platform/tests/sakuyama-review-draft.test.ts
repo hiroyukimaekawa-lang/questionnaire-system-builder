@@ -45,3 +45,17 @@ test('さくやま眼科の24分岐は各5点満点・合計8点以上のみ原�
   assert.equal(generateSakuyamaAnswerDraft(questions,{purpose:'consultation',medical:4,staff:4}),sakuyamaReviewTemplate('診察',4,4));
   assert.notEqual(generateSakuyamaAnswerDraft(questions,{purpose:'consultation',medical:3,staff:4}),sakuyamaReviewTemplate('診察',4,4));
 });
+
+
+test('自由記述がなくても24パターンに未記入プレースホルダーが残らない',async()=>{
+  const {sakuyamaReviewTemplate}=await import('../lib/sakuyama-review-templates');
+  for(const purpose of ['診察','検査','診察と検査','その他']){
+    for(const [medical,staff] of [[3,5],[4,4],[4,5],[5,3],[5,4],[5,5]]){
+      const draft=sakuyamaReviewTemplate(purpose,medical,staff);
+      assert.ok(draft);
+      assert.doesNotMatch(draft!,/［|］/);
+      assert.ok(draft!.endsWith('。'));
+    }
+  }
+  assert.equal(sakuyamaReviewTemplate('診察',4,4),'診察のために伺いました。診察の内容もスタッフの方の対応も良かったと思います。');
+});
