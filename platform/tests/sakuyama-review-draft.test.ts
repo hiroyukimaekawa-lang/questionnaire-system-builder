@@ -29,3 +29,17 @@ test('低評価を高評価に変えず、見知らぬ回答値から事実を�
 test('未回答なら空の文章を返す',()=>{
   assert.equal(generateSakuyamaAnswerDraft(questions,{}),'');
 });
+
+
+test('さくやま眼科の24分岐は各5点満点・合計8点以上のみ原文テンプレートを出す',async()=>{
+  const {sakuyamaReviewTemplate,sakuyamaReviewTemplates}=await import('../lib/sakuyama-review-templates');
+  assert.equal(Object.keys(sakuyamaReviewTemplates).length,24);
+  for(const purpose of ['診察','検査','診察と検査','その他']){
+    for(let medical=1;medical<=5;medical++)for(let staff=1;staff<=5;staff++){
+      const text=sakuyamaReviewTemplate(purpose,medical,staff);
+      assert.equal(Boolean(text),medical+staff>=8,`${purpose} ${medical}+${staff}`);
+    }
+  }
+  assert.equal(generateSakuyamaAnswerDraft(questions,{purpose:'consultation',medical:4,staff:4}),sakuyamaReviewTemplate('診察',4,4));
+  assert.notEqual(generateSakuyamaAnswerDraft(questions,{purpose:'consultation',medical:3,staff:4}),sakuyamaReviewTemplate('診察',4,4));
+});
