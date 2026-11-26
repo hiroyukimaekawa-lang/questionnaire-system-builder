@@ -2,6 +2,10 @@ import {redirect} from 'next/navigation';
 import {getAdminBuilderSessions,getAdminSurveys,getAuthState} from '@/lib/data';
 import {logoutAction} from '@/app/actions';
 import {AdminSidebar} from '@/components/admin/AdminSidebar';
+import {AssistantMount} from '@/components/assistant/AssistantMount';
+import {assistantHistoryStorageKey} from '@/lib/assistant/storage-key';
+import {isInternalAssistantEnabled} from '@/lib/feature-flags';
+import {resolveAppCommitSha,resolveEnvironment} from '@/lib/runtime-identity';
 
 export default async function AdminLayout({children}:{children:React.ReactNode}){
   const {user,profile,error}=await getAuthState();if(!user)redirect('/login');
@@ -10,5 +14,13 @@ export default async function AdminLayout({children}:{children:React.ReactNode})
   const results=await Promise.allSettled([getAdminSurveys(),getAdminBuilderSessions()]);
   const listError=results.some(result=>result.status==='rejected');
   const allSurveys=results[0].status==='fulfilled'?results[0].value:[],sessions=results[1].status==='fulfilled'?results[1].value:[];const surveys=allSurveys.filter(item=>item.status!=='archived');const counts={inProgress:sessions.length,draft:surveys.filter(item=>item.status==='draft'||item.status==='unpublished').length,published:surveys.filter(item=>item.status==='published').length,withResponses:surveys.filter(item=>(item.responses?.[0]?.count??0)>0).length,archived:allSurveys.filter(item=>item.status==='archived').length};
-  return <div className="crm-shell"><AdminSidebar role={profile.role} counts={listError?null:counts} recent={surveys.slice(0,4)}/><div className="crm-workspace"><header className="crm-topbar"><div className="topbar-identity"><span className="topbar-avatar" aria-hidden="true">{(profile.name||profile.email).slice(0,1).toUpperCase()}</span><span><strong>{profile.name||profile.email}</strong><small>{profile.role==='admin'?'管理者':profile.role==='viewer'?'閲覧者':'担当者'}</small></span></div><form action={logoutAction}><button className="topbar-logout" type="submit">ログアウト</button></form></header><main className="crm-main"><div className="crm-main-inner">{children}</div></main></div></div>;
+  // The assistant flag/role gate happens here, server-side, before any of its code
+  // is even referenced - see AssistantMount.tsx for why that keeps its JS out of
+  // disabled/viewer sessions entirely, not just visually hidden.
+  const showAssistant=isInternalAssistantEnabled()&&(profile.role==='admin'||profile.role==='sales');
+  // No provider/context wraps the tree for this: the assistant has no dependency
+  // on anything in the core editor (see SurveyEditorWorkspace.tsx), so a disabled
+  // or viewer session renders exactly the same admin tree as before this feature
+  // existed, plus nothing.
+  return <><div className="crm-shell"><AdminSidebar role={profile.role} counts={listError?null:counts} recent={surveys.slice(0,4)}/><div className="crm-workspace"><header className="crm-topbar"><div className="topbar-identity"><span className="topbar-avatar" aria-hidden="true">{(profile.name||profile.email).slice(0,1).toUpperCase()}</span><span><strong>{profile.name||profile.email}</strong><small>{profile.role==='admin'?'管理者':profile.role==='viewer'?'閲覧者':'担当者'}</small></span></div><form action={logoutAction}><button className="topbar-logout" type="submit">ログアウト</button></form></header><main className="crm-main"><div className="crm-main-inner">{children}</div></main></div></div>{showAssistant&&<AssistantMount role={profile.role} appCommitSha={resolveAppCommitSha()} environment={resolveEnvironment()} historyStorageKey={assistantHistoryStorageKey(user.id)}/>}</>;
 }
