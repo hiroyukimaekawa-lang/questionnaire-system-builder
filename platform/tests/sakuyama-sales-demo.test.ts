@@ -23,7 +23,7 @@ test('営業テスト完了画面で下書きを編集でき、Google口コミ�
     salesTestMode:true,
     previewCompletion:{generated:true,comment:'診療内容に満足しました。',reviewEligible:true},
   }));
-  assert.match(html,/回答内容から作成した文章の下書き/);
+  assert.match(html,/口コミ用の文章/);
   assert.match(html,/textarea/);
   assert.match(html,/診療内容に満足しました/);
   assert.match(html,/href="https:\/\/example\.com\/review"/);
@@ -34,4 +34,23 @@ test('営業テストの口コミリンクを意図的に遮断する処理が�
   const source=readFileSync(new URL('../components/survey/ThanksPanel.tsx',import.meta.url),'utf8');
   assert.doesNotMatch(source,/if\(salesTestMode\)\{e\.preventDefault\(\);return;\}/);
   assert.match(source,/target="_blank" rel="noopener noreferrer"/);
+});
+
+
+test('さくやま眼科の文案案内は短く、コピーとGoogle口コミリンクが独立している',()=>{
+  const html=renderToStaticMarkup(React.createElement(ThanksPanel,{
+    slug:'survey-1793862622762',
+    text:'ご回答ありがとうございました',
+    reviewMode:'all',
+    reviewUrl:'https://www.google.com/search?q=sample#lrd=sample',
+    primaryColor:'#123456',
+    previewCompletion:{generated:true,comment:'診察には満足しています。',reviewEligible:true},
+  }));
+  assert.match(html,/口コミ用の文章/);
+  assert.match(html,/文章をコピーして、Googleで感想を書けます/);
+  assert.match(html,/文章をコピーする/);
+  assert.match(html,/Googleで感想を書く/);
+  assert.ok(html.includes('href="https://www.google.com/search?q=sample#lrd=sample"'));
+  assert.doesNotMatch(html,/回答内容から作成した文章の下書き/);
+  assert.doesNotMatch(html,/回答内容から作成した参考文です/);
 });

@@ -11,7 +11,9 @@ test('Google口コミへのリンクはコピー処理を待たない独立し�
 });
 
 test('感想コピーの成否に関係なくGoogle口コミリンクを表示する',()=>{
-  assert.match(source,/<button type="button" className="btn secondary jp-ui-label" onClick=\{\(\)=>void copyComment\(\)\}>感想をコピーする<\/button>/);
+  assert.match(source,/<button type="button" className="btn secondary jp-ui-label" onClick=\{\(\)=>void copyComment\(\)\}>/);
+  assert.match(source,/感想をコピーする/);
+  assert.match(source,/文章をコピーする/);
   assert.match(source,/\{showReview && \(/);
   assert.doesNotMatch(source,/\{copyFailed&&<div/);
   assert.match(source,/Google口コミへの移動は上のボタンから可能です/);
