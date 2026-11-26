@@ -53,6 +53,7 @@ export function ThanksPanel({
   const [copied, setCopied] = useState(false);
   const [comment, setComment] = useState(stored.comment ?? '');
   const generated = stored.generated === true;
+  const sakuyama = slug === 'survey-1793862622762';
   const href = safeGoogleReviewUrl(reviewUrl);
   const [copyFailed, setCopyFailed] = useState(false);
   const reviewPrompt=reviewPromptText===undefined?DEFAULT_REVIEW_PROMPT:reviewPromptText.trim();
@@ -89,10 +90,10 @@ export function ThanksPanel({
 
       {comment && (
         <div className="thanks-comment-box">
-          <strong className="thanks-comment-label">{generated?'回答内容から作成した文章の下書き':'アンケートにご入力いただいた内容'}</strong>
+          <strong className="thanks-comment-label">{sakuyama?'口コミ用の文章':generated?'回答内容から作成した文章の下書き':'アンケートにご入力いただいた内容'}</strong>
           {generated ? (
             <>
-              <p className="muted thanks-review-note">回答内容から作成した参考文です。実際の体験と一致するか確認し、必要に応じて編集してください。Google口コミへの投稿は任意です。</p>
+              {sakuyama ? <p className="muted thanks-review-note">文章をコピーして、Googleで感想を書けます。内容は自由に編集できます。</p> : <p className="muted thanks-review-note">回答内容から作成した参考文です。実際の体験と一致するか確認し、必要に応じて編集してください。Google口コミへの投稿は任意です。</p>}
               <textarea
                 className="survey-text-input"
                 aria-label="生成した文章の編集"
@@ -111,10 +112,10 @@ export function ThanksPanel({
       {showReview && (
         <div className="thanks-review-block">
           {reviewPrompt&&(previewCompletion&&onEditTarget?<button type="button" className="preview-editable thanks-review-copy jp-copy" onClick={()=>onEditTarget('googleReviewPromptText')}>{reviewPrompt}</button>:<p className="thanks-review-copy jp-copy">{reviewPrompt}</p>)}
-          <a className="btn thanks-review-button jp-ui-label" href={href!} target="_blank" rel="noopener noreferrer" onClick={e=>{if(previewCompletion){e.preventDefault();onEditTarget?.('googleReviewUrl');}}}>Google口コミを書く</a>
+          <a className="btn thanks-review-button jp-ui-label" href={href!} target="_blank" rel="noopener noreferrer" onClick={e=>{if(previewCompletion){e.preventDefault();onEditTarget?.('googleReviewUrl');}}}>{sakuyama?'Googleで感想を書く':'Google口コミを書く'}</a>
           {comment && (generated
-            ? <button type="button" className="btn secondary jp-ui-label" onClick={()=>void copyComment()}>確認した文章をコピーする</button>
-            : <button type="button" className="btn secondary jp-ui-label" onClick={()=>void copyComment()}>感想をコピーする</button>
+            ? <button type="button" className="btn secondary jp-ui-label" onClick={()=>void copyComment()}>{sakuyama?'文章をコピーする':'確認した文章をコピーする'}</button>
+            : <button type="button" className="btn secondary jp-ui-label" onClick={()=>void copyComment()}>{sakuyama?'文章をコピーする':'感想をコピーする'}</button>
           )}
           <p className="muted thanks-review-note">Google口コミは一般公開されます。公開したくない情報が含まれている場合は、貼り付け後に編集してから投稿してください。</p>
           {copyFailed && <p className="notice thanks-copy-notice" role="status">コピーできませんでした。上に表示された文章を長押ししてコピーできます。Google口コミへの移動は上のボタンから可能です。</p>}
