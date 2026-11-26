@@ -23,7 +23,7 @@ test('営業テスト完了画面で下書きを編集でき、Google口コミ�
     salesTestMode:true,
     previewCompletion:{generated:true,comment:'診療内容に満足しました。',reviewEligible:true},
   }));
-  assert.match(html,/回答内容から作成した文章の下書き/);
+  assert.match(html,/口コミ用の文章/);
   assert.match(html,/textarea/);
   assert.match(html,/診療内容に満足しました/);
   assert.match(html,/href="https:\/\/example\.com\/review"/);
@@ -50,7 +50,7 @@ test('さくやま眼科の文案案内は短く、コピーとGoogle口コミ�
   assert.match(html,/文章をコピーして、Googleで感想を書けます/);
   assert.match(html,/文章をコピーする/);
   assert.match(html,/Googleで感想を書く/);
-  assert.match(html,/href="https:\/\/www\\.google\\.com\\/search/);
+  assert.ok(html.includes('href="https://www.google.com/search?q=sample#lrd=sample"'));
   assert.doesNotMatch(html,/回答内容から作成した文章の下書き/);
   assert.doesNotMatch(html,/回答内容から作成した参考文です/);
 });
