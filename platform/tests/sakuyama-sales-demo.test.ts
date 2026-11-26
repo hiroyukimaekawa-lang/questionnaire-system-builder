@@ -35,3 +35,22 @@ test('営業テストの口コミリンクを意図的に遮断する処理が�
   assert.doesNotMatch(source,/if\(salesTestMode\)\{e\.preventDefault\(\);return;\}/);
   assert.match(source,/target="_blank" rel="noopener noreferrer"/);
 });
+
+
+test('さくやま眼科の文案案内は短く、コピーとGoogle口コミリンクが独立している',()=>{
+  const html=renderToStaticMarkup(React.createElement(ThanksPanel,{
+    slug:'survey-1793862622762',
+    text:'ご回答ありがとうございました',
+    reviewMode:'all',
+    reviewUrl:'https://www.google.com/search?q=sample#lrd=sample',
+    primaryColor:'#123456',
+    previewCompletion:{generated:true,comment:'診察には満足しています。',reviewEligible:true},
+  }));
+  assert.match(html,/口コミ用の文章/);
+  assert.match(html,/文章をコピーして、Googleで感想を書けます/);
+  assert.match(html,/文章をコピーする/);
+  assert.match(html,/Googleで感想を書く/);
+  assert.match(html,/href="https:\/\/www\\.google\\.com\\/search/);
+  assert.doesNotMatch(html,/回答内容から作成した文章の下書き/);
+  assert.doesNotMatch(html,/回答内容から作成した参考文です/);
+});
