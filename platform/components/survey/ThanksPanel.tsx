@@ -58,7 +58,7 @@ export function ThanksPanel({
   const [copyFailed, setCopyFailed] = useState(false);
   const reviewPrompt=reviewPromptText===undefined?DEFAULT_REVIEW_PROMPT:reviewPromptText.trim();
   const completionCopy=stored.message || text;
-  const showReview = Boolean(href) && reviewMode !== 'disabled' && (!scoreGated || stored.reviewEligible === true);
+  const showReview = Boolean(href) && reviewMode !== 'disabled' && ((sakuyama || scoreGated) ? stored.reviewEligible === true : true);
 
   async function copyComment() {
     if (!comment) return;
