@@ -1,6 +1,7 @@
 'use client';
 import {reviewComment} from '@/lib/builder/settings';
 import {generateSakuyamaAnswerDraft} from '@/lib/sakuyama-review-draft';
+import {isSakuyamaReviewEligible} from '@/lib/sakuyama-review-eligibility';
 
 import { useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
@@ -91,6 +92,7 @@ export function SurveyRenderer({
         if (!response.ok) throw new Error(json.error || '送信できませんでした。');
       }
       const sakuyamaDemo = slug === 'survey-1793862622762';
+      const sakuyamaReviewEligible = sakuyamaDemo && isSakuyamaReviewEligible(version.questions,answers);
       // This published clinic explicitly has reviewTextQuestionId:null (legacy "no copy").
       // For this clinic only, prioritize the actual free text answer even with that setting.
       const sakuyamaFreeText = sakuyamaDemo
@@ -102,8 +104,11 @@ export function SurveyRenderer({
       const patientComment = sakuyamaDemo && typeof sakuyamaFreeText === 'string'
         ? sakuyamaFreeText
         : reviewComment(version.config,version.questions,answers);
-      const generated = sakuyamaDemo && !patientComment.trim();
-      const comment = generated ? generateSakuyamaAnswerDraft(version.questions,answers) : patientComment;
+      // Scores below eight reach the usual thank-you screen without review copy or CTA.
+      const generated = sakuyamaDemo && sakuyamaReviewEligible && !patientComment.trim();
+      const comment = sakuyamaDemo && !sakuyamaReviewEligible
+        ? ''
+        : generated ? generateSakuyamaAnswerDraft(version.questions,answers) : patientComment;
       sessionStorage.setItem(
         `survey-completion:${slug}`,
         JSON.stringify({
@@ -111,7 +116,7 @@ export function SurveyRenderer({
           message: json.completionMessage,
           comment: comment ? String(comment) : '',
           generated,
-          reviewEligible: json.reviewEligible === true,
+          reviewEligible: sakuyamaDemo ? sakuyamaReviewEligible : json.reviewEligible === true,
         }),
       );
       if (salesDemo) router.push(`/s/${slug}/thanks?sales-test=1`);
