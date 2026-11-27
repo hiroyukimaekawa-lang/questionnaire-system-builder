@@ -9,7 +9,7 @@ test('さくやま眼科のみ、legacy reviewTextQuestionId:null でも自由�
   const source=readFileSync(new URL('../components/survey/SurveyRenderer.tsx',import.meta.url),'utf8');
   assert.match(source,/const sakuyamaDemo = slug === 'survey-1793862622762'/);
   assert.match(source,/version\.questions\.filter\(q => q\.type === 'textarea'\)/);
-  assert.match(source,/const generated = sakuyamaDemo && !patientComment\.trim\(\)/);
+  assert.match(source,/const generated = sakuyamaDemo && sakuyamaReviewEligible && !patientComment\.trim\(\)/);
   assert.doesNotMatch(source,/const generated = slug === 'survey-1793862622762' && version\.config\.reviewTextQuestionId !== null/);
 });
 
